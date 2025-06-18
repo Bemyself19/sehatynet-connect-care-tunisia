@@ -47,15 +47,12 @@ const Login: React.FC = () => {
       });
 
       // Redirect to appropriate dashboard
-      switch (mockUserRole) {
-        case 'patient':
-          navigate('/dashboard/patient');
-          break;
-        case 'admin':
-          navigate('/dashboard/admin');
-          break;
-        default:
-          navigate('/dashboard/provider');
+      if (mockUserRole === 'patient') {
+        navigate('/dashboard/patient');
+      } else if (mockUserRole === 'admin') {
+        navigate('/dashboard/admin');
+      } else {
+        navigate('/dashboard/provider');
       }
     } catch (error) {
       toast({
