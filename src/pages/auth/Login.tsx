@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import AuthLayout from '@/components/auth/AuthLayout';
-import { LoginCredentials } from '@/types/user';
+import { LoginCredentials, UserRole } from '@/types/user';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginCredentials>({
@@ -39,7 +39,7 @@ const Login: React.FC = () => {
       
       // Mock successful login - redirect based on role
       // In real implementation, get user role from API response
-      const mockUserRole = 'patient'; // This would come from API
+      const mockUserRole: UserRole = 'patient'; // This would come from API
       
       toast({
         title: t('loginSuccess') || 'Login successful',
