@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ const PatientDashboard: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
-    window.location.href = '/auth/login';
+    window.location.href = '/auth/login-selection';
   };
 
   if (activeView === 'appointments') {
@@ -26,10 +27,10 @@ const PatientDashboard: React.FC = () => {
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
+              <Link to="/" className="flex items-center">
                 <Heart className="h-8 w-8 text-blue-600 mr-2" />
                 <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </div>
+              </Link>
               <div className="flex items-center space-x-4">
                 <Button variant="outline" size="sm" onClick={() => setActiveView('overview')}>
                   {t('backToDashboard') || 'Back to Dashboard'}
@@ -55,10 +56,10 @@ const PatientDashboard: React.FC = () => {
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
+              <Link to="/" className="flex items-center">
                 <Heart className="h-8 w-8 text-blue-600 mr-2" />
                 <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </div>
+              </Link>
               <div className="flex items-center space-x-4">
                 <Button variant="outline" size="sm" onClick={() => setActiveView('overview')}>
                   {t('backToDashboard') || 'Back to Dashboard'}
@@ -84,10 +85,10 @@ const PatientDashboard: React.FC = () => {
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
+              <Link to="/" className="flex items-center">
                 <Heart className="h-8 w-8 text-blue-600 mr-2" />
                 <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </div>
+              </Link>
               <div className="flex items-center space-x-4">
                 <Button variant="outline" size="sm" onClick={() => setShowPayment(false)}>
                   {t('backToDashboard') || 'Back to Dashboard'}
@@ -117,10 +118,10 @@ const PatientDashboard: React.FC = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <Link to="/" className="flex items-center">
               <Heart className="h-8 w-8 text-blue-600 mr-2" />
               <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-            </div>
+            </Link>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -222,7 +223,6 @@ const PatientDashboard: React.FC = () => {
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <AppointmentsList />
-
           <MedicalRecords />
         </div>
       </main>

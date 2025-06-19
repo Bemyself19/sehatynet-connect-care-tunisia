@@ -4,9 +4,11 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Eye } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const MedicalRecords: React.FC = () => {
   const { t } = useLanguage();
+  const { toast } = useToast();
 
   const records = [
     {
@@ -49,6 +51,32 @@ const MedicalRecords: React.FC = () => {
     }
   };
 
+  const handleView = (record: any) => {
+    console.log('Viewing record:', record);
+    toast({
+      title: 'Opening Record',
+      description: `Viewing ${record.title}`,
+    });
+    // In a real app, this would open a modal or navigate to a detailed view
+  };
+
+  const handleDownload = (record: any) => {
+    console.log('Downloading record:', record);
+    toast({
+      title: 'Download Started',
+      description: `Downloading ${record.title}`,
+    });
+    // In a real app, this would trigger a file download
+    // For demo purposes, we'll create a mock download
+    const element = document.createElement('a');
+    const file = new Blob([`Medical Record: ${record.title}\nDate: ${record.date}\nProvider: ${record.provider}`], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${record.title.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -76,11 +104,11 @@ const MedicalRecords: React.FC = () => {
               </div>
               
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => handleView(record)}>
                   <Eye className="h-4 w-4 mr-1" />
                   {t('view') || 'View'}
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => handleDownload(record)}>
                   <Download className="h-4 w-4 mr-1" />
                   {t('download') || 'Download'}
                 </Button>

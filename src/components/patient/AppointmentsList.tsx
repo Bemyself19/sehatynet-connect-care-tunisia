@@ -4,9 +4,11 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Video, MapPin } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const AppointmentsList: React.FC = () => {
   const { t } = useLanguage();
+  const { toast } = useToast();
 
   const appointments = [
     {
@@ -37,6 +39,34 @@ const AppointmentsList: React.FC = () => {
       status: 'confirmed'
     }
   ];
+
+  const handleJoinCall = (appointment: any) => {
+    console.log('Joining call for:', appointment);
+    toast({
+      title: 'Joining Video Call',
+      description: `Connecting to ${appointment.doctor}`,
+    });
+    // In a real app, this would open a video call interface
+  };
+
+  const handleReschedule = (appointment: any) => {
+    console.log('Rescheduling:', appointment);
+    toast({
+      title: 'Reschedule Request',
+      description: `Reschedule request sent for appointment with ${appointment.doctor}`,
+    });
+    // In a real app, this would open a rescheduling interface
+  };
+
+  const handleCancel = (appointment: any) => {
+    console.log('Cancelling:', appointment);
+    toast({
+      title: 'Appointment Cancelled',
+      description: `Appointment with ${appointment.doctor} has been cancelled`,
+      variant: 'destructive',
+    });
+    // In a real app, this would send a cancellation request
+  };
 
   return (
     <Card>
@@ -85,14 +115,14 @@ const AppointmentsList: React.FC = () => {
               
               <div className="flex space-x-2">
                 {appointment.type === 'video' && (
-                  <Button size="sm" variant="default">
+                  <Button size="sm" variant="default" onClick={() => handleJoinCall(appointment)}>
                     {t('joinCall') || 'Join Call'}
                   </Button>
                 )}
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => handleReschedule(appointment)}>
                   {t('reschedule') || 'Reschedule'}
                 </Button>
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" onClick={() => handleCancel(appointment)}>
                   {t('cancel') || 'Cancel'}
                 </Button>
               </div>

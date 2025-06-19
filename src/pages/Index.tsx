@@ -35,7 +35,7 @@ const Index = () => {
               </div>
               
               <div className="flex space-x-2">
-                <Link to="/auth/login">
+                <Link to="/auth/login-selection">
                   <Button variant="outline">{t('login')}</Button>
                 </Link>
                 <Link to="/auth/register">

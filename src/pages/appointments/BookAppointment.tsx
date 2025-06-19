@@ -1,51 +1,95 @@
 
 import React, { useState } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, ArrowLeft, Clock, User, Calendar as CalendarIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useLanguage } from '@/hooks/useLanguage';
+import { Heart, Calendar, Clock, User } from 'lucide-react';
 
 const BookAppointment: React.FC = () => {
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [provider, setProvider] = useState<string>('');
-  const [appointmentType, setAppointmentType] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
-  const { t, currentLanguage } = useLanguage();
+  const [formData, setFormData] = useState({
+    doctor: '',
+    specialty: '',
+    date: '',
+    time: '',
+    type: 'in-person',
+    reason: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { t, currentLanguage } = useLanguage();
+  const navigate = useNavigate();
 
-  const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-  ];
-
-  const providers = [
+  const doctors = [
     { id: '1', name: 'Dr. Sarah Johnson', specialty: 'Cardiologist' },
     { id: '2', name: 'Dr. Ahmed Hassan', specialty: 'General Practitioner' },
-    { id: '3', name: 'Dr. Maria Garcia', specialty: 'Dermatologist' }
+    { id: '3', name: 'Dr. Maria Rodriguez', specialty: 'Dermatologist' },
+    { id: '4', name: 'Dr. James Wilson', specialty: 'Orthopedist' }
   ];
 
-  const handleBooking = () => {
-    if (!selectedDate || !selectedTime || !provider || !appointmentType) {
-      toast({
-        title: t('error') || 'Error',
-        description: t('fillAllFields') || 'Please fill all required fields',
-        variant: 'destructive'
-      });
-      return;
-    }
+  const specialties = [
+    'General Practitioner',
+    'Cardiologist',
+    'Dermatologist',
+    'Orthopedist',
+    'Neurologist',
+    'Pediatrician'
+  ];
 
-    toast({
-      title: t('appointmentBooked') || 'Appointment Booked',
-      description: t('appointmentConfirmed') || 'Your appointment has been confirmed'
-    });
+  const timeSlots = [
+    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    window.location.href = '/auth/login-selection';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      console.log('Booking appointment:', formData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Store the new appointment with pending status
+      const newAppointment = {
+        ...formData,
+        id: Date.now(),
+        status: 'pending',
+        patientName: 'Current Patient'
+      };
+      
+      // In a real app, this would be stored in a database
+      const existingAppointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+      existingAppointments.push(newAppointment);
+      localStorage.setItem('appointments', JSON.stringify(existingAppointments));
+      
+      toast({
+        title: 'Appointment Booked Successfully',
+        description: 'Your appointment is pending confirmation from the doctor.',
+      });
+
+      navigate('/dashboard/patient');
+    } catch (error) {
+      toast({
+        title: 'Booking Failed',
+        description: 'Unable to book appointment. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -53,126 +97,153 @@ const BookAppointment: React.FC = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <Link to="/" className="flex items-center">
               <Heart className="h-8 w-8 text-blue-600 mr-2" />
               <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-            </div>
-            <Link to="/dashboard/patient">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t('backToDashboard') || 'Back to Dashboard'}
-              </Button>
             </Link>
+            <div className="flex items-center space-x-4">
+              <Link to="/dashboard/patient">
+                <Button variant="outline" size="sm">
+                  {t('backToDashboard') || 'Back to Dashboard'}
+                </Button>
+              </Link>
+              <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                {t('logout') || 'Logout'}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {t('bookAppointment') || 'Book Appointment'}
           </h1>
           <p className="text-gray-600">
-            {t('scheduleConsultation') || 'Schedule a consultation with a healthcare provider'}
+            {t('scheduleConsultation') || 'Schedule a new consultation with your healthcare provider'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CalendarIcon className="h-5 w-5 mr-2" />
-                {t('selectDate') || 'Select Date & Time'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <Label>{t('appointmentDate') || 'Appointment Date'}</Label>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border mt-2"
-                  disabled={(date) => date < new Date()}
-                />
-              </div>
-
-              {selectedDate && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5" />
+              <span>{t('appointmentDetails') || 'Appointment Details'}</span>
+            </CardTitle>
+            <CardDescription>
+              {t('fillAppointmentForm') || 'Please fill in the details for your appointment'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label>{t('selectTime') || 'Select Time'}</Label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {timeSlots.map((time) => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedTime(time)}
-                      >
-                        {time}
-                      </Button>
-                    ))}
-                  </div>
+                  <Label htmlFor="specialty">{t('specialty') || 'Specialty'}</Label>
+                  <Select 
+                    value={formData.specialty} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, specialty: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectSpecialty') || 'Select specialty'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialties.map((specialty) => (
+                        <SelectItem key={specialty} value={specialty}>
+                          {specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                {t('appointmentDetails') || 'Appointment Details'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="provider">{t('selectProvider') || 'Select Provider'}</Label>
-                <Select value={provider} onValueChange={setProvider}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={t('chooseProvider') || 'Choose a provider'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {providers.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} - {p.specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label htmlFor="doctor">{t('doctor') || 'Doctor'}</Label>
+                  <Select 
+                    value={formData.doctor} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, doctor: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectDoctor') || 'Select doctor'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors
+                        .filter(doctor => !formData.specialty || doctor.specialty === formData.specialty)
+                        .map((doctor) => (
+                        <SelectItem key={doctor.id} value={doctor.name}>
+                          {doctor.name} - {doctor.specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="date">{t('date') || 'Date'}</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="time">{t('time') || 'Time'}</Label>
+                  <Select 
+                    value={formData.time} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, time: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectTime') || 'Select time'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="type">{t('appointmentType') || 'Appointment Type'}</Label>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in-person">{t('inPerson') || 'In Person'}</SelectItem>
+                      <SelectItem value="video">{t('videoCall') || 'Video Call'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="reason">{t('reason') || 'Reason for Visit'}</Label>
+                  <Textarea
+                    id="reason"
+                    value={formData.reason}
+                    onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
+                    placeholder={t('describeSymptoms') || 'Please describe your symptoms or reason for the visit'}
+                    rows={4}
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="type">{t('appointmentType') || 'Appointment Type'}</Label>
-                <Select value={appointmentType} onValueChange={setAppointmentType}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder={t('selectType') || 'Select type'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="consultation">{t('consultation') || 'Consultation'}</SelectItem>
-                    <SelectItem value="followup">{t('followUp') || 'Follow-up'}</SelectItem>
-                    <SelectItem value="checkup">{t('checkUp') || 'Check-up'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="notes">{t('notes') || 'Notes (Optional)'}</Label>
-                <Textarea
-                  id="notes"
-                  placeholder={t('additionalNotes') || 'Any additional notes or symptoms'}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-
-              <Button onClick={handleBooking} className="w-full" size="lg">
-                <Clock className="h-4 w-4 mr-2" />
-                {t('confirmBooking') || 'Confirm Booking'}
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? (t('booking') || 'Booking...') : (t('bookAppointment') || 'Book Appointment')}
               </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
