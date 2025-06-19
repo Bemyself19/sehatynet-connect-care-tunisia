@@ -4,6 +4,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Clock, User, FileText, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PatientDashboard: React.FC = () => {
   const { t, currentLanguage } = useLanguage();
@@ -41,19 +42,21 @@ const PatientDashboard: React.FC = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <CardTitle className="text-lg">{t('bookAppointment') || 'Book Appointment'}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                {t('scheduleConsultation') || 'Schedule a new consultation'}
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <Link to="/appointments/book">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-lg">{t('bookAppointment') || 'Book Appointment'}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  {t('scheduleConsultation') || 'Schedule a new consultation'}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader className="pb-3">
@@ -83,19 +86,21 @@ const PatientDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-orange-600" />
-                <CardTitle className="text-lg">{t('profile') || 'My Profile'}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                {t('updateProfile') || 'Update your information'}
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <Link to="/profile">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-orange-600" />
+                  <CardTitle className="text-lg">{t('profile') || 'My Profile'}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  {t('updateProfile') || 'Update your information'}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Recent Activity */}

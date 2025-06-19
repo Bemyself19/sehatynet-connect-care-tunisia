@@ -1,12 +1,45 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, Calendar, DollarSign, TrendingUp, Heart } from 'lucide-react';
+import UserManagement from '@/components/admin/UserManagement';
 
 const AdminDashboard: React.FC = () => {
   const { t, currentLanguage } = useLanguage();
+  const [activeView, setActiveView] = useState('overview');
+
+  if (activeView === 'users') {
+    return (
+      <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <Heart className="h-8 w-8 text-blue-600 mr-2" />
+                <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="sm" onClick={() => setActiveView('overview')}>
+                  {t('backToOverview') || 'Back to Overview'}
+                </Button>
+                <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Admin</span>
+                <Button variant="outline" size="sm">
+                  {t('logout') || 'Logout'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <UserManagement />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
@@ -96,7 +129,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* Management Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveView('users')}>
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-blue-600" />
