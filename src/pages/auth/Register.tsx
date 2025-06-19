@@ -12,7 +12,8 @@ import { RegisterData, UserRole } from '@/types/user';
 
 const Register: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const defaultRole = (searchParams.get('role') as UserRole) || 'patient';
+  const registrationType = searchParams.get('type') as 'patient' | 'provider' || 'patient';
+  const defaultRole = registrationType === 'provider' ? 'doctor' : 'patient';
   
   const [formData, setFormData] = useState<RegisterData>({
     email: '',
@@ -24,7 +25,8 @@ const Register: React.FC = () => {
     dateOfBirth: '',
     licenseNumber: '',
     specialization: '',
-    address: ''
+    address: '',
+    cnamId: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -50,7 +52,6 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with actual API call
       console.log('Registration attempt:', formData);
       
       // Simulate API call
@@ -62,7 +63,7 @@ const Register: React.FC = () => {
       });
 
       // Redirect to login
-      navigate('/auth/login');
+      navigate('/auth/login-selection');
     } catch (error) {
       toast({
         title: t('registrationError') || 'Registration failed',
@@ -74,11 +75,14 @@ const Register: React.FC = () => {
     }
   };
 
-  const isProvider = ['doctor', 'pharmacy', 'lab', 'radiologist'].includes(formData.role);
+  const isProvider = registrationType === 'provider';
+  const pageTitle = isProvider ? 
+    (t('registerAsProvider') || 'Register as Healthcare Provider') : 
+    (t('registerAsPatient') || 'Register as Patient');
 
   return (
     <AuthLayout 
-      title={t('register') || 'Create Account'} 
+      title={pageTitle} 
       subtitle={t('registerSubtitle') || 'Join the SehatyNet+ community'}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -140,20 +144,37 @@ const Register: React.FC = () => {
         </div>
 
         <div>
-          <Label htmlFor="role">{t('userType') || 'User Type'}</Label>
-          <Select value={formData.role} onValueChange={handleRoleChange}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder={t('selectUserType') || 'Select user type'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="patient">{t('patient') || 'Patient'}</SelectItem>
-              <SelectItem value="doctor">{t('doctor') || 'Doctor'}</SelectItem>
-              <SelectItem value="pharmacy">{t('pharmacy') || 'Pharmacy'}</SelectItem>
-              <SelectItem value="lab">{t('laboratory') || 'Laboratory'}</SelectItem>
-              <SelectItem value="radiologist">{t('radiologist') || 'Radiologist'}</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="cnamId">
+            CNAM ID {!isProvider && (t('optional') || '(Optional)')}
+          </Label>
+          <Input
+            id="cnamId"
+            name="cnamId"
+            type="text"
+            required={isProvider}
+            value={formData.cnamId}
+            onChange={handleChange}
+            placeholder={t('enterCnamId') || 'Enter CNAM ID'}
+            className="mt-1"
+          />
         </div>
+
+        {isProvider && (
+          <div>
+            <Label htmlFor="role">{t('providerType') || 'Provider Type'}</Label>
+            <Select value={formData.role} onValueChange={handleRoleChange}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder={t('selectProviderType') || 'Select provider type'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="doctor">{t('doctor') || 'Doctor'}</SelectItem>
+                <SelectItem value="pharmacy">{t('pharmacy') || 'Pharmacy'}</SelectItem>
+                <SelectItem value="lab">{t('laboratory') || 'Laboratory'}</SelectItem>
+                <SelectItem value="radiologist">{t('radiologist') || 'Radiologist'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="phone">{t('phone') || 'Phone Number'}</Label>
@@ -168,7 +189,7 @@ const Register: React.FC = () => {
           />
         </div>
 
-        {formData.role === 'patient' && (
+        {!isProvider && (
           <div>
             <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
             <Input
@@ -214,7 +235,7 @@ const Register: React.FC = () => {
             )}
 
             <div>
-              <Label htmlFor="address">{t('address') || 'Address'}</Label>
+              <Label htmlFor="address">{t('address') || 'Business Address'}</Label>
               <Input
                 id="address"
                 name="address"
@@ -240,7 +261,7 @@ const Register: React.FC = () => {
         <div className="text-center">
           <span className="text-sm text-gray-600">
             {t('alreadyHaveAccount') || 'Already have an account?'}{' '}
-            <Link to="/auth/login" className="text-blue-600 hover:text-blue-500 font-medium">
+            <Link to="/auth/login-selection" className="text-blue-600 hover:text-blue-500 font-medium">
               {t('signIn') || 'Sign in'}
             </Link>
           </span>

@@ -36,10 +36,10 @@ const Index = () => {
               
               <div className="flex space-x-2">
                 <Link to="/auth/login-selection">
-                  <Button variant="outline">{t('login')}</Button>
+                  <Button variant="outline">{t('login') || 'Login'}</Button>
                 </Link>
-                <Link to="/auth/register">
-                  <Button>{t('register')}</Button>
+                <Link to="/auth/register-selection">
+                  <Button>{t('register') || 'Register'}</Button>
                 </Link>
               </div>
             </div>
@@ -51,21 +51,21 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            {t('heroTitle')}
+            {t('heroTitle') || 'Your Health, Connected'}
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            {t('heroSubtitle')}
+            {t('heroSubtitle') || 'Experience seamless healthcare management with our comprehensive digital platform'}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth/register?role=patient">
+            <Link to="/auth/register-selection">
               <Button size="lg" className="w-full sm:w-auto">
-                {t('registerAsPatient')}
+                {t('getStarted') || 'Get Started'}
               </Button>
             </Link>
-            <Link to="/auth/register?role=provider">
+            <Link to="/auth/login-selection">
               <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                {t('registerAsProvider')}
+                {t('learnMore') || 'Learn More'}
               </Button>
             </Link>
           </div>
@@ -75,20 +75,20 @@ const Index = () => {
         <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center p-6">
             <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">{t('secureTitle')}</h3>
-            <p className="text-gray-600">{t('secureDescription')}</p>
+            <h3 className="text-xl font-semibold mb-2">{t('secureTitle') || 'Secure & Private'}</h3>
+            <p className="text-gray-600">{t('secureDescription') || 'Your health data is protected with enterprise-grade security'}</p>
           </div>
           
           <div className="text-center p-6">
             <Clock className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">{t('availableTitle')}</h3>
-            <p className="text-gray-600">{t('availableDescription')}</p>
+            <h3 className="text-xl font-semibold mb-2">{t('availableTitle') || '24/7 Available'}</h3>
+            <p className="text-gray-600">{t('availableDescription') || 'Access your healthcare services anytime, anywhere'}</p>
           </div>
           
           <div className="text-center p-6">
             <Heart className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">{t('comprehensiveTitle')}</h3>
-            <p className="text-gray-600">{t('comprehensiveDescription')}</p>
+            <h3 className="text-xl font-semibold mb-2">{t('comprehensiveTitle') || 'Comprehensive Care'}</h3>
+            <p className="text-gray-600">{t('comprehensiveDescription') || 'Complete healthcare management in one platform'}</p>
           </div>
         </div>
       </main>

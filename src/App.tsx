@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/auth/Login";
 import LoginSelection from "./pages/auth/LoginSelection";
 import Register from "./pages/auth/Register";
+import RegisterSelection from "./pages/auth/RegisterSelection";
 import PatientDashboard from "./pages/dashboards/PatientDashboard";
 import ProviderDashboard from "./pages/dashboards/ProviderDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/auth/login-selection" element={<LoginSelection />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/admin-login" element={<AdminLogin />} />
+          <Route path="/auth/register-selection" element={<RegisterSelection />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
           <Route path="/dashboard/provider" element={<ProviderDashboard />} />

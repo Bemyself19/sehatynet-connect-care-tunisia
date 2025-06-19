@@ -1,43 +1,76 @@
 
 import React, { useState } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, ArrowLeft, User, Mail, Phone, Calendar, Shield, Save } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useLanguage } from '@/hooks/useLanguage';
+import { Heart, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 
 const Profile: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const { t, currentLanguage } = useLanguage();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const [profileData, setProfileData] = useState({
     firstName: 'John',
     lastName: 'Doe',
     email: 'john.doe@example.com',
-    phone: '+1234567890',
-    dateOfBirth: '1990-01-01',
-    address: '123 Main St, City, Country',
-    emergencyContact: 'Jane Doe',
-    emergencyPhone: '+1234567891',
-    medicalHistory: 'No significant medical history',
-    allergies: 'None',
-    currentMedications: 'None'
+    phone: '+1 (555) 123-4567',
+    dateOfBirth: '1990-05-15',
+    address: '123 Main Street, City, State 12345',
+    emergencyContact: 'Jane Doe - +1 (555) 987-6543',
+    medicalHistory: 'No significant medical history. Allergic to penicillin.',
+    cnamId: 'CNAM123456789'
   });
 
-  const { t, currentLanguage } = useLanguage();
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setProfileData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
-  const handleSave = () => {
-    toast({
-      title: t('profileUpdated') || 'Profile Updated',
-      description: t('changesHaveBeenSaved') || 'Your changes have been saved successfully'
-    });
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('Profile updated:', profileData);
+      
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile has been saved successfully',
+      });
+
+      // Navigate back to dashboard
+      setTimeout(() => {
+        navigate('/dashboard/patient');
+      }, 1500);
+
+    } catch (error) {
+      toast({
+        title: 'Update Failed',
+        description: 'Unable to update profile. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    window.location.href = '/auth/login-selection';
   };
 
   return (
@@ -45,16 +78,21 @@ const Profile: React.FC = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <Link to="/" className="flex items-center">
               <Heart className="h-8 w-8 text-blue-600 mr-2" />
               <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-            </div>
-            <Link to="/dashboard/patient">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                {t('backToDashboard') || 'Back to Dashboard'}
-              </Button>
             </Link>
+            <div className="flex items-center space-x-4">
+              <Link to="/dashboard/patient">
+                <Button variant="outline" size="sm">
+                  {t('backToDashboard') || 'Back to Dashboard'}
+                </Button>
+              </Link>
+              <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, {profileData.firstName}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                {t('logout') || 'Logout'}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -65,17 +103,20 @@ const Profile: React.FC = () => {
             {t('myProfile') || 'My Profile'}
           </h1>
           <p className="text-gray-600">
-            {t('managePersonalInfo') || 'Manage your personal information and medical details'}
+            {t('updatePersonalInfo') || 'Update your personal information and preferences'}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2">
+        <form onSubmit={handleSave} className="space-y-6">
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                {t('personalInformation') || 'Personal Information'}
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5" />
+                <span>{t('personalInformation') || 'Personal Information'}</span>
               </CardTitle>
+              <CardDescription>
+                {t('basicPersonalDetails') || 'Your basic personal details'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -83,62 +124,86 @@ const Profile: React.FC = () => {
                   <Label htmlFor="firstName">{t('firstName') || 'First Name'}</Label>
                   <Input
                     id="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    className="mt-1"
+                    name="firstName"
+                    value={profileData.firstName}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
                 <div>
                   <Label htmlFor="lastName">{t('lastName') || 'Last Name'}</Label>
                   <Input
                     id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    className="mt-1"
+                    name="lastName"
+                    value={profileData.lastName}
+                    onChange={handleChange}
+                    required
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="email">{t('email') || 'Email'}</Label>
+                <Label htmlFor="email" className="flex items-center space-x-1">
+                  <Mail className="h-4 w-4" />
+                  <span>{t('email') || 'Email'}</span>
+                </Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="mt-1"
+                  value={profileData.email}
+                  onChange={handleChange}
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone">{t('phone') || 'Phone'}</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="phone" className="flex items-center space-x-1">
+                  <Phone className="h-4 w-4" />
+                  <span>{t('phone') || 'Phone Number'}</span>
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={profileData.phone}
+                  onChange={handleChange}
+                />
               </div>
 
               <div>
-                <Label htmlFor="address">{t('address') || 'Address'}</Label>
-                <Textarea
+                <Label htmlFor="dateOfBirth" className="flex items-center space-x-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>{t('dateOfBirth') || 'Date of Birth'}</span>
+                </Label>
+                <Input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  value={profileData.dateOfBirth}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cnamId">CNAM ID</Label>
+                <Input
+                  id="cnamId"
+                  name="cnamId"
+                  value={profileData.cnamId}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="address" className="flex items-center space-x-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{t('address') || 'Address'}</span>
+                </Label>
+                <Input
                   id="address"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  className="mt-1"
+                  name="address"
+                  value={profileData.address}
+                  onChange={handleChange}
                 />
               </div>
             </CardContent>
@@ -146,80 +211,48 @@ const Profile: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="h-5 w-5 mr-2" />
-                {t('emergencyContact') || 'Emergency Contact'}
-              </CardTitle>
+              <CardTitle>{t('medicalInformation') || 'Medical Information'}</CardTitle>
+              <CardDescription>
+                {t('healthRelatedInfo') || 'Health-related information and emergency contacts'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="emergencyContact">{t('contactName') || 'Contact Name'}</Label>
+                <Label htmlFor="emergencyContact">{t('emergencyContact') || 'Emergency Contact'}</Label>
                 <Input
                   id="emergencyContact"
-                  value={formData.emergencyContact}
-                  onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-                  className="mt-1"
+                  name="emergencyContact"
+                  value={profileData.emergencyContact}
+                  onChange={handleChange}
+                  placeholder="Name - Phone Number"
                 />
               </div>
-              <div>
-                <Label htmlFor="emergencyPhone">{t('contactPhone') || 'Contact Phone'}</Label>
-                <Input
-                  id="emergencyPhone"
-                  value={formData.emergencyPhone}
-                  onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <CardTitle>{t('medicalInformation') || 'Medical Information'}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="medicalHistory">{t('medicalHistory') || 'Medical History'}</Label>
                 <Textarea
                   id="medicalHistory"
-                  value={formData.medicalHistory}
-                  onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
-                  className="mt-1"
-                  rows={3}
+                  name="medicalHistory"
+                  value={profileData.medicalHistory}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder="Include allergies, chronic conditions, current medications, etc."
                 />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="allergies">{t('allergies') || 'Allergies'}</Label>
-                  <Textarea
-                    id="allergies"
-                    value={formData.allergies}
-                    onChange={(e) => handleInputChange('allergies', e.target.value)}
-                    className="mt-1"
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="currentMedications">{t('currentMedications') || 'Current Medications'}</Label>
-                  <Textarea
-                    id="currentMedications"
-                    value={formData.currentMedications}
-                    onChange={(e) => handleInputChange('currentMedications', e.target.value)}
-                    className="mt-1"
-                    rows={2}
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>
 
-          <div className="lg:col-span-3">
-            <Button onClick={handleSave} size="lg" className="w-full md:w-auto">
-              <Save className="h-4 w-4 mr-2" />
-              {t('saveChanges') || 'Save Changes'}
+          <div className="flex space-x-4">
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (t('saving') || 'Saving...') : (t('saveChanges') || 'Save Changes')}
             </Button>
+            <Link to="/dashboard/patient">
+              <Button type="button" variant="outline">
+                {t('cancel') || 'Cancel'}
+              </Button>
+            </Link>
           </div>
-        </div>
+        </form>
       </main>
     </div>
   );
