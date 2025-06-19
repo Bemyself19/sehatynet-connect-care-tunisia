@@ -57,4 +57,5 @@ export interface RegisterData {
   licenseNumber?: string; // For providers
   specialization?: string; // For doctors
   address?: string; // For providers
+  cnamId?: string; // CNAM ID for both patients and providers
 }
