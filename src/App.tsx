@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,11 @@ import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import BookAppointment from "./pages/appointments/BookAppointment";
 import Profile from "./pages/profile/Profile";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/auth/AdminLogin";
+import DoctorDashboard from "./pages/dashboards/DoctorDashboard";
+import PharmacyDashboard from "./pages/dashboards/PharmacyDashboard";
+import LabDashboard from "./pages/dashboards/LabDashboard";
+import RadiologistDashboard from "./pages/dashboards/RadiologistDashboard";
 
 const queryClient = new QueryClient();
 
@@ -25,9 +29,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/admin-login" element={<AdminLogin />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/dashboard/patient" element={<PatientDashboard />} />
           <Route path="/dashboard/provider" element={<ProviderDashboard />} />
+          <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
+          <Route path="/dashboard/pharmacy" element={<PharmacyDashboard />} />
+          <Route path="/dashboard/lab" element={<LabDashboard />} />
+          <Route path="/dashboard/radiologist" element={<RadiologistDashboard />} />
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
           <Route path="/appointments/book" element={<BookAppointment />} />
           <Route path="/profile" element={<Profile />} />

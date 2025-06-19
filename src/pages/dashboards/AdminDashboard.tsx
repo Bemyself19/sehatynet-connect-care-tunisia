@@ -10,6 +10,12 @@ const AdminDashboard: React.FC = () => {
   const { t, currentLanguage } = useLanguage();
   const [activeView, setActiveView] = useState('overview');
 
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    window.location.href = '/auth/admin-login';
+  };
+
   if (activeView === 'users') {
     return (
       <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
@@ -26,7 +32,7 @@ const AdminDashboard: React.FC = () => {
                   {t('backToOverview') || 'Back to Overview'}
                 </Button>
                 <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Admin</span>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleLogout}>
                   {t('logout') || 'Logout'}
                 </Button>
               </div>
@@ -53,7 +59,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Admin</span>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleLogout}>
                 {t('logout') || 'Logout'}
               </Button>
             </div>

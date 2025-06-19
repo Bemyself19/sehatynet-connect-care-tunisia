@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import AuthLayout from '@/components/auth/AuthLayout';
-import { LoginCredentials, UserRole } from '@/types/user';
+import { Shield } from 'lucide-react';
 
-const Login: React.FC = () => {
-  const [formData, setFormData] = useState<LoginCredentials>({
+const AdminLogin: React.FC = () => {
+  const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    adminCode: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -31,42 +32,30 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('Login attempt:', formData);
+      console.log('Admin login attempt:', formData);
       
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Store auth data
-      localStorage.setItem('authToken', 'user-token-' + Date.now());
+      // Mock admin validation
+      if (formData.adminCode !== 'ADMIN2024') {
+        throw new Error('Invalid admin code');
+      }
       
-      // Mock successful login - redirect based on role
-      const mockUserRole: UserRole = 'patient';
-      localStorage.setItem('userRole', mockUserRole);
+      // Store admin auth
+      localStorage.setItem('authToken', 'admin-token-' + Date.now());
+      localStorage.setItem('userRole', 'admin');
       
       toast({
         title: t('loginSuccess') || 'Login successful',
-        description: t('welcomeBack') || 'Welcome back!',
+        description: t('adminWelcome') || 'Welcome to admin panel!',
       });
 
-      // Redirect to appropriate dashboard
-      if (mockUserRole === 'patient') {
-        navigate('/dashboard/patient');
-      } else if (mockUserRole === 'admin') {
-        navigate('/dashboard/admin');
-      } else if (mockUserRole === 'doctor') {
-        navigate('/dashboard/doctor');
-      } else if (mockUserRole === 'pharmacy') {
-        navigate('/dashboard/pharmacy');
-      } else if (mockUserRole === 'lab') {
-        navigate('/dashboard/lab');
-      } else if (mockUserRole === 'radiologist') {
-        navigate('/dashboard/radiologist');
-      } else {
-        navigate('/dashboard/provider');
-      }
+      navigate('/dashboard/admin');
     } catch (error) {
       toast({
         title: t('loginError') || 'Login failed',
-        description: t('invalidCredentials') || 'Invalid email or password',
+        description: error instanceof Error ? error.message : 'Invalid credentials',
         variant: 'destructive',
       });
     } finally {
@@ -76,9 +65,13 @@ const Login: React.FC = () => {
 
   return (
     <AuthLayout 
-      title={t('login') || 'Sign In'} 
-      subtitle={t('loginSubtitle') || 'Access your SehatyNet+ account'}
+      title={t('adminLogin') || 'Admin Login'} 
+      subtitle={t('adminLoginSubtitle') || 'Secure administrator access'}
     >
+      <div className="flex items-center justify-center mb-6">
+        <Shield className="h-8 w-8 text-red-600" />
+      </div>
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <Label htmlFor="email">{t('email') || 'Email'}</Label>
@@ -89,7 +82,7 @@ const Login: React.FC = () => {
             required
             value={formData.email}
             onChange={handleChange}
-            placeholder={t('enterEmail') || 'Enter your email'}
+            placeholder={t('enterAdminEmail') || 'Enter admin email'}
             className="mt-1"
           />
         </div>
@@ -108,19 +101,18 @@ const Login: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          <Link 
-            to="/auth/forgot-password" 
-            className="text-sm text-blue-600 hover:text-blue-500"
-          >
-            {t('forgotPassword') || 'Forgot password?'}
-          </Link>
-          <Link 
-            to="/auth/admin-login" 
-            className="text-sm text-red-600 hover:text-red-500"
-          >
-            {t('adminLogin') || 'Admin Login'}
-          </Link>
+        <div>
+          <Label htmlFor="adminCode">{t('adminCode') || 'Admin Code'}</Label>
+          <Input
+            id="adminCode"
+            name="adminCode"
+            type="password"
+            required
+            value={formData.adminCode}
+            onChange={handleChange}
+            placeholder={t('enterAdminCode') || 'Enter admin verification code'}
+            className="mt-1"
+          />
         </div>
 
         <Button 
@@ -128,20 +120,17 @@ const Login: React.FC = () => {
           className="w-full" 
           disabled={isLoading}
         >
-          {isLoading ? (t('signingIn') || 'Signing in...') : (t('signIn') || 'Sign In')}
+          {isLoading ? (t('signingIn') || 'Signing in...') : (t('adminSignIn') || 'Admin Sign In')}
         </Button>
 
         <div className="text-center">
-          <span className="text-sm text-gray-600">
-            {t('noAccount') || "Don't have an account?"}{' '}
-            <Link to="/auth/register" className="text-blue-600 hover:text-blue-500 font-medium">
-              {t('signUp') || 'Sign up'}
-            </Link>
-          </span>
+          <Link to="/auth/login" className="text-sm text-blue-600 hover:text-blue-500">
+            {t('backToLogin') || 'Back to regular login'}
+          </Link>
         </div>
       </form>
     </AuthLayout>
   );
 };
 
-export default Login;
+export default AdminLogin;
