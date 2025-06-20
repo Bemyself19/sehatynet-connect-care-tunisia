@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Modal from '@/components/ui/modal';
 import { Pill, TestTube, Scan, FileText, QrCode } from 'lucide-react';
-import QRCode from 'qrcode';
 
 interface Prescription {
   id: string;
