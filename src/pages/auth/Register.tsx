@@ -2,25 +2,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
-import AuthLayout from '@/components/auth/AuthLayout';
-import { RegisterData, UserRole } from '@/types/user';
+import { Heart, User, Stethoscope } from 'lucide-react';
+import { RegisterData } from '@/types/user';
 
 const Register: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const registrationType = searchParams.get('type') as 'patient' | 'provider' || 'patient';
-  const defaultRole = registrationType === 'provider' ? 'doctor' : 'patient';
+  const userType = searchParams.get('type') || 'patient';
   
   const [formData, setFormData] = useState<RegisterData>({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
-    role: defaultRole,
+    role: userType as any,
     phone: '',
     dateOfBirth: '',
     licenseNumber: '',
@@ -28,23 +28,14 @@ const Register: React.FC = () => {
     address: '',
     cnamId: ''
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
-  const handleRoleChange = (value: UserRole) => {
-    setFormData(prev => ({
-      ...prev,
-      role: value
-    }));
+  const handleInputChange = (field: keyof RegisterData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,22 +43,26 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('Registration attempt:', formData);
+      console.log('Registering user:', formData);
       
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast({
-        title: t('registrationSuccess') || 'Registration successful',
-        description: t('accountCreated') || 'Your account has been created successfully',
+        title: 'Registration Successful',
+        description: 'Your account has been created successfully.',
       });
 
-      // Redirect to login
-      navigate('/auth/login-selection');
+      // Redirect based on user type
+      if (userType === 'patient') {
+        navigate('/dashboard/patient');
+      } else {
+        navigate('/dashboard/provider');
+      }
     } catch (error) {
       toast({
-        title: t('registrationError') || 'Registration failed',
-        description: t('registrationErrorDesc') || 'An error occurred during registration',
+        title: 'Registration Failed',
+        description: 'Unable to create account. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -75,199 +70,200 @@ const Register: React.FC = () => {
     }
   };
 
-  const isProvider = registrationType === 'provider';
-  const pageTitle = isProvider ? 
-    (t('registerAsProvider') || 'Register as Healthcare Provider') : 
-    (t('registerAsPatient') || 'Register as Patient');
+  const specializations = [
+    'General Practitioner',
+    'Cardiologist',
+    'Dermatologist',
+    'Orthopedist',
+    'Neurologist',
+    'Pediatrician',
+    'Gynecologist',
+    'Psychiatrist'
+  ];
 
   return (
-    <AuthLayout 
-      title={pageTitle} 
-      subtitle={t('registerSubtitle') || 'Join the SehatyNet+ community'}
-    >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="firstName">{t('firstName') || 'First Name'}</Label>
-            <Input
-              id="firstName"
-              name="firstName"
-              type="text"
-              required
-              value={formData.firstName}
-              onChange={handleChange}
-              placeholder={t('enterFirstName') || 'Enter first name'}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="lastName">{t('lastName') || 'Last Name'}</Label>
-            <Input
-              id="lastName"
-              name="lastName"
-              type="text"
-              required
-              value={formData.lastName}
-              onChange={handleChange}
-              placeholder={t('enterLastName') || 'Enter last name'}
-              className="mt-1"
-            />
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-green-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center">
+              <Heart className="h-8 w-8 text-blue-600 mr-2" />
+              <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
+            </Link>
           </div>
         </div>
+      </header>
 
-        <div>
-          <Label htmlFor="email">{t('email') || 'Email'}</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            placeholder={t('enterEmail') || 'Enter your email'}
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="password">{t('password') || 'Password'}</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-            placeholder={t('enterPassword') || 'Enter your password'}
-            className="mt-1"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="cnamId">
-            CNAM ID {!isProvider && (t('optional') || '(Optional)')}
-          </Label>
-          <Input
-            id="cnamId"
-            name="cnamId"
-            type="text"
-            required={isProvider}
-            value={formData.cnamId}
-            onChange={handleChange}
-            placeholder={t('enterCnamId') || 'Enter CNAM ID'}
-            className="mt-1"
-          />
-        </div>
-
-        {isProvider && (
-          <div>
-            <Label htmlFor="role">{t('providerType') || 'Provider Type'}</Label>
-            <Select value={formData.role} onValueChange={handleRoleChange}>
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder={t('selectProviderType') || 'Select provider type'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="doctor">{t('doctor') || 'Doctor'}</SelectItem>
-                <SelectItem value="pharmacy">{t('pharmacy') || 'Pharmacy'}</SelectItem>
-                <SelectItem value="lab">{t('laboratory') || 'Laboratory'}</SelectItem>
-                <SelectItem value="radiologist">{t('radiologist') || 'Radiologist'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <div>
-          <Label htmlFor="phone">{t('phone') || 'Phone Number'}</Label>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder={t('enterPhone') || 'Enter phone number'}
-            className="mt-1"
-          />
-        </div>
-
-        {!isProvider && (
-          <div>
-            <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
-            <Input
-              id="dateOfBirth"
-              name="dateOfBirth"
-              type="date"
-              value={formData.dateOfBirth}
-              onChange={handleChange}
-              className="mt-1"
-            />
-          </div>
-        )}
-
-        {isProvider && (
-          <>
-            <div>
-              <Label htmlFor="licenseNumber">{t('licenseNumber') || 'License Number'}</Label>
-              <Input
-                id="licenseNumber"
-                name="licenseNumber"
-                type="text"
-                required
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                placeholder={t('enterLicenseNumber') || 'Enter license number'}
-                className="mt-1"
-              />
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              {userType === 'patient' ? (
+                <User className="h-8 w-8 text-blue-600" />
+              ) : (
+                <Stethoscope className="h-8 w-8 text-green-600" />
+              )}
             </div>
+            <CardTitle className="text-2xl">
+              {userType === 'patient' 
+                ? (t('registerAsPatient') || 'Register as Patient')
+                : (t('registerAsProvider') || 'Register as Provider')
+              }
+            </CardTitle>
+            <CardDescription>
+              {t('registerSubtitle') || 'Create your account to get started'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">{t('firstName') || 'First Name'}</Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder={t('enterFirstName') || 'Enter First Name'}
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">{t('lastName') || 'Last Name'}</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder={t('enterLastName') || 'Enter Last Name'}
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
 
-            {formData.role === 'doctor' && (
               <div>
-                <Label htmlFor="specialization">{t('specialization') || 'Specialization'}</Label>
+                <Label htmlFor="email">{t('email') || 'Email'}</Label>
                 <Input
-                  id="specialization"
-                  name="specialization"
-                  type="text"
-                  value={formData.specialization}
-                  onChange={handleChange}
-                  placeholder={t('enterSpecialization') || 'Enter specialization'}
-                  className="mt-1"
+                  id="email"
+                  type="email"
+                  placeholder={t('enterEmail') || 'Enter Email'}
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
                 />
               </div>
-            )}
 
-            <div>
-              <Label htmlFor="address">{t('address') || 'Business Address'}</Label>
-              <Input
-                id="address"
-                name="address"
-                type="text"
-                required
-                value={formData.address}
-                onChange={handleChange}
-                placeholder={t('enterAddress') || 'Enter business address'}
-                className="mt-1"
-              />
+              <div>
+                <Label htmlFor="password">{t('password') || 'Password'}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder={t('enterPassword') || 'Enter Password'}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">{t('phone') || 'Phone'}</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder={t('enterPhone') || 'Enter Phone'}
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'} {userType === 'patient' && '(Optional)'}</Label>
+                <Input
+                  id="cnamId"
+                  type="text"
+                  placeholder={t('enterCnamId') || 'Enter CNAM ID'}
+                  value={formData.cnamId}
+                  onChange={(e) => handleInputChange('cnamId', e.target.value)}
+                  required={userType !== 'patient'}
+                />
+              </div>
+
+              {userType === 'patient' && (
+                <div>
+                  <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  />
+                </div>
+              )}
+
+              {userType === 'provider' && (
+                <>
+                  <div>
+                    <Label htmlFor="licenseNumber">{t('licenseNumber') || 'License Number'}</Label>
+                    <Input
+                      id="licenseNumber"
+                      type="text"
+                      placeholder={t('enterLicenseNumber') || 'Enter License Number'}
+                      value={formData.licenseNumber}
+                      onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="specialization">{t('specialization') || 'Specialization'}</Label>
+                    <Select 
+                      value={formData.specialization} 
+                      onValueChange={(value) => handleInputChange('specialization', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('selectSpecialization') || 'Select Specialization'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {specializations.map((spec) => (
+                          <SelectItem key={spec} value={spec}>
+                            {spec}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="address">{t('address') || 'Address'}</Label>
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder={t('enterAddress') || 'Enter Address'}
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? (t('creatingAccount') || 'Creating Account...') : (t('createAccount') || 'Create Account')}
+              </Button>
+            </form>
+
+            <div className="text-center mt-6">
+              <span className="text-sm text-gray-600">
+                {t('alreadyHaveAccount') || 'Already have an account?'}{' '}
+                <Link to="/auth/login-selection" className="text-blue-600 hover:text-blue-500 font-medium">
+                  {t('signIn') || 'Sign In'}
+                </Link>
+              </span>
             </div>
-          </>
-        )}
-
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isLoading}
-        >
-          {isLoading ? (t('creating') || 'Creating...') : (t('createAccount') || 'Create Account')}
-        </Button>
-
-        <div className="text-center">
-          <span className="text-sm text-gray-600">
-            {t('alreadyHaveAccount') || 'Already have an account?'}{' '}
-            <Link to="/auth/login-selection" className="text-blue-600 hover:text-blue-500 font-medium">
-              {t('signIn') || 'Sign in'}
-            </Link>
-          </span>
-        </div>
-      </form>
-    </AuthLayout>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 };
 

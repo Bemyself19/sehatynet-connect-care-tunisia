@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Heart, Calendar, Clock, User } from 'lucide-react';
+import DoctorSelectionModal from '@/components/patient/DoctorSelectionModal';
 
 const BookAppointment: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -21,25 +22,10 @@ const BookAppointment: React.FC = () => {
     reason: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
   const { toast } = useToast();
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
-
-  const doctors = [
-    { id: '1', name: 'Dr. Sarah Johnson', specialty: 'Cardiologist' },
-    { id: '2', name: 'Dr. Ahmed Hassan', specialty: 'General Practitioner' },
-    { id: '3', name: 'Dr. Maria Rodriguez', specialty: 'Dermatologist' },
-    { id: '4', name: 'Dr. James Wilson', specialty: 'Orthopedist' }
-  ];
-
-  const specialties = [
-    'General Practitioner',
-    'Cardiologist',
-    'Dermatologist',
-    'Orthopedist',
-    'Neurologist',
-    'Pediatrician'
-  ];
 
   const timeSlots = [
     '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
@@ -50,6 +36,15 @@ const BookAppointment: React.FC = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userRole');
     window.location.href = '/auth/login-selection';
+  };
+
+  const handleSelectDoctor = (doctor: any) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      doctor: doctor.name,
+      specialty: doctor.specialty 
+    }));
+    setShowDoctorModal(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,44 +134,25 @@ const BookAppointment: React.FC = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="specialty">{t('specialty') || 'Specialty'}</Label>
-                  <Select 
-                    value={formData.specialty} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, specialty: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('selectSpecialty') || 'Select specialty'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {specialties.map((specialty) => (
-                        <SelectItem key={specialty} value={specialty}>
-                          {specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
+                <div className="md:col-span-2">
                   <Label htmlFor="doctor">{t('doctor') || 'Doctor'}</Label>
-                  <Select 
-                    value={formData.doctor} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, doctor: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('selectDoctor') || 'Select doctor'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors
-                        .filter(doctor => !formData.specialty || doctor.specialty === formData.specialty)
-                        .map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.name}>
-                          {doctor.name} - {doctor.specialty}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="doctor"
+                      type="text"
+                      placeholder={t('selectDoctor') || 'Select doctor'}
+                      value={formData.doctor}
+                      readOnly
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      onClick={() => setShowDoctorModal(true)}
+                      variant="outline"
+                    >
+                      Browse Doctors
+                    </Button>
+                  </div>
                 </div>
 
                 <div>
@@ -238,12 +214,18 @@ const BookAppointment: React.FC = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading || !formData.doctor}>
                 {isLoading ? (t('booking') || 'Booking...') : (t('bookAppointment') || 'Book Appointment')}
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        <DoctorSelectionModal
+          isOpen={showDoctorModal}
+          onClose={() => setShowDoctorModal(false)}
+          onSelectDoctor={handleSelectDoctor}
+        />
       </main>
     </div>
   );
