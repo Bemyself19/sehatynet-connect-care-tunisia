@@ -1,146 +1,76 @@
-
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { Shield, Heart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const AdminLogin: React.FC = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    adminCode: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+const AdminLogin = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { login, isLoggingIn } = useAuth();
+  const { t } = useTranslation();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      console.log('Admin login attempt:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock admin validation - Admin code is ADMIN2024
-      if (formData.adminCode !== 'ADMIN2024') {
-        throw new Error('Invalid admin code');
-      }
-      
-      // Store admin auth
-      localStorage.setItem('authToken', 'admin-token-' + Date.now());
-      localStorage.setItem('userRole', 'admin');
-      
-      toast({
-        title: t('loginSuccess') || 'Login successful',
-        description: t('adminWelcome') || 'Welcome to admin panel!',
-      });
-
-      navigate('/dashboard/admin');
-    } catch (error) {
-      toast({
-        title: t('loginError') || 'Login failed',
-        description: error instanceof Error ? error.message : 'Invalid credentials',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+    if (!email || !password) {
+      toast.error('Please enter both email and password.');
+      return;
     }
+    login({ email, password, role: 'admin' });
   };
+
+  const SehatyLogo = () => (
+    <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md mb-4">
+      <svg width="36" height="36" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 58s-1.7-1.5-4.2-3.6C15.2 43.2 6 34.7 6 24.5 6 15.6 13.6 8 22.5 8c4.5 0 8.7 2.1 11.5 5.5C36.8 10.1 41 8 45.5 8 54.4 8 62 15.6 62 24.5c0 10.2-9.2 18.7-21.8 29.9C33.7 56.5 32 58 32 58z" fill="#2563eb"/>
+        <circle cx="18" cy="14" r="5" fill="#22c55e" stroke="#fff" strokeWidth="2"/>
+      </svg>
+    </span>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center">
-              <Heart className="h-8 w-8 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-            </Link>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+      <div className="w-full max-w-md">
+        <div className="flex flex-col items-center pb-2">
+          <SehatyLogo />
+          <span className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</span>
+          <span className="text-lg text-gray-600 mb-2">Admin Login</span>
+          <span className="text-gray-500 text-base mb-2">Sign in to your administrator account</span>
         </div>
-      </header>
-
-      <div className="flex items-center justify-center py-16">
-        <div className="w-full max-w-md">
-          <AuthLayout 
-            title={t('adminLogin') || 'Admin Login'} 
-            subtitle={t('adminLoginSubtitle') || 'Secure administrator access'}
-          >
-            <div className="flex items-center justify-center mb-6">
-              <Shield className="h-8 w-8 text-red-600" />
+        <div className="bg-white rounded-xl shadow-xl p-8 mt-2">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('email') || 'Email'}</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder={t('adminEmail') || 'admin@sehaty.com'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="email">{t('email') || 'Email'}</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder={t('enterAdminEmail') || 'Enter admin email'}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="password">{t('password') || 'Password'}</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder={t('enterPassword') || 'Enter your password'}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="adminCode">{t('adminCode') || 'Admin Code'}</Label>
-                <Input
-                  id="adminCode"
-                  name="adminCode"
-                  type="password"
-                  required
-                  value={formData.adminCode}
-                  onChange={handleChange}
-                  placeholder="Enter ADMIN2024"
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Admin code: ADMIN2024</p>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (t('signingIn') || 'Signing in...') : (t('adminSignIn') || 'Admin Sign In')}
-              </Button>
-
-              <div className="text-center">
-                <Link to="/auth/login-selection" className="text-sm text-blue-600 hover:text-blue-500">
-                  {t('backToLogin') || 'Back to login selection'}
-                </Link>
-              </div>
-            </form>
-          </AuthLayout>
+            <div className="space-y-2">
+              <Label htmlFor="password">{t('password') || 'Password'}</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? 'Logging in...' : 'Login'}
+            </Button>
+          </form>
         </div>
       </div>
     </div>

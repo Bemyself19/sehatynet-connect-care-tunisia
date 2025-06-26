@@ -1,26 +1,19 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Modal from '@/components/ui/modal';
-import { Search, User, MessageCircle } from 'lucide-react';
-
-interface Doctor {
-  id: string;
-  name: string;
-  specialty: string;
-  rating: number;
-  experience: string;
-  consultationFee: number;
-  cnamId: string;
-}
+import { Search, User as UserIcon, MessageCircle, AlertCircle } from 'lucide-react';
+import { Provider } from '@/types/user';
+import api from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DoctorSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectDoctor: (doctor: Doctor) => void;
+  onSelectDoctor: (doctor: Provider) => void;
 }
 
 const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
@@ -34,29 +27,48 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'bot', message: string}>>([]);
   const [userInput, setUserInput] = useState('');
 
-  const doctors: Doctor[] = [
-    { id: '1', name: 'Dr. Sarah Johnson', specialty: 'Cardiologist', rating: 4.8, experience: '10 years', consultationFee: 150, cnamId: 'CNAM123456' },
-    { id: '2', name: 'Dr. Ahmed Hassan', specialty: 'General Practitioner', rating: 4.6, experience: '8 years', consultationFee: 100, cnamId: 'CNAM789012' },
-    { id: '3', name: 'Dr. Maria Rodriguez', specialty: 'Dermatologist', rating: 4.9, experience: '12 years', consultationFee: 120, cnamId: 'CNAM345678' },
-    { id: '4', name: 'Dr. James Wilson', specialty: 'Orthopedist', rating: 4.7, experience: '15 years', consultationFee: 180, cnamId: 'CNAM901234' }
-  ];
+  const [doctors, setDoctors] = useState<Provider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const specialties = [
-    'General Practitioner',
-    'Cardiologist',
-    'Dermatologist',
-    'Orthopedist',
-    'Neurologist',
-    'Pediatrician'
-  ];
+  useEffect(() => {
+    if (isOpen) {
+      const fetchDoctors = async () => {
+        try {
+          setIsLoading(true);
+          const providers = await api.getProviders({ role: 'doctor' });
+          setDoctors(providers);
+          setError(null);
+        } catch (err) {
+          setError('Failed to fetch doctors. Please try again.');
+          console.error(err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchDoctors();
+    }
+  }, [isOpen]);
+
+  const specialties = [...new Set(doctors.map(d => d.specialization).filter(Boolean))].sort() as string[];
 
   const filteredDoctors = doctors.filter(doctor => {
-    const matchesSpecialty = !selectedSpecialty || doctor.specialty === selectedSpecialty;
-    const matchesSearch = !searchQuery || doctor.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSpecialty = !selectedSpecialty || doctor.specialization === selectedSpecialty;
+    const matchesSearch = !searchQuery || `${doctor.firstName} ${doctor.lastName}`.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSpecialty && matchesSearch;
   });
 
-  const handleChatSubmit = () => {
+  const groupedDoctors = filteredDoctors.reduce((acc, doctor) => {
+    const specialty = doctor.specialization || 'General';
+    if (!acc[specialty]) {
+      acc[specialty] = [];
+    }
+    acc[specialty].push(doctor);
+    return acc;
+  }, {} as Record<string, Provider[]>);
+
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!userInput.trim()) return;
 
     const newMessages = [...chatMessages, { role: 'user' as const, message: userInput }];
@@ -107,7 +119,6 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                     <SelectValue placeholder="Select Specialty" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Specialties</SelectItem>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
                         {specialty}
@@ -124,92 +135,92 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
             </div>
 
             {/* Doctors List */}
-            <div className="max-h-96 overflow-y-auto space-y-3">
-              {filteredDoctors.map((doctor) => (
-                <Card key={doctor.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{doctor.name}</h3>
-                        <p className="text-sm text-gray-600">{doctor.specialty}</p>
-                        <p className="text-sm text-gray-500">{doctor.experience} experience</p>
-                        <p className="text-sm text-gray-500">CNAM ID: {doctor.cnamId}</p>
-                        <div className="flex items-center mt-2">
-                          <span className="text-yellow-500">★</span>
-                          <span className="text-sm ml-1">{doctor.rating}</span>
-                          <span className="text-sm text-gray-500 ml-4">${doctor.consultationFee}</span>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => onSelectDoctor(doctor)}
-                      >
-                        Select
-                      </Button>
+            {isLoading ? (
+              <div className="text-center">Loading doctors...</div>
+            ) : error ? (
+              <div className="text-center text-red-500">{error}</div>
+            ) : Object.keys(groupedDoctors).length > 0 ? (
+              <ScrollArea className="h-[400px]">
+                {Object.entries(groupedDoctors).map(([specialty, docs]) => (
+                  <div key={specialty} className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">{specialty}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {docs.map(doctor => (
+                        <Card key={doctor._id} className="cursor-pointer hover:bg-gray-50" onClick={() => onSelectDoctor(doctor)}>
+                          <CardHeader>
+                            <CardTitle className="text-base">{doctor.firstName} {doctor.lastName}</CardTitle>
+                            <CardDescription>{doctor.specialization}</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-gray-600">{doctor.address}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Chat Interface */}
-            <div className="border rounded-lg h-64 overflow-y-auto p-4 bg-gray-50">
-              {chatMessages.length === 0 && (
-                <p className="text-gray-500 text-center mt-8">
-                  Tell me about your symptoms and I'll help you find the right doctor.
-                </p>
-              )}
-              {chatMessages.map((msg, index) => (
-                <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block p-2 rounded-lg max-w-xs ${
-                    msg.role === 'user' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-white border'
-                  }`}>
-                    {msg.message}
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Chat Input */}
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Describe your symptoms..."
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleChatSubmit()}
-              />
-              <Button onClick={handleChatSubmit}>Send</Button>
-            </div>
-
-            {/* Recommended Doctors (after chat) */}
-            {chatMessages.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-semibold">Recommended Doctors:</h4>
-                {filteredDoctors.slice(0, 2).map((doctor) => (
-                  <Card key={doctor.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{doctor.name}</h3>
-                          <p className="text-sm text-gray-600">{doctor.specialty}</p>
-                          <p className="text-sm text-gray-500">${doctor.consultationFee}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => onSelectDoctor(doctor)}
-                        >
-                          Select
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
                 ))}
+              </ScrollArea>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No doctors found matching your criteria.
               </div>
             )}
+          </div>
+        ) : (
+          <div className="space-y-4 h-[500px] flex flex-col">
+            <ScrollArea className="flex-1 p-4 border rounded-md">
+              {/* Chat Interface */}
+              <div className="border rounded-lg h-64 overflow-y-auto p-4 bg-gray-50">
+                {chatMessages.length === 0 && (
+                  <p className="text-gray-500 text-center mt-8">
+                    Tell me about your symptoms and I'll help you find the right doctor.
+                  </p>
+                )}
+                {chatMessages.map((msg, index) => (
+                  <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                    <div className={`inline-block p-2 rounded-lg max-w-xs ${
+                      msg.role === 'user' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-white border'
+                    }`}>
+                      {msg.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chat Input */}
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Describe your symptoms..."
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleChatSubmit(e)}
+                />
+                <Button onClick={handleChatSubmit}>Send</Button>
+              </div>
+
+              {/* Recommended Doctors (after chat) */}
+              {chatMessages.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-semibold">Recommended Doctors:</h4>
+                  {filteredDoctors.slice(0, 2).map((doctor) => (
+                    <Card key={doctor._id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{`${doctor.firstName} ${doctor.lastName}`}</h3>
+                            <p className="text-sm text-gray-600">{doctor.specialization}</p>
+                            <p className="text-sm text-gray-500">${doctor.consultationFee || 'N/A'}</p>
+                          </div>
+                          <Button size="sm" onClick={() => onSelectDoctor(doctor)}>Select</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
         )}
       </div>

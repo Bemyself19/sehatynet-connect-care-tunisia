@@ -1,61 +1,71 @@
-
 export type UserRole = 'patient' | 'doctor' | 'pharmacy' | 'lab' | 'radiologist' | 'admin';
 
-export interface User {
-  id: string;
+export interface BaseUser {
+  _id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: UserRole;
-  phone?: string;
-  dateOfBirth?: string;
-  profileImage?: string;
-  isVerified: boolean;
+  cnamId?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
-export interface Patient extends User {
+export interface Patient extends BaseUser {
   role: 'patient';
+  dateOfBirth: string;
+  address: string;
+  phone: string;
   emergencyContact?: {
     name: string;
     phone: string;
-    relationship: string;
+    relationship?: string;
+  };
+  insurance?: {
+    provider: string;
+    policyNumber: string;
   };
   medicalHistory?: string[];
   allergies?: string[];
   currentMedications?: string[];
+  medicalInfoDismissed?: boolean;
 }
 
-export interface Provider extends User {
+export interface Provider extends BaseUser {
   role: 'doctor' | 'pharmacy' | 'lab' | 'radiologist';
-  licenseNumber: string;
   specialization?: string;
+  licenseNumber?: string;
+  yearsOfExperience?: number;
+  consultationFee?: number;
+  experience?: string;
   address: string;
-  workingHours?: {
-    [key: string]: { start: string; end: string; };
-  };
+  phone: string;
+  availability?: string[];
   rating?: number;
   reviewCount?: number;
-  consultationFee?: number;
   isActive: boolean;
 }
 
-export interface LoginCredentials {
+export type User = Patient | Provider | BaseUser & { medicalInfoDismissed?: boolean };
+
+export interface LoginForm {
   email: string;
   password: string;
 }
 
-export interface RegisterData {
-  email: string;
-  password: string;
+export interface LoginCredentials extends LoginForm {
+  role: UserRole;
+}
+
+export interface RegisterData extends LoginCredentials {
   firstName: string;
   lastName: string;
   role: UserRole;
   phone?: string;
   dateOfBirth?: string;
-  licenseNumber?: string; // For providers
-  specialization?: string; // For doctors
-  address?: string; // For providers
-  cnamId?: string; // CNAM ID for both patients and providers
+  licenseNumber?: string;
+  specialization?: string;
+  address?: string;
+  cnamId?: string;
+  gender?: string;
 }

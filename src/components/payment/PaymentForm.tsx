@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { CreditCard, Shield, DollarSign, Calendar, User } from 'lucide-react';
 
 interface PaymentFormProps {
@@ -25,7 +24,6 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, description, onSucces
   });
 
   const { t } = useLanguage();
-  const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setPaymentData(prev => ({ ...prev, [field]: value }));
@@ -33,14 +31,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, description, onSucces
 
   const handlePayment = () => {
     // Simulate payment processing
-    toast({
-      title: t('paymentProcessing') || 'Processing Payment',
+    toast.info(t('paymentProcessing') || 'Processing Payment', {
       description: t('pleaseWait') || 'Please wait while we process your payment...'
     });
 
     setTimeout(() => {
-      toast({
-        title: t('paymentSuccessful') || 'Payment Successful',
+      toast.success(t('paymentSuccessful') || 'Payment Successful', {
         description: t('paymentCompleted') || 'Your payment has been completed successfully'
       });
       onSuccess?.();
