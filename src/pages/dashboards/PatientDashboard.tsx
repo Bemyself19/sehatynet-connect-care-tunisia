@@ -1,232 +1,191 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, User, FileText, Heart, DollarSign } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, FileText, MessageSquare, Plus, Activity, TrendingUp, Shield, User as UserIcon } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AppointmentsList from '@/components/patient/AppointmentsList';
 import MedicalRecords from '@/components/patient/MedicalRecords';
-import PaymentForm from '@/components/payment/PaymentForm';
-import { useState } from 'react';
+import { useUser } from '@/hooks/useUser';
+import api from '@/lib/api';
+import { MedicalProfileQAModal } from '@/components/patient/MedicalProfileQAModal';
+import { toast } from 'sonner';
+import { Layout } from '@/components/ui/layout';
 
 const PatientDashboard: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
-  const [showPayment, setShowPayment] = useState(false);
-  const [activeView, setActiveView] = useState('overview');
+  const { t } = useLanguage();
+  const [activeView, setActiveView] = useState<'overview' | 'appointments' | 'medical-records'>('overview');
+  const { user, isLoading, refetch } = useUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showMedicalQAModal, setShowMedicalQAModal] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
-    window.location.href = '/auth/login-selection';
+  // Helper to check if medical info is incomplete
+  const isMedicalInfoIncomplete = user && user.role === 'patient' && (
+    !(user as any).medicalHistory || (user as any).medicalHistory.length === 0 ||
+    !(user as any).allergies || (user as any).allergies.length === 0 ||
+    !(user as any).currentMedications || (user as any).currentMedications.length === 0
+  );
+
+  // Handler to save medical info
+  const handleSaveMedicalInfo = async (data: { allergies: string[]; medications: string[]; conditions: string[] }) => {
+    setShowMedicalQAModal(false);
+    try {
+      await api.updateProfile({
+        allergies: data.allergies,
+        currentMedications: data.medications,
+        medicalHistory: data.conditions,
+      });
+      await refetch();
+      toast.success('Medical profile updated!', { description: 'Your medical information has been saved.' });
+    } catch (error) {
+      toast.error('Failed to update medical profile', { description: 'Please try again later.' });
+    }
   };
 
-  if (activeView === 'appointments') {
+  useEffect(() => {
+    if (
+      user &&
+      user.role === 'patient' &&
+      !user.medicalInfoDismissed &&
+      (
+        !('medicalHistory' in user) || !user.medicalHistory || user.medicalHistory.length === 0 ||
+        !('allergies' in user) || !user.allergies || user.allergies.length === 0 ||
+        !('currentMedications' in user) || !user.currentMedications || user.currentMedications.length === 0
+      )
+    ) {
+      setShowMedicalQAModal(true);
+    }
+  }, [user]);
+
+  if (isLoading) {
     return (
-      <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <Link to="/" className="flex items-center">
-                <Heart className="h-8 w-8 text-blue-600 mr-2" />
-                <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </Link>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="sm" onClick={() => setActiveView('overview')}>
-                  {t('backToDashboard') || 'Back to Dashboard'}
-                </Button>
-                <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  {t('logout') || 'Logout'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <AppointmentsList />
-        </main>
+      <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="text-gray-600">Loading your dashboard...</span>
+        </div>
       </div>
     );
   }
 
-  if (activeView === 'medical-records') {
-    return (
-      <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <Link to="/" className="flex items-center">
-                <Heart className="h-8 w-8 text-blue-600 mr-2" />
-                <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </Link>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="sm" onClick={() => setActiveView('overview')}>
-                  {t('backToDashboard') || 'Back to Dashboard'}
-                </Button>
-                <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  {t('logout') || 'Logout'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <MedicalRecords />
-        </main>
-      </div>
-    );
+  if (!user) {
+    navigate('/login');
+    return null;
   }
 
-  if (showPayment) {
-    return (
-      <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <Link to="/" className="flex items-center">
-                <Heart className="h-8 w-8 text-blue-600 mr-2" />
-                <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-              </Link>
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="sm" onClick={() => setShowPayment(false)}>
-                  {t('backToDashboard') || 'Back to Dashboard'}
-                </Button>
-                <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  {t('logout') || 'Logout'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <PaymentForm 
-            amount={150} 
-            description="Consultation Fee"
-            onSuccess={() => setShowPayment(false)}
-          />
-        </main>
-      </div>
-    );
-  }
+  // Sidebar navigation items
+  const sidebarItems = [
+    { label: 'Dashboard', icon: <Activity className="h-5 w-5" />, href: '/dashboard/patient' },
+    { label: 'Book Appointment', icon: <Plus className="h-5 w-5" />, href: '/appointments/book' },
+    { label: 'My Appointments', icon: <Calendar className="h-5 w-5" />, href: '/dashboard/patient/appointments', badge: 3 },
+    { label: 'Medical Records', icon: <FileText className="h-5 w-5" />, href: '/dashboard/patient/medical-records' },
+    { label: 'Tele-Expertise', icon: <MessageSquare className="h-5 w-5" />, href: '/dashboard/patient/tele-expertise' },
+    { label: 'Profile', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/patient/profile' },
+  ];
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center">
-              <Heart className="h-8 w-8 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
+    <Layout
+      title="Patient Dashboard"
+      subtitle="Welcome back! Here's your health overview and quick actions"
+      sidebarItems={sidebarItems}
+    >
+      <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-10 mt-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Patient Dashboard</h1>
+        <p className="text-lg text-gray-600 mb-8">Welcome back! Here's your health overview and quick actions</p>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div>
+                <p className="text-sm font-medium text-blue-600">Upcoming Appointments</p>
+                <p className="text-2xl font-bold text-blue-900">3</p>
+              </div>
+              <div className="p-3 bg-blue-500 rounded-full">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div>
+                <p className="text-sm font-medium text-green-600">Active Prescriptions</p>
+                <p className="text-2xl font-bold text-green-900">5</p>
+              </div>
+              <div className="p-3 bg-green-500 rounded-full">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-purple-50 border-purple-200">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div>
+                <p className="text-sm font-medium text-purple-600">Medical Records</p>
+                <p className="text-2xl font-bold text-purple-900">12</p>
+              </div>
+              <div className="p-3 bg-purple-500 rounded-full">
+                <Shield className="h-6 w-6 text-white" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-orange-50 border-orange-200">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div>
+                <p className="text-sm font-medium text-orange-600">Health Score</p>
+                <p className="text-2xl font-bold text-orange-900">85%</p>
+              </div>
+              <div className="p-3 bg-orange-500 rounded-full">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link to="/appointments/book">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 border-2 border-transparent hover:border-blue-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <Plus className="h-6 w-6 text-blue-500 group-hover:text-blue-700" />
+                    <span className="text-lg font-semibold text-blue-900 group-hover:text-blue-700">Book Appointment</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Schedule a new consultation</p>
+                </CardHeader>
+              </Card>
             </Link>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{t('welcome') || 'Welcome'}, Patient</span>
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                {t('logout') || 'Logout'}
-              </Button>
-            </div>
+            <Link to="/dashboard/patient/appointments">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 border-2 border-transparent hover:border-green-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-6 w-6 text-green-500 group-hover:text-green-700" />
+                    <span className="text-lg font-semibold text-green-900 group-hover:text-green-700">My Appointments</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">View upcoming appointments</p>
+                </CardHeader>
+              </Card>
+            </Link>
+            <Link to="/dashboard/patient/medical-records">
+              <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 border-2 border-transparent hover:border-purple-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-6 w-6 text-purple-500 group-hover:text-purple-700" />
+                    <span className="text-lg font-semibold text-purple-900 group-hover:text-purple-700">Medical Records</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Access health records</p>
+                </CardHeader>
+              </Card>
+            </Link>
           </div>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {t('patientDashboard') || 'Patient Dashboard'}
-          </h1>
-          <p className="text-gray-600">
-            {t('dashboardSubtitle') || 'Manage your health and appointments'}
-          </p>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Link to="/appointments/book">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg">{t('bookAppointment') || 'Book Appointment'}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  {t('scheduleConsultation') || 'Schedule a new consultation'}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveView('appointments')}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-green-600" />
-                <CardTitle className="text-lg">{t('appointments') || 'My Appointments'}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                {t('viewAppointments') || 'View upcoming appointments'}
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveView('medical-records')}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-purple-600" />
-                <CardTitle className="text-lg">{t('medicalRecords') || 'Medical Records'}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                {t('accessRecords') || 'Access your medical history'}
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setShowPayment(true)}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center space-x-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <CardTitle className="text-lg">{t('payments') || 'Payments'}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                {t('managePayments') || 'Manage payments and billing'}
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Link to="/profile">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-orange-600" />
-                  <CardTitle className="text-lg">{t('profile') || 'My Profile'}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  {t('updateProfile') || 'Update your information'}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AppointmentsList />
-          <MedicalRecords />
-        </div>
-      </main>
-    </div>
+        {/* Medical Info Modal */}
+        <MedicalProfileQAModal
+          open={showMedicalQAModal}
+          onClose={() => setShowMedicalQAModal(false)}
+          onSave={handleSaveMedicalInfo}
+        />
+      </div>
+    </Layout>
   );
 };
 

@@ -1,53 +1,87 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Users, Search, Filter, Plus, Edit, Trash2, UserCheck, UserX } from 'lucide-react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive';
-  lastLogin: string;
-}
+import api from '@/lib/api';
+import Modal from '@/components/ui/modal';
 
 const UserManagement: React.FC = () => {
-  const [users] = useState<User[]>([
-    { id: '1', name: 'John Doe', email: 'john@example.com', role: 'patient', status: 'active', lastLogin: '2024-01-15' },
-    { id: '2', name: 'Dr. Sarah Johnson', email: 'sarah@example.com', role: 'doctor', status: 'active', lastLogin: '2024-01-16' },
-    { id: '3', name: 'City Pharmacy', email: 'contact@citypharm.com', role: 'pharmacy', status: 'active', lastLogin: '2024-01-14' },
-    { id: '4', name: 'Maria Garcia', email: 'maria@example.com', role: 'patient', status: 'inactive', lastLogin: '2024-01-10' }
-  ]);
-
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-
+  const [editUser, setEditUser] = useState<any | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const { t } = useLanguage();
-  const { toast } = useToast();
+
+  useEffect(() => {
+    setLoading(true);
+    api.getAllUsers()
+      .then((data) => setUsers(data))
+      .catch(() => toast.error('Failed to fetch users'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (user.firstName + ' ' + user.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
+    const matchesStatus = statusFilter === 'all' || (user.isActive ? 'active' : 'inactive') === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
   const handleUserAction = (action: string, userId: string) => {
-    toast({
-      title: t('actionCompleted') || 'Action Completed',
+    toast.success(t('actionCompleted') || 'Action Completed', {
       description: `${action} completed for user ${userId}`
     });
   };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await api.deleteUser(userId);
+      setUsers(users => users.filter(u => u._id !== userId));
+      toast.success('User deleted');
+      setDeleteUserId(null);
+    } catch (err) {
+      toast.error('Failed to delete user');
+    }
+  };
+
+  const handleToggleUserStatus = async (user: any) => {
+    try {
+      await api.updateUserStatus(user._id, { isActive: !user.isActive });
+      setUsers(users => users.map(u => u._id === user._id ? { ...u, isActive: !u.isActive } : u));
+      toast.success(`User ${user.isActive ? 'deactivated' : 'activated'}`);
+    } catch (err) {
+      toast.error('Failed to update user status');
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditUser(user);
+  };
+
+  const handleEditUserSave = async (updated: any) => {
+    try {
+      // You may want to implement an api.updateUser method for full edit support
+      // For now, just update locally
+      setUsers(users => users.map(u => u._id === updated._id ? { ...u, ...updated } : u));
+      setEditUser(null);
+      toast.success('User updated (local only)');
+    } catch (err) {
+      toast.error('Failed to update user');
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64">Loading users...</div>;
+  }
 
   return (
     <Card>
@@ -73,7 +107,6 @@ const UserManagement: React.FC = () => {
               />
             </div>
           </div>
-          
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder={t('filterByRole') || 'Filter by role'} />
@@ -84,9 +117,10 @@ const UserManagement: React.FC = () => {
               <SelectItem value="doctor">{t('doctors') || 'Doctors'}</SelectItem>
               <SelectItem value="pharmacy">{t('pharmacies') || 'Pharmacies'}</SelectItem>
               <SelectItem value="lab">{t('labs') || 'Labs'}</SelectItem>
+              <SelectItem value="radiologist">{t('radiologists') || 'Radiologists'}</SelectItem>
+              <SelectItem value="admin">{t('admins') || 'Admins'}</SelectItem>
             </SelectContent>
           </Select>
-
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder={t('filterByStatus') || 'Filter by status'} />
@@ -97,13 +131,11 @@ const UserManagement: React.FC = () => {
               <SelectItem value="inactive">{t('inactive') || 'Inactive'}</SelectItem>
             </SelectContent>
           </Select>
-
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             {t('addUser') || 'Add User'}
           </Button>
         </div>
-
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -118,42 +150,40 @@ const UserManagement: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                <TableRow key={user._id}>
+                  <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <span className="capitalize">{user.role}</span>
                   </TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
+                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {user.status}
+                      {user.isActive ? 'active' : 'inactive'}
                     </span>
                   </TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
+                  <TableCell>{user.lastLogin || '-'}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleUserAction('Edit', user.id)}
+                        onClick={() => handleEditUser(user)}
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleUserAction(user.status === 'active' ? 'Deactivate' : 'Activate', user.id)}
+                        onClick={() => handleToggleUserStatus(user)}
                       >
-                        {user.status === 'active' ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+                        {user.isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleUserAction('Delete', user.id)}
+                        onClick={() => setDeleteUserId(user._id)}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -164,6 +194,41 @@ const UserManagement: React.FC = () => {
             </TableBody>
           </Table>
         </div>
+        {/* Edit Modal */}
+        {editUser && (
+          <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title="Edit User">
+            <div className="p-2">
+              <div className="mb-2">
+                <label>First Name</label>
+                <Input value={editUser.firstName} onChange={e => setEditUser({ ...editUser, firstName: e.target.value })} />
+              </div>
+              <div className="mb-2">
+                <label>Last Name</label>
+                <Input value={editUser.lastName} onChange={e => setEditUser({ ...editUser, lastName: e.target.value })} />
+              </div>
+              <div className="mb-2">
+                <label>Email</label>
+                <Input value={editUser.email} onChange={e => setEditUser({ ...editUser, email: e.target.value })} />
+              </div>
+              <div className="flex space-x-2 mt-4">
+                <Button onClick={() => handleEditUserSave(editUser)}>Save</Button>
+                <Button variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
+              </div>
+            </div>
+          </Modal>
+        )}
+        {/* Delete Confirm Modal */}
+        {deleteUserId && (
+          <Modal isOpen={!!deleteUserId} onClose={() => setDeleteUserId(null)} title="Confirm Delete">
+            <div className="p-2">
+              <p>Are you sure you want to delete this user?</p>
+              <div className="flex space-x-2 mt-4">
+                <Button onClick={() => handleDeleteUser(deleteUserId)}>Delete</Button>
+                <Button variant="outline" onClick={() => setDeleteUserId(null)}>Cancel</Button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </CardContent>
     </Card>
   );

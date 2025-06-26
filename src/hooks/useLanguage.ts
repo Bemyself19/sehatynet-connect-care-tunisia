@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 type Language = 'en' | 'fr' | 'ar';
@@ -71,6 +70,76 @@ const translations: Translations = {
     en: 'Complete healthcare ecosystem with doctors, pharmacies, labs, and imaging centers.',
     fr: 'Écosystème de santé complet avec médecins, pharmacies, laboratoires et centres d\'imagerie.',
     ar: 'نظام رعاية صحية متكامل مع الأطباء والصيدليات والمختبرات ومراكز التصوير.'
+  },
+  patientDashboard: {
+    en: 'Patient Dashboard',
+    fr: 'Tableau de Bord Patient',
+    ar: 'لوحة تحكم المريض'
+  },
+  dashboardSubtitle: {
+    en: 'Manage your health journey',
+    fr: 'Gérez votre parcours de santé',
+    ar: 'إدارة رحلتك الصحية'
+  },
+  bookAppointment: {
+    en: 'Book Appointment',
+    fr: 'Prendre Rendez-vous',
+    ar: 'حجز موعد'
+  },
+  scheduleConsultation: {
+    en: 'Schedule a new consultation',
+    fr: 'Planifier une nouvelle consultation',
+    ar: 'جدولة استشارة جديدة'
+  },
+  appointments: {
+    en: 'Appointments',
+    fr: 'Rendez-vous',
+    ar: 'المواعيد'
+  },
+  viewAppointments: {
+    en: 'View upcoming appointments',
+    fr: 'Voir les rendez-vous à venir',
+    ar: 'عرض المواعيد القادمة'
+  },
+  medicalRecords: {
+    en: 'Medical Records',
+    fr: 'Dossiers Médicaux',
+    ar: 'السجلات الطبية'
+  },
+  accessRecords: {
+    en: 'Access your health records',
+    fr: 'Accédez à vos dossiers de santé',
+    ar: 'الوصول إلى سجلاتك الصحية'
+  },
+  teleExpertise: {
+    en: 'Tele-Expertise',
+    fr: 'Télé-Expertise',
+    ar: 'الاستشارة عن بعد'
+  },
+  requestSecondOpinion: {
+    en: 'Request a second opinion',
+    fr: 'Demander un deuxième avis',
+    ar: 'طلب رأي ثان'
+  },
+  profile: {
+    en: 'Profile',
+    fr: 'Profil',
+    ar: 'الملف الشخصي'
+  },
+  updateProfile: {
+    en: 'Update your profile',
+    fr: 'Mettre à jour votre profil',
+    ar: 'تحديث ملفك الشخصي'
+  },
+  welcome: {
+    en: 'Welcome',
+    fr: 'Bienvenue',
+    ar: 'أهلاً بك'
+  },
+  logout: {
+    en: 'Logout',
+    fr: 'Déconnexion',
+    ar: 'تسجيل الخروج'
   }
 };
 

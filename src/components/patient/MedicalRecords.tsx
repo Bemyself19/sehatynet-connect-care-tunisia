@@ -1,209 +1,464 @@
-
-import React, { useState } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, Eye } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { 
+  FileText, Pill, Microscope, Camera, Syringe, Scissors, Eye, EyeOff, Lock, Unlock, 
+  Calendar, User, Stethoscope, Download, BarChart2, Clock
+} from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import api from '@/lib/api';
+import { MedicalRecord } from '@/types/medicalRecord';
+import { Appointment } from '@/types/appointment';
+import { Prescription } from '@/types/prescription';
+import { toast } from 'sonner';
 import Modal from '@/components/ui/modal';
+import PrescriptionDetail from '@/components/prescription/PrescriptionDetail';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+type DashboardData = {
+  stats: {
+    totalConsultations: number;
+    totalPrescriptions: number;
+    totalRecords: number;
+  };
+  consultationHistory: {
+    appointment: Appointment;
+    medicalRecords: MedicalRecord[];
+    prescriptions: Prescription[];
+    totalRecords: number;
+  }[];
+  recentRecords: MedicalRecord[];
+};
+
+type ViewableRecord = MedicalRecord | Prescription;
 
 const MedicalRecords: React.FC = () => {
-  const { t } = useLanguage();
-  const { toast } = useToast();
-  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const { user: currentUser } = useUser();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ViewableRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const records = [
-    {
-      id: 1,
-      title: 'Blood Test Results',
-      date: '2024-01-10',
-      provider: 'Central Lab',
-      type: 'lab_result',
-      details: {
-        hemoglobin: '14.2 g/dL',
-        whiteBloodCells: '7,500/μL',
-        platelets: '250,000/μL',
-        glucose: '95 mg/dL',
-        cholesterol: '180 mg/dL'
-      }
-    },
-    {
-      id: 2,
-      title: 'Cardiology Consultation',
-      date: '2024-01-08',
-      provider: 'Dr. Sarah Johnson',
-      type: 'consultation',
-      details: {
-        complaint: 'Chest pain and shortness of breath',
-        examination: 'Normal heart sounds, regular rhythm',
-        diagnosis: 'Mild anxiety-related symptoms',
-        recommendations: 'Stress management and follow-up in 3 months'
-      }
-    },
-    {
-      id: 3,
-      title: 'Chest X-Ray',
-      date: '2024-01-05',
-      provider: 'Radiology Center',
-      type: 'imaging',
-      details: {
-        findings: 'Clear lung fields, normal heart size',
-        impression: 'No acute cardiopulmonary abnormalities',
-        technique: 'Posterior-anterior and lateral views'
-      }
-    },
-    {
-      id: 4,
-      title: 'Prescription - Hypertension',
-      date: '2024-01-03',
-      provider: 'Dr. Ahmed Hassan',
-      type: 'prescription',
-      details: {
-        medication: 'Lisinopril 10mg',
-        dosage: 'Once daily',
-        duration: '30 days',
-        instructions: 'Take with food, monitor blood pressure'
-      }
-    }
-  ];
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'lab_result': return 'bg-blue-100 text-blue-800';
-      case 'consultation': return 'bg-green-100 text-green-800';
-      case 'imaging': return 'bg-purple-100 text-purple-800';
-      case 'prescription': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getPatientDashboard();
+      setDashboardData(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to fetch dashboard data.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleView = (record: any) => {
-    setSelectedRecord(record);
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const handleView = (item: ViewableRecord) => {
+    setSelectedItem(item);
     setIsModalOpen(true);
-    toast({
-      title: 'Opening Record',
-      description: `Viewing ${record.title}`,
-    });
-  };
-
-  const handleDownload = (record: any) => {
-    console.log('Downloading record:', record);
-    toast({
-      title: 'Download Started',
-      description: `Downloading ${record.title} as PDF`,
-    });
-    
-    // Create PDF content
-    const pdfContent = `
-Medical Record: ${record.title}
-Date: ${record.date}
-Provider: ${record.provider}
-Type: ${record.type.replace('_', ' ')}
-
-Details:
-${Object.entries(record.details).map(([key, value]) => `${key}: ${value}`).join('\n')}
-
-Generated by SehatyNet+
-    `;
-    
-    const element = document.createElement('a');
-    const file = new Blob([pdfContent], {type: 'application/pdf'});
-    element.href = URL.createObjectURL(file);
-    element.download = `${record.title.replace(/\s+/g, '_')}.pdf`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedRecord(null);
+    setSelectedItem(null);
+  };
+
+  const handleDownload = async (item: ViewableRecord) => {
+    const isPrescription = !('type' in item);
+    if (isPrescription) {
+      try {
+        const response = await fetch(`/api/prescriptions/${item._id}/pdf`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Failed to download prescription PDF');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `prescription-${item._id}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        toast.error('Failed to download prescription PDF');
+      }
+      return;
+    }
+    // Fallback for other records (text file)
+    let pdfContent = `SehatyNet Medical Record\n\n`;
+    pdfContent += `Record: ${item.title}\n`;
+    pdfContent += `Date: ${new Date(item.date).toLocaleDateString()}\n`;
+    pdfContent += `Type: ${item.type}\n`;
+    pdfContent += `Provider: ${item.providerId.firstName} ${item.providerId.lastName}\n\n`;
+    pdfContent += `Details:\n${JSON.stringify(item.details, null, 2)}`;
+    const blob = new Blob([pdfContent], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `medical_record-${item._id}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrivacyChange = async (recordId: string, newPrivacyLevel: string) => {
+    try {
+      await api.updateMedicalRecordPrivacy(recordId, newPrivacyLevel);
+      toast.success('Privacy settings updated');
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Failed to update privacy:', error);
+      toast.error('Failed to update privacy settings');
+    }
+  };
+  
+  const canManagePrivacy = (record: MedicalRecord) => {
+    return currentUser?.role === 'doctor' && record.providerId._id === currentUser._id;
+  };
+
+  const getTypeIcon = (type: string) => {
+    const icons: { [key: string]: React.ReactElement } = {
+      consultation: <Stethoscope className="h-5 w-5 text-blue-500" />,
+      prescription: <Pill className="h-5 w-5 text-orange-500" />,
+      lab_result: <Microscope className="h-5 w-5 text-purple-500" />,
+      imaging: <Camera className="h-5 w-5 text-green-500" />,
+      vaccination: <Syringe className="h-5 w-5 text-yellow-500" />,
+      surgery: <Scissors className="h-5 w-5 text-red-500" />,
+    };
+    return icons[type] || <FileText className="h-5 w-5" />;
+  };
+  
+  const getPrivacyIcon = (level: string) => {
+    const icons: { [key: string]: React.ReactElement } = {
+      doctor_only: <Lock className="h-3 w-3" />,
+      patient_visible: <Eye className="h-3 w-3" />,
+      shared: <Unlock className="h-3 w-3" />,
+      private: <Lock className="h-3 w-3" />,
+    };
+    return icons[level] || <Lock className="h-3 w-3" />;
+  };
+
+  const getPrivacyLabel = (level: string) => {
+    const labels: { [key: string]: string } = {
+        doctor_only: "Doctor Only",
+        patient_visible: "Patient Visible",
+        shared: "Shared",
+        private: "Private",
+    };
+    return labels[level] || "Private";
+  };
+  
+  const getPrivacyColor = (level: string) => {
+    const colors: { [key: string]: string } = {
+      doctor_only: 'bg-red-100 text-red-800',
+      patient_visible: 'bg-green-100 text-green-800',
+      shared: 'bg-blue-100 text-blue-800',
+      private: 'bg-gray-100 text-gray-800',
+    };
+    return colors[level] || 'bg-gray-100 text-gray-800';
+  };
+
+  const renderConsultationHistory = () => {
+    const sortedHistory = [...(dashboardData?.consultationHistory ?? [])].sort((a, b) => new Date(b.appointment.scheduledDate).getTime() - new Date(a.appointment.scheduledDate).getTime());
+    if (sortedHistory.length === 0) {
+      return <div className="text-gray-500 text-center py-8">No consultation history found.</div>;
+    }
+    return (
+      <Accordion type="single" collapsible className="w-full">
+        {sortedHistory.map((consultation, idx) => (
+          <AccordionItem value={String(idx)} key={consultation.appointment._id}>
+            <AccordionTrigger className="hover:bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between w-full items-center">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                  <div>
+                    <p className="font-semibold text-base">
+                      Consultation: {new Date(consultation.appointment.scheduledDate).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-600 text-left">
+                      Dr. {consultation.appointment.providerId.firstName} {consultation.appointment.providerId.lastName}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={consultation.totalRecords > 0 ? "default" : "secondary"}>
+                  {consultation.totalRecords} record{consultation.totalRecords !== 1 && 's'}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-4 bg-gray-50">
+              {consultation.totalRecords === 0 ? (
+                <p className="text-gray-500 text-center py-4">No records found for this consultation.</p>
+              ) : (
+                <div className="space-y-4 pl-4 border-l-2 ml-2 border-blue-200">
+                  {/* Prescriptions */}
+                  {consultation.prescriptions.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2 text-orange-600">
+                        <Pill className="h-4 w-4" />
+                        Prescriptions ({consultation.prescriptions.length})
+                      </h4>
+                      {consultation.prescriptions.map((prescription: Prescription) => (
+                        <div key={prescription._id} className="p-3 bg-white rounded-lg border flex justify-between items-center">
+                          <p className="text-sm font-medium">
+                            {prescription.medications.length} medication(s)
+                            {prescription.labTests && `, ${prescription.labTests.length} lab test(s)`}
+                            {prescription.radiology && `, ${prescription.radiology.length} radiology exam(s)`}
+                            prescribed
+                          </p>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleView(prescription)}><Eye className="h-4 w-4 mr-1" />View</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDownload(prescription)}><Download className="h-4 w-4 mr-1" />Download</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Medical Records */}
+                  {consultation.medicalRecords.length > 0 && (
+                    <div className="space-y-3">
+                       <h4 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
+                        <FileText className="h-4 w-4" />
+                        Other Records ({consultation.medicalRecords.length})
+                      </h4>
+                      {consultation.medicalRecords.map((record: MedicalRecord) => (
+                        <div key={record._id} className="p-3 bg-white rounded-lg border flex justify-between items-center gap-2">
+                          <div className="flex items-center gap-2 flex-grow">
+                            {getTypeIcon(record.type)}
+                            <span className="font-medium text-sm">{record.title}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge className={`${getPrivacyColor(record.privacyLevel)} text-xs`}>
+                              <div className="flex items-center gap-1">
+                                {getPrivacyIcon(record.privacyLevel)}
+                                {getPrivacyLabel(record.privacyLevel)}
+                              </div>
+                            </Badge>
+                            {canManagePrivacy(record) && (
+                              <Select value={record.privacyLevel} onValueChange={(value) => handlePrivacyChange(record._id, value)}>
+                                <SelectTrigger className="w-auto h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="doctor_only">Doctor Only</SelectItem>
+                                  <SelectItem value="patient_visible">Patient Visible</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => handleView(record)}><Eye className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDownload(record)}><Download className="h-4 w-4" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    );
+  };
+
+  const renderRecentRecords = () => {
+    const records = dashboardData?.recentRecords ?? [];
+    if (records.length === 0) {
+      return <div className="text-gray-500 text-center py-8">No recent records found.</div>;
+    }
+    return (
+      <div className="space-y-3">
+        {records.map(record => (
+          <Card key={record._id} className="p-4 flex items-center justify-between">
+             <div className="flex items-center gap-3">
+                {getTypeIcon(record.type)}
+                <div>
+                  <p className="font-semibold">{record.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(record.date).toLocaleDateString()} &bull; {record.type.replace('_', ' ')}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => handleView(record)}>View</Button>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderStats = () => {
+    const stats = dashboardData?.stats;
+    if (!stats) return null;
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <Stethoscope className="h-8 w-8 text-blue-500 mb-2" />
+          <p className="text-2xl font-bold">{stats.totalConsultations}</p>
+          <p className="text-sm text-gray-500">Consultations</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <Pill className="h-8 w-8 text-orange-500 mb-2" />
+          <p className="text-2xl font-bold">{stats.totalPrescriptions}</p>
+          <p className="text-sm text-gray-500">Prescriptions</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <FileText className="h-8 w-8 text-green-500 mb-2" />
+          <p className="text-2xl font-bold">{stats.totalRecords}</p>
+          <p className="text-sm text-gray-500">Medical Records</p>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (isLoading) return <div>Loading records...</div>;
+    if (error) return <div className="text-red-500">{error}</div>;
+    if (!dashboardData) return <div>No records found.</div>;
+
+    return (
+      <Tabs defaultValue="consultations" className="w-full">
+        <TabsList className="w-full flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap bg-muted p-1 rounded-md">
+          <TabsTrigger value="consultations" className="flex-1 min-w-[160px] max-w-full"><Calendar className="h-4 w-4 mr-2"/>Consultation History</TabsTrigger>
+          <TabsTrigger value="recent" className="flex-1 min-w-[120px] max-w-full"><Clock className="h-4 w-4 mr-2"/>Recent Records</TabsTrigger>
+          <TabsTrigger value="stats" className="flex-1 min-w-[100px] max-w-full"><BarChart2 className="h-4 w-4 mr-2"/>Statistics</TabsTrigger>
+        </TabsList>
+        <TabsContent value="consultations" className="mt-4">{renderConsultationHistory()}</TabsContent>
+        <TabsContent value="recent" className="mt-4">{renderRecentRecords()}</TabsContent>
+        <TabsContent value="stats" className="mt-4">{renderStats()}</TabsContent>
+      </Tabs>
+    );
   };
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('medicalRecords') || 'Medical Records'}</CardTitle>
-          <CardDescription>
-            {t('accessRecords') || 'Access your medical history and documents'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {records.map((record) => (
-              <div key={record.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-start space-x-3">
-                    <FileText className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <div>
-                      <h3 className="font-semibold">{record.title}</h3>
-                      <p className="text-sm text-gray-600">{record.provider}</p>
-                      <p className="text-xs text-gray-500">{record.date}</p>
-                    </div>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(record.type)}`}>
-                    {record.type.replace('_', ' ')}
-                  </span>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <Button size="sm" variant="outline" onClick={() => handleView(record)}>
-                    <Eye className="h-4 w-4 mr-1" />
-                    {t('view') || 'View'}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDownload(record)}>
-                    <Download className="h-4 w-4 mr-1" />
-                    {t('download') || 'Download'}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
+      {renderContent()}
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={selectedRecord?.title || ''}
+        title={selectedItem && 'title' in selectedItem ? selectedItem.title : 'Prescription Details'}
       >
-        {selectedRecord && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Date:</span> {selectedRecord.date}
-              </div>
-              <div>
-                <span className="font-medium">Provider:</span> {selectedRecord.provider}
-              </div>
-              <div>
-                <span className="font-medium">Type:</span> {selectedRecord.type.replace('_', ' ')}
-              </div>
-            </div>
-            
-            <div className="border-t pt-4">
-              <h4 className="font-semibold mb-2">Details:</h4>
-              <div className="space-y-2">
-                {Object.entries(selectedRecord.details).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>
-                    <span>{value as string}</span>
+        {selectedItem && !('type' in selectedItem) ? (
+          // Prescription view with tabs
+          <Tabs defaultValue="prescription" className="w-full">
+            <TabsList className="w-full flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap bg-muted p-1 rounded-md mb-4">
+              <TabsTrigger value="prescription" className="flex-1 min-w-[120px] max-w-full">Prescription</TabsTrigger>
+              <TabsTrigger value="lab" className="flex-1 min-w-[120px] max-w-full">Lab Results</TabsTrigger>
+              <TabsTrigger value="radiology" className="flex-1 min-w-[120px] max-w-full">Radiology Results</TabsTrigger>
+              <TabsTrigger value="pharmacy" className="flex-1 min-w-[120px] max-w-full">Pharmacy</TabsTrigger>
+            </TabsList>
+            <TabsContent value="prescription" className="mt-2">
+              <PrescriptionDetail prescription={selectedItem as Prescription} />
+            </TabsContent>
+            <TabsContent value="lab" className="mt-2">
+              {/* Find and display lab_result records linked to this prescription */}
+              {(dashboardData?.recentRecords ?? []).filter(r => r.type === 'lab_result' && r.prescriptionId === selectedItem._id).length === 0 ? (
+                <div className="text-gray-500">No lab results for this prescription.</div>
+              ) : (dashboardData?.recentRecords ?? []).filter(r => r.type === 'lab_result' && r.prescriptionId === selectedItem._id).map(record => (
+                <div key={record._id} className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <div className="font-semibold mb-2">Lab Result: {record.title}</div>
+                  {/* Structured report fields */}
+                  {record.report && (
+                    <div className="mb-2">
+                      {record.report?.resultSummary && <div><strong>Result Summary:</strong> {record.report.resultSummary}</div>}
+                      {record.report?.referenceRange && <div><strong>Reference Range:</strong> {record.report.referenceRange}</div>}
+                    </div>
+                  )}
+                  {/* Files */}
+                  {record.files?.length ? (
+                    <div className="flex flex-col gap-2 mt-2">
+                      {record.files.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          {file.mimetype?.startsWith('image/') ? <img src={file.url} alt={file.filename} className="h-8 w-8 object-cover rounded" /> : <FileText className="h-6 w-6 text-blue-500" />}
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{file.filename}</a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="text-gray-400">No files uploaded.</div>}
+                </div>
+              ))}
+            </TabsContent>
+            <TabsContent value="radiology" className="mt-2">
+              {/* Find and display imaging records linked to this prescription */}
+              {(dashboardData?.recentRecords ?? []).filter(r => r.type === 'imaging' && r.prescriptionId === selectedItem._id).length === 0 ? (
+                <div className="text-gray-500">No radiology results for this prescription.</div>
+              ) : (dashboardData?.recentRecords ?? []).filter(r => r.type === 'imaging' && r.prescriptionId === selectedItem._id).map(record => (
+                <div key={record._id} className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <div className="font-semibold mb-2">Radiology Result: {record.title}</div>
+                  {/* Structured report fields */}
+                  {record.report && (
+                    <div className="mb-2">
+                      {record.report?.impression && <div><strong>Impression:</strong> {record.report.impression}</div>}
+                      {record.report?.findings && <div><strong>Findings:</strong> {record.report.findings}</div>}
+                    </div>
+                  )}
+                  {/* Files */}
+                  {record.files?.length ? (
+                    <div className="flex flex-col gap-2 mt-2">
+                      {record.files.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          {file.mimetype?.startsWith('image/') ? <img src={file.url} alt={file.filename} className="h-8 w-8 object-cover rounded" /> : <FileText className="h-6 w-6 text-blue-500" />}
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{file.filename}</a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="text-gray-400">No files uploaded.</div>}
+                </div>
+              ))}
+            </TabsContent>
+            <TabsContent value="pharmacy" className="mt-2">
+              {/* Pharmacy fulfillment info (if any) */}
+              <div className="text-gray-500">Pharmacy fulfillment details coming soon.</div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // Fallback for other records
+          <div className="space-y-4 p-1">
+            {'type' in (selectedItem || {}) ? (
+              // MedicalRecord fallback
+              <>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><strong className="font-semibold">Date:</strong> {new Date((selectedItem as any).date).toLocaleDateString()}</div>
+                  <div><strong className="font-semibold">Provider:</strong> {(selectedItem as any).providerId.firstName} {(selectedItem as any).providerId.lastName}</div>
+                  <div><strong className="font-semibold">Type:</strong> {(selectedItem as any).type.replace('_', ' ')}</div>
+                </div>
+                <div className="mt-4">
+                  <h4 className="font-semibold text-base mb-2">Details</h4>
+                  <div className="p-3 bg-gray-50 rounded-lg border text-sm space-y-2">
+                    {Object.entries((selectedItem as any).details).map(([key, value]) => (
+                      <div key={key} className="flex">
+                        <strong className="w-1/3 capitalize font-medium text-gray-700">{key.replace(/_/g, ' ')}:</strong>
+                        <span className="w-2/3 text-gray-900">{String(value)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="flex space-x-2 pt-4">
-              <Button onClick={() => handleDownload(selectedRecord)}>
-                <Download className="h-4 w-4 mr-1" />
-                Download PDF
-              </Button>
-              <Button variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-            </div>
+                </div>
+                {(selectedItem as any).fileUrl && (
+                  <div className="mt-4">
+                    <Button asChild variant="outline">
+                      <a href={(selectedItem as any).fileUrl} target="_blank" rel="noopener noreferrer">
+                        <Download className="mr-2 h-4 w-4" /> Download/View File
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              // Prescription fallback (should rarely be hit)
+              <div className="text-gray-500">No additional details available for this record.</div>
+            )}
           </div>
         )}
       </Modal>

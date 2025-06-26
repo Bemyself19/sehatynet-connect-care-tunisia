@@ -1,14 +1,19 @@
+import { User, Patient, Provider } from './user';
 
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show';
+export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'no-show' | 'pending';
 export type AppointmentType = 'consultation' | 'follow-up' | 'emergency' | 'lab-test' | 'imaging';
+export type AppointmentKind = 'in-person' | 'video';
 
 export interface Appointment {
-  id: string;
-  patientId: string;
-  providerId: string;
+  _id: string;
+  patientId: Patient;
+  providerId: Provider;
   type: AppointmentType;
   status: AppointmentStatus;
   scheduledDate: string;
+  scheduledTime: string;
+  appointmentType: AppointmentKind;
+  reason?: string;
   duration: number; // in minutes
   consultationFee: number;
   notes?: string;
@@ -32,6 +37,9 @@ export interface CreateAppointmentData {
   providerId: string;
   type: AppointmentType;
   scheduledDate: string;
+  scheduledTime: string;
+  appointmentType: AppointmentKind;
+  reason?: string;
   duration: number;
   symptoms?: string;
   notes?: string;
