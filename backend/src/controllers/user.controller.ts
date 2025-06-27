@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
 import User from "../models/user.model";
+import Appointment from '../models/appointment.model';
+import TeleExpertiseRequest from '../models/teleExpertiseRequest.model';
+import Prescription from '../models/prescription.model';
+import mongoose from 'mongoose';
 
 export const getProfile = async (req: any, res: Response): Promise<void> => {
     try {
@@ -25,7 +29,8 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
             'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender', 'profileImage',
             'emergencyContact', 'medicalHistory', 'allergies', 'currentMedications',
             'specialization', 'address', 'workingHours', 'consultationFee',
-            'medicalInfoDismissed'
+            'medicalInfoDismissed',
+            'slotDuration'
         ];
         
         const filteredUpdates: any = {};
@@ -218,18 +223,53 @@ export const getPatients = async (req: Request, res: Response): Promise<void> =>
 
 export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
     try {
-        const totalUsers = await User.countDocuments();
-        const activeUsers = await User.countDocuments({ isActive: true });
-        const patients = await User.countDocuments({ role: 'patient' });
-        const doctors = await User.countDocuments({ role: 'doctor' });
-        const admins = await User.countDocuments({ role: 'admin' });
+        const doctorId = (req as any).user.id;
+        // Quick stats
+        const [
+            totalAppointments,
+            totalPatients,
+            totalTeleExpertise,
+            totalPrescriptions
+        ] = await Promise.all([
+            Appointment.countDocuments({ providerId: doctorId }),
+            Appointment.distinct('patientId', { providerId: new mongoose.Types.ObjectId(doctorId) }).then(arr => arr.length),
+            TeleExpertiseRequest.countDocuments({ doctorId }),
+            Prescription.countDocuments({ providerId: doctorId })
+        ]);
+
+        // Appointments over last 7 days
+        const today = new Date();
+        const last7 = new Date(today);
+        last7.setDate(today.getDate() - 6);
+        const apptTrends = await Appointment.aggregate([
+            { $match: { providerId: new mongoose.Types.ObjectId(doctorId), scheduledDate: { $gte: last7.toISOString().slice(0,10) } } },
+            { $group: { _id: "$scheduledDate", count: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Appointment status breakdown
+        const apptStatus = await Appointment.aggregate([
+            { $match: { providerId: new mongoose.Types.ObjectId(doctorId) } },
+            { $group: { _id: "$status", value: { $sum: 1 } } }
+        ]);
+
+        // New patients over last 7 days
+        const newPatients = await User.aggregate([
+            { $match: { role: 'patient', createdAt: { $gte: last7 } } },
+            { $lookup: { from: 'appointments', localField: '_id', foreignField: 'patientId', as: 'appts' } },
+            { $match: { 'appts.providerId': new mongoose.Types.ObjectId(doctorId) } },
+            { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+        ]);
 
         res.json({
-            totalUsers,
-            activeUsers,
-            patients,
-            doctors,
-            admins
+            totalAppointments,
+            totalPatients,
+            totalTeleExpertise,
+            totalPrescriptions,
+            apptTrends,
+            apptStatus,
+            newPatients
         });
     } catch (err) {
         console.error('Get dashboard stats error:', err);

@@ -160,6 +160,4 @@ const DoctorDashboard: React.FC = () => {
   );
 };
 
-export default DoctorDashboard;
-
-
+export default DoctorDashboard; 

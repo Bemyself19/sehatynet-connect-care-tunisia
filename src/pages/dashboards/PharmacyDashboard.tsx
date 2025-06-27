@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pill, Package, FileText, Settings, Heart, ShoppingCart, Users, Clock, CheckCircle, AlertCircle, TrendingUp, Search, X } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Provider } from '@/types/user';
 import api from '@/lib/api';
@@ -19,6 +20,7 @@ import { Label } from '@/components/ui/label';
 const PharmacyDashboard: React.FC = () => {
   const { t, currentLanguage } = useLanguage();
   const { user, isLoading } = useUser();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [assignedRequests, setAssignedRequests] = useState<MedicalRecord[]>([]);
   const [fulfillingId, setFulfillingId] = useState<string | null>(null);
@@ -69,7 +71,7 @@ const PharmacyDashboard: React.FC = () => {
   }
 
   if (!user || user.role !== 'pharmacy') {
-    navigate('/login');
+    logout();
     return null;
   }
 

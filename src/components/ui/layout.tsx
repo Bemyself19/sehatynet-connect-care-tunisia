@@ -79,7 +79,6 @@ export const Layout: React.FC<LayoutProps> = ({
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
 
   return (
@@ -143,15 +142,6 @@ export const Layout: React.FC<LayoutProps> = ({
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                     <div className="py-1">
-                      <Link to="/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <User className="h-4 w-4 mr-3" />
-                        Profile
-                      </Link>
-                      <Link to="/settings" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <Settings className="h-4 w-4 mr-3" />
-                        Settings
-                      </Link>
-                      <hr className="my-1" />
                       <button
                         onClick={handleLogout}
                         className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"

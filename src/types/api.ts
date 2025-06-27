@@ -5,9 +5,11 @@ export interface ApiResponse<T = any> {
 }
 
 export interface DashboardStats {
-  totalUsers: number;
+  totalAppointments: number;
   totalPatients: number;
-  totalProviders: number;
-  activeProviders: number;
-  verifiedUsers: number;
+  totalTeleExpertise: number;
+  totalPrescriptions: number;
+  apptTrends: { _id: string; count: number }[];
+  apptStatus: { _id: string; value: number }[];
+  newPatients: { _id: string; count: number }[];
 } 
