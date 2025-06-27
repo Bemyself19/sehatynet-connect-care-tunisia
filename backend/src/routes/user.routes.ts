@@ -41,7 +41,7 @@ router.put("/me", authenticateJWT, updateProfile);
 
 // Admin-only routes for user management
 router.get("/", authenticateJWT, authorizeRoles('admin'), getAllUsers);
-router.get("/stats", authenticateJWT, authorizeRoles('admin'), getDashboardStats);
+router.get("/stats", authenticateJWT, authorizeRoles('admin', 'doctor'), getDashboardStats);
 router.put("/:id/status", authenticateJWT, authorizeRoles('admin'), updateUserStatus);
 router.delete("/:id", authenticateJWT, authorizeRoles('admin'), deleteUser);
 

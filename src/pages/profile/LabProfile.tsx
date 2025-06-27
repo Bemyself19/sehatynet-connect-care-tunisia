@@ -10,19 +10,32 @@ import { Provider } from '@/types/user';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 import { useProvider } from '@/hooks/useProvider';
-import { MdEmail, MdPhone, MdLocationOn, MdLocalPharmacy, MdBadge, MdCreditCard } from 'react-icons/md';
-import { Heart, User, Mail, Phone, MapPin, BadgePercent, CreditCard, Stethoscope } from 'lucide-react';
+import { useLanguage } from '@/hooks/useLanguage';
+import { Heart, User, Mail, Phone, MapPin, BadgePercent, CreditCard, Stethoscope, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
 
 const LabProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, refetch } = useUser();
-  const { provider, loading, error } = useProvider(id, 'lab');
-  const isOwnProfile = user && user._id === id;
+  const { t, currentLanguage } = useLanguage();
   const [profileData, setProfileData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
+
+  // Use current user's ID for "My Profile" view, fallback to URL param for admin views
+  const profileId = user?._id || id;
+  const { provider, loading, error } = useProvider(profileId, 'lab');
+
+  // Redirect if URL param doesn't match current user (for "My Profile" views)
+  useEffect(() => {
+    if (user && id && id !== user._id) {
+      navigate(`/dashboard/lab/profile`, { replace: true });
+    }
+  }, [user, id, navigate]);
+
+  const isOwnProfile = user && profileId === user._id;
 
   useEffect(() => {
     if (provider && isOwnProfile) {
@@ -34,6 +47,7 @@ const LabProfile: React.FC = () => {
         address: provider.address || '',
         specialization: provider.specialization || '',
         licenseNumber: provider.licenseNumber || '',
+        cnamId: provider.cnamId || '',
       });
     }
   }, [provider, isOwnProfile]);
@@ -71,104 +85,241 @@ const LabProfile: React.FC = () => {
     );
   }
 
-  if (loading) return <Skeleton className="w-full h-40" />;
-  if (error || !provider) return <div className="text-center text-red-500">{error || 'Lab not found'}</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !provider) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600">{error || 'Lab not found'}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center">
-              <Heart className="h-8 w-8 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-900">SehatyNet+</span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link to="/dashboard/lab">
-                <Button variant="outline" size="sm">Back to Dashboard</Button>
-              </Link>
-              <span className="text-sm text-gray-600">Welcome, {user?.firstName}</span>
-              <Button variant="outline" size="sm" onClick={logout}>Logout</Button>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="p-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg">
+              <User className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {t('myProfile') || 'My Profile'}
+              </h1>
+              <p className="text-gray-600">
+                {t('updateLabInfo') || 'Update your lab information and preferences'}
+              </p>
             </div>
           </div>
+          {/* Role Badge */}
+          <div className="flex items-center space-x-2">
+            <Badge className="bg-orange-100 text-orange-800">
+              Laboratory
+            </Badge>
+            {profileData?.specialization && (
+              <Badge variant="outline">
+                {profileData.specialization}
+              </Badge>
+            )}
+          </div>
         </div>
-      </header>
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-          <p className="text-gray-600">Update your lab information and preferences</p>
-        </div>
+
         {isOwnProfile && profileData ? (
           <form onSubmit={handleSave} className="space-y-6">
-            <Card>
+            {/* Lab Information */}
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5" />
-                  <span>Lab Information</span>
+                  <User className="h-5 w-5 text-orange-600" />
+                  <span>{t('labInformation') || 'Lab Information'}</span>
                 </CardTitle>
-                <CardDescription>Your basic lab details</CardDescription>
+                <CardDescription>
+                  {t('basicLabDetails') || 'Your basic lab details'}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" name="firstName" value={profileData.firstName} onChange={handleChange} required />
+                    <Label htmlFor="firstName">{t('firstName') || 'First Name'}</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      value={profileData.firstName}
+                      onChange={handleChange}
+                      required
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" name="lastName" value={profileData.lastName} onChange={handleChange} required />
+                    <Label htmlFor="lastName">{t('lastName') || 'Last Name'}</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      value={profileData.lastName}
+                      onChange={handleChange}
+                      required
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
                   </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="email" className="flex items-center space-x-1"><Mail className="h-4 w-4" /><span>Email</span></Label>
-                  <Input id="email" name="email" type="email" value={profileData.email} onChange={handleChange} required />
+                  <Label htmlFor="email" className="flex items-center space-x-1">
+                    <Mail className="h-4 w-4 text-gray-600" />
+                    <span>{t('email') || 'Email'}</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={handleChange}
+                    required
+                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="phone" className="flex items-center space-x-1"><Phone className="h-4 w-4" /><span>Phone</span></Label>
-                  <Input id="phone" name="phone" value={profileData.phone} onChange={handleChange} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone" className="flex items-center space-x-1">
+                      <Phone className="h-4 w-4 text-gray-600" />
+                      <span>{t('phone') || 'Phone'}</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      value={profileData.phone}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cnamId" className="flex items-center space-x-1">
+                      <CreditCard className="h-4 w-4 text-gray-600" />
+                      <span>CNAM ID</span>
+                    </Label>
+                    <Input
+                      id="cnamId"
+                      name="cnamId"
+                      value={profileData.cnamId}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="address" className="flex items-center space-x-1"><MapPin className="h-4 w-4" /><span>Address</span></Label>
-                  <Input id="address" name="address" value={profileData.address} onChange={handleChange} />
+                  <Label htmlFor="address" className="flex items-center space-x-1">
+                    <MapPin className="h-4 w-4 text-gray-600" />
+                    <span>{t('address') || 'Address'}</span>
+                  </Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={profileData.address}
+                    onChange={handleChange}
+                    className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="specialization" className="flex items-center space-x-1"><Stethoscope className="h-4 w-4" /><span>Specialization</span></Label>
-                  <Input id="specialization" name="specialization" value={profileData.specialization} onChange={handleChange} />
-                </div>
-                <div>
-                  <Label htmlFor="licenseNumber" className="flex items-center space-x-1"><BadgePercent className="h-4 w-4" /><span>License Number</span></Label>
-                  <Input id="licenseNumber" name="licenseNumber" value={profileData.licenseNumber} onChange={handleChange} />
-                </div>
-                <div>
-                  <Label htmlFor="cnamId" className="flex items-center space-x-1"><CreditCard className="h-4 w-4" /><span>CNAM ID</span></Label>
-                  <Input id="cnamId" name="cnamId" value={profileData.cnamId || ''} onChange={handleChange} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="specialization" className="flex items-center space-x-1">
+                      <Stethoscope className="h-4 w-4 text-gray-600" />
+                      <span>{t('specialization') || 'Specialization'}</span>
+                    </Label>
+                    <Input
+                      id="specialization"
+                      name="specialization"
+                      value={profileData.specialization}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="licenseNumber" className="flex items-center space-x-1">
+                      <BadgePercent className="h-4 w-4 text-gray-600" />
+                      <span>{t('licenseNumber') || 'License Number'}</span>
+                    </Label>
+                    <Input
+                      id="licenseNumber"
+                      name="licenseNumber"
+                      value={profileData.licenseNumber}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Action Buttons */}
             <div className="flex space-x-4">
-              <Button type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</Button>
-              <Link to="/dashboard/lab"><Button type="button" variant="outline">Cancel</Button></Link>
+              <Button 
+                type="submit" 
+                disabled={isSaving}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              >
+                {isSaving ? 'Saving...' : (t('saveChanges') || 'Save Changes')}
+              </Button>
+              <Link to="/dashboard/lab">
+                <Button type="button" variant="outline">
+                  {t('cancel') || 'Cancel'}
+                </Button>
+              </Link>
             </div>
           </form>
-        ) : error || !provider ? (
-          <div className="text-center text-red-500">{error || 'Lab not found'}</div>
         ) : (
-          <Card className="max-w-lg mx-auto mt-8">
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm max-w-lg mx-auto">
             <CardHeader>
-              <CardTitle>{(provider as Provider).firstName} {(provider as Provider).lastName}</CardTitle>
-              <CardDescription>Lab</CardDescription>
+              <CardTitle className="flex items-center space-x-2">
+                <User className="h-5 w-5 text-orange-600" />
+                <span>{(provider as Provider).firstName} {(provider as Provider).lastName}</span>
+              </CardTitle>
+              <CardDescription>Laboratory</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2"><MapPin className="h-4 w-4" /><strong>Address:</strong> {(provider as Provider).address}</div>
-                <div className="flex items-center gap-2"><Phone className="h-4 w-4" /><strong>Phone:</strong> {(provider as Provider).phone}</div>
-                <div className="flex items-center gap-2"><Mail className="h-4 w-4" /><strong>Email:</strong> {(provider as Provider).email}</div>
-                <div className="flex items-center gap-2"><Stethoscope className="h-4 w-4" /><strong>Specialization:</strong> {(provider as Provider).specialization || '-'}</div>
-                <div className="flex items-center gap-2"><BadgePercent className="h-4 w-4" /><strong>License Number:</strong> {(provider as Provider).licenseNumber || '-'}</div>
-                {(provider as Provider).cnamId && (
-                  <div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /><strong>CNAM ID:</strong> {(provider as Provider).cnamId}</div>
-                )}
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-gray-600" />
+                <strong>Address:</strong> {(provider as Provider).address}
               </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-600" />
+                <strong>Phone:</strong> {(provider as Provider).phone}
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-gray-600" />
+                <strong>Email:</strong> {(provider as Provider).email}
+              </div>
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-gray-600" />
+                <strong>Specialization:</strong> {(provider as Provider).specialization || '-'}
+              </div>
+              <div className="flex items-center gap-2">
+                <BadgePercent className="h-4 w-4 text-gray-600" />
+                <strong>License Number:</strong> {(provider as Provider).licenseNumber || '-'}
+              </div>
+              {(provider as Provider).cnamId && (
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-gray-600" />
+                  <strong>CNAM ID:</strong> {(provider as Provider).cnamId}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

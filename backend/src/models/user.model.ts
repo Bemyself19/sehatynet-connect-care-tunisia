@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema({
     reviewCount: { type: Number, default: 0 },
     consultationFee: { type: Number },
     isActive: { type: Boolean, default: true },
+    // Provider-specific: default slot duration in minutes
+    slotDuration: { type: Number, default: 30 },
     // Password reset fields
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date }
