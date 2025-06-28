@@ -5,7 +5,8 @@ import {
     getAppointmentById, 
     updateAppointment, 
     cancelAppointment, 
-    getAvailableSlots 
+    getAvailableSlots, 
+    getAvailableSlotsForMonth 
 } from "../controllers/appointment.controller";
 import { authenticateJWT } from "../middleware/auth";
 
@@ -18,6 +19,7 @@ router.use(authenticateJWT);
 router.post("/", createAppointment);
 router.get("/", getAppointments);
 router.get("/slots", getAvailableSlots);
+router.get("/slots/month", getAvailableSlotsForMonth);
 router.get("/:id", getAppointmentById);
 router.put("/:id", updateAppointment);
 router.delete("/:id", cancelAppointment);

@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Download, TrendingUp, Users, Calendar, Activity } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Reports: React.FC = () => {
+  const [overview, setOverview] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/reports/overview', {
+      headers: { 'Authorization': `Bearer ${sessionStorage.getItem('authToken')}` }
+    })
+      .then(res => res.json())
+      .then(data => setOverview(data))
+      .catch(() => toast.error('Failed to load report stats'))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -12,7 +27,7 @@ const Reports: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
           <p className="text-gray-600">Generate and view system reports</p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => toast.info('Export coming soon!')}>
           <Download className="h-4 w-4 mr-2" />
           Export Report
         </Button>
@@ -26,7 +41,9 @@ const Reports: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
+            <div className="text-2xl font-bold">
+              {loading ? '...' : overview?.totalUsers ?? '-'}
+            </div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600">+12%</span> from last month
             </p>
@@ -35,11 +52,13 @@ const Reports: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Providers</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89</div>
+            <div className="text-2xl font-bold">
+              {loading ? '...' : overview?.activeProviders ?? '-'}
+            </div>
             <p className="text-xs text-muted-foreground">
               Currently online
             </p>
@@ -52,7 +71,9 @@ const Reports: React.FC = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
+            <div className="text-2xl font-bold">
+              {loading ? '...' : overview?.appointmentsToday ?? '-'}
+            </div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600">+8%</span> from yesterday
             </p>
@@ -65,7 +86,9 @@ const Reports: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">99.9%</div>
+            <div className="text-2xl font-bold">
+              {loading ? '...' : (overview?.systemUptime ? `${overview.systemUptime}%` : '-')}
+            </div>
             <p className="text-xs text-muted-foreground">
               Last 30 days
             </p>

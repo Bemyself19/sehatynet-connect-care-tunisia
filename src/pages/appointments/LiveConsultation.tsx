@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video, PhoneOff, Mic, MicOff, VideoOff, AlertCircle, FilePlus, Notebook, ArrowLeft, Heart, User, Clock, MessageSquare, Activity, Settings, Users, Calendar } from 'lucide-react';
+import { Video, PhoneOff, Mic, MicOff, VideoOff, AlertCircle, FilePlus, Notebook, ArrowLeft, Heart, User, Clock, MessageSquare, Activity, Settings, Users, Calendar, HeartPulse, Wind, Droplets } from 'lucide-react';
 import api from '@/lib/api';
 import { Appointment } from '@/types/appointment';
 import { User as UserType } from '@/types/user';
@@ -75,6 +75,11 @@ const LiveConsultation: React.FC = () => {
     const [medicalRecords, setMedicalRecords] = useState<any[]>([]);
     const [recordsLoading, setRecordsLoading] = useState(false);
     const [recordsError, setRecordsError] = useState<string | null>(null);
+
+    // New state for live vitals
+    const [isVitalsModalOpen, setVitalsModalOpen] = useState(false);
+    const [vitals, setVitals] = useState<any>(null);
+    const vitalsWsRef = useRef<WebSocket | null>(null);
 
     // Effect to fetch initial data
     useEffect(() => {
@@ -305,7 +310,7 @@ const LiveConsultation: React.FC = () => {
         const fetchRecords = async () => {
             setRecordsLoading(true);
             try {
-                const records = await api.getMedicalRecords(appointment.patientId._id);
+                const records = await api.getPatientMedicalHistory(appointment.patientId._id);
                 setMedicalRecords(records);
             } catch (err) {
                 setRecordsError('Failed to load medical records');
@@ -317,6 +322,27 @@ const LiveConsultation: React.FC = () => {
         fetchNotes();
         fetchRecords();
     }, [appointment, currentUser]);
+
+    // Effect: subscribe to live vitals when modal is open
+    useEffect(() => {
+        if (!isVitalsModalOpen || !appointment) return;
+        const vitalsWs: WebSocket = new WebSocket(WS_URL);
+        vitalsWsRef.current = vitalsWs;
+        vitalsWs.onopen = () => {
+            vitalsWs.send(JSON.stringify({ type: 'join-room', appointmentId: appointment._id, role: 'doctor' }));
+        };
+        vitalsWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'vital-data') {
+                setVitals(data.payload);
+            }
+        };
+        return () => { 
+            if (vitalsWs.readyState === WebSocket.OPEN) {
+                vitalsWs.close();
+            }
+        };
+    }, [isVitalsModalOpen, appointment]);
 
     const toggleMic = () => {
         if (myStream) {
@@ -688,6 +714,14 @@ const LiveConsultation: React.FC = () => {
                                             <Notebook className="h-4 w-4 mr-2" /> 
                                             Add Note
                                         </Button>
+                                        <Button
+                                            className="w-full justify-start bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700"
+                                            onClick={() => setVitalsModalOpen(true)}
+                                            disabled={!isActiveTabRef.current}
+                                        >
+                                            <HeartPulse className="h-4 w-4 mr-2" />
+                                            View Live Vitals
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             )}
@@ -893,6 +927,45 @@ const LiveConsultation: React.FC = () => {
                                 </div>
                             )}
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={isVitalsModalOpen} onOpenChange={setVitalsModalOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center space-x-2">
+                            <HeartPulse className="h-5 w-5 text-red-600" />
+                            <span>Live Vital Signs</span>
+                        </DialogTitle>
+                        <DialogDescription>
+                            Real-time data from patient monitoring devices during this consultation.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {vitals ? (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="flex flex-col items-center">
+                                <HeartPulse className="h-8 w-8 text-red-500 mb-1" />
+                                <span className="font-bold text-lg">{vitals.heartRate ?? '--'}</span>
+                                <span className="text-xs text-gray-500">Heart Rate (bpm)</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <Wind className="h-8 w-8 text-blue-500 mb-1" />
+                                <span className="font-bold text-lg">{vitals.respiration ?? '--'}</span>
+                                <span className="text-xs text-gray-500">Respiration (rpm)</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <Droplets className="h-8 w-8 text-indigo-500 mb-1" />
+                                <span className="font-bold text-lg">{vitals.spo2 ?? '--'}</span>
+                                <span className="text-xs text-gray-500">SpO₂ (%)</span>
+                            </div>
+                            {/* Add more vitals as needed */}
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500 py-8">Waiting for live data...</div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setVitalsModalOpen(false)}>Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

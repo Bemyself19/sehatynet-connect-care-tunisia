@@ -124,8 +124,8 @@ class ApiClient {
     return this.request<Appointment[]>('/appointments');
   }
 
-  async getAvailableSlots(providerId: string, date: string): Promise<{ time: string; available: boolean }[]> {
-    return this.request<{ time: string; available: boolean }[]>(`/appointments/slots?providerId=${providerId}&date=${date}`);
+  async getAvailableSlots(providerId: string, date: string): Promise<{ availableSlots: string[] }> {
+    return this.request<{ availableSlots: string[] }>(`/appointments/slots?providerId=${providerId}&date=${date}`);
   }
 
   async getAppointment(id: string): Promise<Appointment> {
@@ -397,6 +397,26 @@ class ApiClient {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
     return response.json();
+  }
+
+  async getAvailableSlotsForMonth(providerId: string, month: string): Promise<Record<string, string[]>> {
+    return this.request<Record<string, string[]>>(`/appointments/slots/month?providerId=${providerId}&month=${month}`);
+  }
+
+  // Payment methods
+  async createPaymentSession(data: { appointmentId: string; paymentMethod: string }): Promise<any> {
+    return this.request<any>('/payments/session', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async getPaymentStatus(paymentId: string): Promise<any> {
+    return this.request<any>(`/payments/${paymentId}/status`);
+  }
+
+  async getPaymentHistory(): Promise<any[]> {
+    return this.request<any[]>('/payments/history');
   }
 }
 

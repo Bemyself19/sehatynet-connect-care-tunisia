@@ -23,6 +23,7 @@ const DoctorProfile: React.FC = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
+  const [specialties, setSpecialties] = useState<string[]>([]);
 
   // Use current user's ID for "My Profile" view, fallback to URL param for admin views
   const profileId = user?._id || id;
@@ -48,15 +49,37 @@ const DoctorProfile: React.FC = () => {
         specialization: provider.specialization || '',
         licenseNumber: provider.licenseNumber || '',
         cnamId: provider.cnamId || '',
+        workingHours: {
+          start: provider.workingHours?.start || '09:00',
+          end: provider.workingHours?.end || '17:00',
+        },
       });
     }
   }, [provider, isOwnProfile]);
 
+  useEffect(() => {
+    api.getSpecialties().then((data) => {
+      setSpecialties(data.map((s: any) => s.name));
+    });
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setProfileData((prev: any) => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    const { name, value } = e.target;
+    if (name.startsWith('workingHours.')) {
+      const key = name.split('.')[1];
+      setProfileData((prev: any) => ({
+        ...prev,
+        workingHours: {
+          ...prev.workingHours,
+          [key]: value
+        }
+      }));
+    } else {
+      setProfileData((prev: any) => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -258,6 +281,31 @@ const DoctorProfile: React.FC = () => {
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="workingHours.start">Working Hours Start</Label>
+                  <Input
+                    id="workingHours.start"
+                    name="workingHours.start"
+                    type="time"
+                    value={profileData.workingHours?.start || ''}
+                    onChange={handleChange}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="workingHours.end">Working Hours End</Label>
+                  <Input
+                    id="workingHours.end"
+                    name="workingHours.end"
+                    type="time"
+                    value={profileData.workingHours?.end || ''}
+                    onChange={handleChange}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -276,13 +324,19 @@ const DoctorProfile: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="specialization">{t('specialization') || 'Specialization'}</Label>
-                  <Input
-                    id="specialization"
-                    name="specialization"
+                  <Select
                     value={profileData.specialization}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
+                    onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, specialization: value }))}
+                  >
+                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectValue placeholder="Select specialization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {specialties.map((spec) => (
+                        <SelectItem key={spec} value={spec}>{spec}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="licenseNumber">{t('licenseNumber') || 'License Number'}</Label>

@@ -93,7 +93,7 @@ export const getAppointments = async (req: Request, res: Response): Promise<void
         }
 
         const appointments = await Appointment.find(query)
-            .populate('patientId', 'firstName lastName email phone role')
+            .populate('patientId', 'firstName lastName email phone role cnamId')
             .populate('providerId', 'firstName lastName specialization role')
             .sort({ scheduledDate: 1, scheduledTime: 1 });
 
@@ -110,7 +110,7 @@ export const getAppointmentById = async (req: Request, res: Response): Promise<v
         const userId = (req as any).user.id;
         
         const appointment = await Appointment.findById(id)
-            .populate('patientId', 'firstName lastName email phone role')
+            .populate('patientId', 'firstName lastName email phone role cnamId')
             .populate('providerId', 'firstName lastName specialization role');
 
         if (!appointment) {
@@ -166,7 +166,7 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
             id, 
             filteredUpdates, 
             { new: true }
-        ).populate('patientId', 'firstName lastName email phone role')
+        ).populate('patientId', 'firstName lastName email phone role cnamId')
          .populate('providerId', 'firstName lastName specialization role');
 
         res.json({
@@ -220,12 +220,13 @@ export const getAvailableSlots = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        // Get provider's working hours
+        // Get provider's slot duration (default 30 min)
         const provider = await User.findById(providerId);
         if (!provider) {
             res.status(404).json({ message: "Provider not found" });
             return;
         }
+        const slotDuration = provider.slotDuration || 30;
 
         // Get booked slots for the date
         const bookedSlots = await Appointment.find({
@@ -236,13 +237,10 @@ export const getAvailableSlots = async (req: Request, res: Response): Promise<vo
 
         const bookedTimes = bookedSlots.map(slot => slot.scheduledTime);
 
-        // Generate available time slots (9 AM to 5 PM, 30-minute intervals)
+        // Generate available time slots for 24h, using slotDuration
         const timeSlots = [];
-        const startHour = 9;
-        const endHour = 17;
-        
-        for (let hour = startHour; hour < endHour; hour++) {
-            for (let minute = 0; minute < 60; minute += 30) {
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += slotDuration) {
                 const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                 if (!bookedTimes.includes(time)) {
                     timeSlots.push(time);
@@ -254,7 +252,8 @@ export const getAvailableSlots = async (req: Request, res: Response): Promise<vo
             provider: {
                 id: provider._id,
                 name: `${provider.firstName} ${provider.lastName}`,
-                specialization: provider.specialization
+                specialization: provider.specialization,
+                slotDuration
             },
             date,
             availableSlots: timeSlots
@@ -262,5 +261,52 @@ export const getAvailableSlots = async (req: Request, res: Response): Promise<vo
     } catch (err) {
         console.error('Get available slots error:', err);
         res.status(500).json({ message: "Failed to get available slots", error: err });
+    }
+};
+
+export const getAvailableSlotsForMonth = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { providerId, month } = req.query;
+        if (!providerId || !month) {
+            res.status(400).json({ message: "Provider ID and month are required" });
+            return;
+        }
+        // Parse month (YYYY-MM)
+        const [year, monthNum] = (month as string).split('-').map(Number);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const provider = await User.findById(providerId);
+        if (!provider) {
+            res.status(404).json({ message: "Provider not found" });
+            return;
+        }
+        const slotDuration = provider.slotDuration || 30;
+        const result: Record<string, string[]> = {};
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            // Get booked slots for this date
+            const bookedSlots = await Appointment.find({
+                providerId,
+                scheduledDate: dateStr,
+                status: { $nin: ['cancelled', 'no-show'] }
+            }).select('scheduledTime');
+            const bookedTimes = bookedSlots.map(slot => slot.scheduledTime);
+            // Generate all slots for 24h
+            const slots: string[] = [];
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += slotDuration) {
+                    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    if (!bookedTimes.includes(time)) {
+                        slots.push(time);
+                    }
+                }
+            }
+            if (slots.length > 0) {
+                result[dateStr] = slots;
+            }
+        }
+        res.json(result);
+    } catch (err) {
+        console.error('Get available slots for month error:', err);
+        res.status(500).json({ message: "Failed to get available slots for month", error: err });
     }
 }; 

@@ -13,6 +13,9 @@ import medicalRecordRoutes from "./routes/medicalRecord.routes";
 import prescriptionRoutes from "./routes/prescription.routes";
 import specialtyRoutes from './routes/specialty.routes';
 import teleExpertiseRequestRoutes from './routes/teleExpertiseRequest.routes';
+import paymentRoutes from "./routes/payment.routes";
+import systemSettingRoutes from './routes/systemSetting.routes';
+import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 const app = express();
@@ -99,10 +102,13 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/appointments", appointmentRoutes);
-app.use("/api/medical-records", medicalRecordRoutes);
 app.use("/api/prescriptions", prescriptionRoutes);
-app.use('/api/specialties', specialtyRoutes);
-app.use('/api/tele-expertise-requests', teleExpertiseRequestRoutes);
+app.use("/api/medical-records", medicalRecordRoutes);
+app.use("/api/specialties", specialtyRoutes);
+app.use("/api/tele-expertise", teleExpertiseRequestRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/system-settings", systemSettingRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

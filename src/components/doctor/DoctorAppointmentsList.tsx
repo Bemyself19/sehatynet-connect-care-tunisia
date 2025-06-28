@@ -3,6 +3,7 @@ import { Appointment } from '@/types/appointment';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Check, X, Video, FilePlus } from 'lucide-react';
+import { isAfter, isEqual, parseISO } from 'date-fns';
 
 interface DoctorAppointmentsListProps {
   appointments: Appointment[];
@@ -20,7 +21,13 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
   onCreatePrescription 
 }) => {
   const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
-  const upcomingAppointments = appointments.filter(apt => apt.status === 'confirmed');
+  const now = new Date();
+  const upcomingAppointments = appointments.filter(apt => {
+    if (apt.status !== 'confirmed') return false;
+    const apptDateTime = parseISO(`${apt.scheduledDate}T${apt.scheduledTime}`);
+    // Show if appointment is today or in the future
+    return isAfter(apptDateTime, now) || isEqual(apptDateTime, now);
+  });
 
   return (
     <div className="space-y-8">
