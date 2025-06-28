@@ -45,6 +45,8 @@ const MedicalRecords: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ViewableRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const isDoctor = currentUser?.role === 'doctor';
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
@@ -230,13 +232,13 @@ const MedicalRecords: React.FC = () => {
                   )}
 
                   {/* Medical Records */}
-                  {consultation.medicalRecords.length > 0 && (
+                  {consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').length > 0 && (
                     <div className="space-y-3">
-                       <h4 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
+                      <h4 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
                         <FileText className="h-4 w-4" />
-                        Other Records ({consultation.medicalRecords.length})
+                        Other Records ({consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').length})
                       </h4>
-                      {consultation.medicalRecords.map((record: MedicalRecord) => (
+                      {consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').map((record: MedicalRecord) => (
                         <div key={record._id} className="p-3 bg-white rounded-lg border flex justify-between items-center gap-2">
                           <div className="flex items-center gap-2 flex-grow">
                             {getTypeIcon(record.type)}
@@ -438,9 +440,37 @@ const MedicalRecords: React.FC = () => {
                   <h4 className="font-semibold text-base mb-2">Details</h4>
                   <div className="p-3 bg-gray-50 rounded-lg border text-sm space-y-2">
                     {Object.entries((selectedItem as any).details).map(([key, value]) => (
-                      <div key={key} className="flex">
-                        <strong className="w-1/3 capitalize font-medium text-gray-700">{key.replace(/_/g, ' ')}:</strong>
-                        <span className="w-2/3 text-gray-900">{String(value)}</span>
+                      <div key={key} className="flex flex-col mb-2">
+                        <strong className="capitalize font-medium text-gray-700 mb-1">{key.replace(/_/g, ' ')}:</strong>
+                        {Array.isArray(value) ? (
+                          value.length === 0 ? (
+                            <span className="text-gray-500">None</span>
+                          ) : (
+                            <ul className="list-disc list-inside ml-4">
+                              {value.map((item: any, idx: number) => (
+                                typeof item === 'object' && item !== null ? (
+                                  <li key={idx}>
+                                    <ul className="list-none ml-0">
+                                      {Object.entries(item).map(([k, v]) => (
+                                        <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
+                                      ))}
+                                    </ul>
+                                  </li>
+                                ) : (
+                                  <li key={idx}>{String(item)}</li>
+                                )
+                              ))}
+                            </ul>
+                          )
+                        ) : typeof value === 'object' && value !== null ? (
+                          <ul className="list-none ml-0">
+                            {Object.entries(value).map(([k, v]) => (
+                              <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className="text-gray-900">{String(value)}</span>
+                        )}
                       </div>
                     ))}
                   </div>

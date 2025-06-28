@@ -45,6 +45,10 @@ export interface Provider extends BaseUser {
   reviewCount?: number;
   isActive: boolean;
   slotDuration?: number;
+  workingHours?: {
+    start: string;
+    end: string;
+  };
 }
 
 export type User = Patient | Provider | BaseUser & { medicalInfoDismissed?: boolean, slotDuration?: number };

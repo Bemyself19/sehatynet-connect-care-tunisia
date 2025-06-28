@@ -35,11 +35,8 @@ const userSchema = new mongoose.Schema({
     specialization: { type: String },
     address: { type: String },
     workingHours: {
-        type: Map,
-        of: {
-            start: { type: String },
-            end: { type: String }
-        }
+        start: { type: String, default: '09:00' },
+        end: { type: String, default: '17:00' }
     },
     rating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },

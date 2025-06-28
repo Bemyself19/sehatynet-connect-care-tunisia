@@ -8,7 +8,7 @@
     "predev": "kill-port 5000",
     "dev": "nodemon",
     "build": "tsc",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src/**/*.ts",
@@ -38,8 +38,11 @@
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.3",
+    "pdfkit": "^0.13.0",
     "react-hot-toast": "^2.5.2",
+    "rimraf": "^6.0.1",
     "shortid": "^2.2.17",
+    "stripe": "^12.0.0",
     "ws": "^8.18.2"
   },
   "devDependencies": {

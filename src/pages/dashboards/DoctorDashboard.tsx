@@ -1,12 +1,22 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useUser } from '@/hooks/useUser';
 import { format, startOfDay, addMinutes, isSameDay, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
-const SLOT_DURATION = 30; // minutes
-const WORK_START = 8 * 60; // 8:00 AM in minutes
-const WORK_END = 18 * 60; // 6:00 PM in minutes
+// Helper function to convert time string (HH:mm) to minutes since midnight
+const timeToMinutes = (timeStr: string): number => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// Helper function to convert minutes since midnight to time string (HH:mm)
+const minutesToTime = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
 
 const statusColors: Record<string, string> = {
   confirmed: 'bg-blue-100 text-blue-700',
@@ -17,6 +27,7 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-700',
   'no-show': 'bg-red-100 text-red-700',
   available: 'bg-slate-100 text-slate-400',
+  'outside-hours': 'bg-gray-100 text-gray-400',
 };
 
 const statusLabels: Record<string, string> = {
@@ -28,9 +39,19 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelled',
   'no-show': 'No-show',
   available: 'Available',
+  'outside-hours': 'Outside Hours',
 };
 
-const getSlotStatus = (slotTime: Date, appointments: any[]) => {
+const getSlotStatus = (slotTime: Date, appointments: any[], workingHours: { start: string; end: string }) => {
+  const slotMinutes = slotTime.getHours() * 60 + slotTime.getMinutes();
+  const workStartMinutes = timeToMinutes(workingHours.start);
+  const workEndMinutes = timeToMinutes(workingHours.end);
+  
+  // Check if slot is outside working hours
+  if (slotMinutes < workStartMinutes || slotMinutes >= workEndMinutes) {
+    return 'outside-hours';
+  }
+  
   for (const appt of appointments) {
     const apptStart = parseISO(appt.scheduledDate + 'T' + appt.scheduledTime);
     const apptEnd = addMinutes(apptStart, appt.duration || 30);
@@ -43,7 +64,16 @@ const getSlotStatus = (slotTime: Date, appointments: any[]) => {
 
 const DoctorDashboard: React.FC = () => {
   const { appointments = [], isLoading } = useAppointments();
+  const { user } = useUser();
   const today = startOfDay(new Date());
+
+  // Get doctor's working hours and slot duration
+  const workingHours = (user as any)?.workingHours || { start: '09:00', end: '17:00' };
+  const slotDuration = (user as any)?.slotDuration || 30;
+  
+  // Convert working hours to minutes for calculations
+  const workStartMinutes = timeToMinutes(workingHours.start);
+  const workEndMinutes = timeToMinutes(workingHours.end);
 
   // Filter today's appointments
   const todaysAppointments = appointments.filter(
@@ -70,26 +100,34 @@ const DoctorDashboard: React.FC = () => {
   // Generate slots for the day
   const slots = useMemo(() => {
     const result = [];
-    for (let mins = WORK_START; mins < WORK_END; mins += SLOT_DURATION) {
+    for (let mins = workStartMinutes; mins < workEndMinutes; mins += slotDuration) {
       const slotTime = addMinutes(today, mins);
-      const status = getSlotStatus(slotTime, todaysAppointments);
+      const status = getSlotStatus(slotTime, todaysAppointments, workingHours);
       result.push({
         time: format(slotTime, 'HH:mm'),
         status,
         appointment: todaysAppointments.find(appt => {
           const apptStart = parseISO(appt.scheduledDate + 'T' + appt.scheduledTime);
-          return slotTime >= apptStart && slotTime < addMinutes(apptStart, appt.duration || 30);
+          return slotTime >= apptStart && slotTime < addMinutes(apptStart, appt.duration || slotDuration);
         })
       });
     }
     return result;
-  }, [todaysAppointments, today]);
+  }, [todaysAppointments, today, workingHours, workStartMinutes, workEndMinutes, slotDuration]);
 
   return (
     <div className="space-y-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Doctor Dashboard</h1>
         <p className="text-lg text-gray-600">Manage your patients, consultations, and medical records</p>
+      </div>
+
+      {/* Working Hours Display */}
+      <div className="bg-blue-50 rounded-lg p-4 mb-8">
+        <div className="text-sm text-blue-700">
+          <strong>Working Hours:</strong> {workingHours.start} - {workingHours.end} | 
+          <strong> Slot Duration:</strong> {slotDuration} minutes
+        </div>
       </div>
 
       {/* Quick Stats */}

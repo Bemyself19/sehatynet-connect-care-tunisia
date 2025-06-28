@@ -28,7 +28,7 @@ export const getTeleExpertiseRequests = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const requests = await TeleExpertiseRequest.find({ $or: [ { patientId: userId }, { doctorId: userId } ] })
-      .populate('patientId', 'firstName lastName')
+      .populate('patientId', 'firstName lastName cnamId')
       .populate('doctorId', 'firstName lastName specialization')
       .sort({ createdAt: -1 });
     res.json(requests);

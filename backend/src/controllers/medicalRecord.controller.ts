@@ -124,7 +124,7 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         await medicalRecord.save();
 
         // Populate patient and provider details
-        await medicalRecord.populate('patientId', 'firstName lastName');
+        await medicalRecord.populate('patientId', 'firstName lastName cnamId');
         await medicalRecord.populate('providerId', 'firstName lastName specialization');
 
         res.status(201).json({
@@ -163,7 +163,7 @@ export const getMedicalRecords = async (req: Request, res: Response): Promise<vo
         }
 
         const medicalRecords = await MedicalRecord.find(query)
-            .populate('patientId', 'firstName lastName')
+            .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization')
             .sort({ date: -1, createdAt: -1 });
 
@@ -181,7 +181,7 @@ export const getMedicalRecordById = async (req: Request, res: Response): Promise
         const userRole = (req as any).user.role;
         
         const medicalRecord = await MedicalRecord.findById(id)
-            .populate('patientId', 'firstName lastName email phone')
+            .populate('patientId', 'firstName lastName cnamId email phone')
             .populate('providerId', 'firstName lastName specialization');
 
         if (!medicalRecord) {
@@ -249,7 +249,7 @@ export const updateMedicalRecord = async (req: Request, res: Response): Promise<
             id, 
             filteredUpdates, 
             { new: true }
-        ).populate('patientId', 'firstName lastName')
+        ).populate('patientId', 'firstName lastName cnamId')
          .populate('providerId', 'firstName lastName specialization');
 
         res.json({
@@ -373,7 +373,7 @@ export const getPatientDashboard = async (req: Request, res: Response): Promise<
 
         // Get all medical records for the patient with privacy filtering
         const medicalRecords = await MedicalRecord.find(medicalRecordsQuery)
-        .populate('patientId', 'firstName lastName')
+        .populate('patientId', 'firstName lastName cnamId')
         .populate('providerId', 'firstName lastName specialization')
         .populate('appointmentId', 'date time')
         .sort({ date: -1, createdAt: -1 });
@@ -454,7 +454,7 @@ export const updateRecordPrivacy = async (req: Request, res: Response): Promise<
             id, 
             { privacyLevel }, 
             { new: true }
-        ).populate('patientId', 'firstName lastName')
+        ).populate('patientId', 'firstName lastName cnamId')
          .populate('providerId', 'firstName lastName specialization');
 
         res.json({
@@ -536,7 +536,7 @@ export const getMedicalRecordsByPrescriptionId = async (req: Request, res: Respo
         }
         const records = await MedicalRecord.find({ prescriptionId })
             .populate('providerId', 'firstName lastName specialization')
-            .populate('patientId', 'firstName lastName');
+            .populate('patientId', 'firstName lastName cnamId');
         res.json(records);
     } catch (err) {
         console.error('Get medical records by prescriptionId error:', err);
@@ -563,21 +563,21 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
                     { 'details.assignedPharmacyId': userId }
                 ]
             })
-            .populate('patientId', 'firstName lastName')
+            .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
         } else if (userRole === 'lab') {
             records = await MedicalRecord.find({
                 type: 'lab_result',
                 providerId: userId
             })
-            .populate('patientId', 'firstName lastName')
+            .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
         } else if (userRole === 'radiologist') {
             records = await MedicalRecord.find({
                 type: 'imaging',
                 providerId: userId
             })
-            .populate('patientId', 'firstName lastName')
+            .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
         }
         res.json(records);

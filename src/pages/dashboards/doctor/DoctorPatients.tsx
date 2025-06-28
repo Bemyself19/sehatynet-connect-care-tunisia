@@ -73,6 +73,23 @@ const DoctorPatients: React.FC = () => {
     setExpandedSections((prev) => ({ ...prev, [recordId]: !prev[recordId] }));
   };
 
+  // Helper: filter out Pharmacy Request records
+  const filteredMedicalRecords = patientMedicalRecords.filter(
+    (record) => record.title !== 'Pharmacy Request'
+  );
+
+  // Helper: group lab/radiology results by prescriptionId
+  const prescriptions = filteredMedicalRecords.filter(r => r.type === 'prescription');
+  const labResults = filteredMedicalRecords.filter(r => r.type === 'lab_result');
+  const imagingResults = filteredMedicalRecords.filter(r => r.type === 'imaging');
+  const otherRecords = filteredMedicalRecords.filter(r => !['prescription', 'lab_result', 'imaging'].includes(r.type));
+
+  // Helper: get results for a prescription
+  const getResultsForPrescription = (prescriptionId: string) => ({
+    lab: labResults.filter(r => r.prescriptionId === prescriptionId),
+    imaging: imagingResults.filter(r => r.prescriptionId === prescriptionId),
+  });
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Patients</h2>
@@ -132,7 +149,78 @@ const DoctorPatients: React.FC = () => {
             <div>Loading...</div>
           ) : (
             <Accordion type="multiple">
-              {patientMedicalRecords.map((record) => (
+              {/* Grouped by prescription */}
+              {prescriptions.map((prescription) => {
+                const results = getResultsForPrescription(prescription._id);
+                return (
+                  <AccordionItem key={prescription._id} value={prescription._id}>
+                    <AccordionTrigger onClick={() => handleAccordionToggle(prescription._id)}>
+                      Prescription
+                      <Badge className="ml-2">{prescription.status}</Badge>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="p-2">
+                        <div><strong>Date:</strong> {new Date(prescription.date).toLocaleDateString()}</div>
+                        <div><strong>Medications:</strong>
+                          <ul className="list-disc ml-6">
+                            {prescription.details.medications?.map((med: any, idx: number) => (
+                              <li key={idx}>{med.name} - {med.dosage}, {med.frequency}, {med.duration} {med.instructions && `(${med.instructions})`}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        {prescription.details.labTests && (
+                          <div><strong>Lab Tests:</strong>
+                            <ul className="list-disc ml-6">
+                              {prescription.details.labTests.map((test: any, idx: number) => (
+                                <li key={idx}>{test.testName} {test.notes && `(${test.notes})`}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {prescription.details.radiologyExams && (
+                          <div><strong>Radiology Exams:</strong>
+                            <ul className="list-disc ml-6">
+                              {prescription.details.radiologyExams.map((exam: any, idx: number) => (
+                                <li key={idx}>{exam.examName} {exam.notes && `(${exam.notes})`}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {/* Nested lab results */}
+                        {results.lab.length > 0 && (
+                          <div className="mt-4">
+                            <strong>Lab Results:</strong>
+                            {results.lab.map((lab) => (
+                              <div key={lab._id} className="border rounded p-2 my-2 bg-gray-50">
+                                <div><strong>Title:</strong> {lab.title}</div>
+                                <div><strong>Date:</strong> {new Date(lab.date).toLocaleDateString()}</div>
+                                <div><strong>Details:</strong> {JSON.stringify(lab.details)}</div>
+                                {/* Add more structured fields as needed */}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Nested imaging results */}
+                        {results.imaging.length > 0 && (
+                          <div className="mt-4">
+                            <strong>Radiology Results:</strong>
+                            {results.imaging.map((img) => (
+                              <div key={img._id} className="border rounded p-2 my-2 bg-gray-50">
+                                <div><strong>Title:</strong> {img.title}</div>
+                                <div><strong>Date:</strong> {new Date(img.date).toLocaleDateString()}</div>
+                                <div><strong>Details:</strong> {JSON.stringify(img.details)}</div>
+                                {/* Add more structured fields as needed */}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+              {/* Other records */}
+              {otherRecords.map((record) => (
                 <AccordionItem key={record._id} value={record._id}>
                   <AccordionTrigger onClick={() => handleAccordionToggle(record._id)}>
                     {record.title}
@@ -142,7 +230,6 @@ const DoctorPatients: React.FC = () => {
                     <div className="p-2">
                       <div>Date: {new Date(record.date).toLocaleDateString()}</div>
                       <div>Details: {JSON.stringify(record.details)}</div>
-                      {/* Add more record details as needed */}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
