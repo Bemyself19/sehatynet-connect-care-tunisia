@@ -86,7 +86,6 @@ const Register: React.FC = () => {
       <Card className="w-full max-w-2xl shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <BrandLogo size={48} className="mb-4" />
-          <CardTitle className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</CardTitle>
           <CardDescription className="text-lg text-gray-600 mb-2">
             {userType === 'patient'
               ? t('registerAsPatient') || 'Register as Patient'

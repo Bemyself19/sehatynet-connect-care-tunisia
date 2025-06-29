@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-import https from "https";
+// import https from "https";
 import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -20,11 +20,16 @@ import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 const app = express();
-const httpsOptions = {
-  key: fs.readFileSync('cert/localhost.key'),
-  cert: fs.readFileSync('cert/localhost.crt'),
-};
-const server = https.createServer(httpsOptions, app);
+
+// Temporarily disable HTTPS to prevent SSL file access issues
+// const httpsOptions = {
+//   key: fs.readFileSync('cert/localhost.key'),
+//   cert: fs.readFileSync('cert/localhost.crt'),
+// };
+// const server = https.createServer(httpsOptions, app);
+
+// Use HTTP server instead
+const server = require('http').createServer(app);
 const wss = new WebSocketServer({ server });
 
 // WebSocket connection handling

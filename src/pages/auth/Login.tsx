@@ -79,7 +79,6 @@ const Login: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col items-center pb-2">
           <BrandLogo size={48} className="mb-4" />
-          <span className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</span>
           <span className="text-lg text-gray-600 mb-2">{getTitle()}</span>
           <span className="text-gray-500 text-base mb-2">{getSubtitle()}</span>
         </div>
