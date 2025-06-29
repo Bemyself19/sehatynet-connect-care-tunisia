@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-import http from "http";
+import https from "https";
+import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
 
 import authRoutes from "./routes/auth.routes";
@@ -19,7 +20,11 @@ import reportRoutes from './routes/report.routes';
 
 dotenv.config();
 const app = express();
-const server = http.createServer(app);
+const httpsOptions = {
+  key: fs.readFileSync('cert/localhost.key'),
+  cert: fs.readFileSync('cert/localhost.crt'),
+};
+const server = https.createServer(httpsOptions, app);
 const wss = new WebSocketServer({ server });
 
 // WebSocket connection handling

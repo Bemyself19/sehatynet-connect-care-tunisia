@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Globe, Heart, Shield, Clock, Users, Activity, CheckCircle, ArrowRight, Play } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandLogo } from '@/components/ui/logo';
 
 const Index = () => {
   const { t, i18n } = useTranslation();
@@ -19,12 +20,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center group">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg group-hover:scale-105 transition-transform">
-                <Heart className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-3">
-                SehatyNet+
-              </span>
+              <BrandLogo size={32} />
             </Link>
             
             {/* Language Switcher */}
