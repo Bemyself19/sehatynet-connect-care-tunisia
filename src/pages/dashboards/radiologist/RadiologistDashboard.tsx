@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scan, FileText, Calendar, Monitor, Users, Clock, CheckCircle, AlertCircle, TrendingUp, Upload, Search, X } from 'lucide-react';
@@ -19,7 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 
 const RadiologistDashboard: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t } = useTranslation();
   const { user, isLoading } = useUser();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ const RadiologistDashboard: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">{t('loadingDashboard') || 'Loading dashboard...'}</p>
         </div>
       </div>
     );
@@ -117,8 +117,8 @@ const RadiologistDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Radiology Dashboard</h1>
-        <p className="text-gray-600">Manage imaging studies and reports</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('radiologyDashboard') || 'Radiology Dashboard'}</h1>
+        <p className="text-gray-600">{t('manageImagingStudiesReports') || 'Manage imaging studies and reports'}</p>
       </div>
 
       {/* Statistics Cards */}
@@ -126,7 +126,7 @@ const RadiologistDashboard: React.FC = () => {
         <Card className="relative overflow-hidden border-0 shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-10"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-gray-700">Pending Scans</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700">{t('pendingScans') || 'Pending Scans'}</CardTitle>
             <div className="p-2 bg-blue-100 rounded-lg">
               <Clock className="h-4 w-4 text-blue-600" />
             </div>
@@ -136,7 +136,7 @@ const RadiologistDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 mt-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
               <p className="text-sm text-green-600 font-medium">+5%</p>
-              <p className="text-xs text-gray-500">from yesterday</p>
+              <p className="text-xs text-gray-500">{t('fromYesterday') || 'from yesterday'}</p>
             </div>
             <Progress value={pendingRequests.length * 8} className="mt-3" />
           </CardContent>
@@ -145,7 +145,7 @@ const RadiologistDashboard: React.FC = () => {
         <Card className="relative overflow-hidden border-0 shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-r from-green-600 to-green-700 opacity-10"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-gray-700">Completed Today</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700">{t('completedToday') || 'Completed Today'}</CardTitle>
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircle className="h-4 w-4 text-green-600" />
             </div>
@@ -155,7 +155,7 @@ const RadiologistDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 mt-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
               <p className="text-sm text-green-600 font-medium">+18%</p>
-              <p className="text-xs text-gray-500">from yesterday</p>
+              <p className="text-xs text-gray-500">{t('fromYesterday') || 'from yesterday'}</p>
             </div>
             <Progress value={completedRequests.length * 4} className="mt-3" />
           </CardContent>
@@ -164,7 +164,7 @@ const RadiologistDashboard: React.FC = () => {
         <Card className="relative overflow-hidden border-0 shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-700 opacity-10"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-gray-700">Urgent Reports</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700">{t('urgentReports') || 'Urgent Reports'}</CardTitle>
             <div className="p-2 bg-red-100 rounded-lg">
               <AlertCircle className="h-4 w-4 text-red-600" />
             </div>
@@ -174,7 +174,7 @@ const RadiologistDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 mt-2">
               <TrendingUp className="h-4 w-4 text-red-500" />
               <p className="text-sm text-red-600 font-medium">+1</p>
-              <p className="text-xs text-gray-500">from yesterday</p>
+              <p className="text-xs text-gray-500">{t('fromYesterday') || 'from yesterday'}</p>
             </div>
             <Progress value={60} className="mt-3" />
           </CardContent>
@@ -183,7 +183,7 @@ const RadiologistDashboard: React.FC = () => {
         <Card className="relative overflow-hidden border-0 shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-700 opacity-10"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-gray-700">Total Studies</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700">{t('totalStudies') || 'Total Studies'}</CardTitle>
             <div className="p-2 bg-purple-100 rounded-lg">
               <Scan className="h-4 w-4 text-purple-600" />
             </div>
@@ -193,7 +193,7 @@ const RadiologistDashboard: React.FC = () => {
             <div className="flex items-center space-x-2 mt-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
               <p className="text-sm text-green-600 font-medium">+12%</p>
-              <p className="text-xs text-gray-500">from yesterday</p>
+              <p className="text-xs text-gray-500">{t('fromYesterday') || 'from yesterday'}</p>
             </div>
             <Progress value={imagingRequests.length * 3} className="mt-3" />
           </CardContent>
@@ -207,17 +207,17 @@ const RadiologistDashboard: React.FC = () => {
             <div>
               <CardTitle className="flex items-center space-x-2">
                 <Scan className="h-5 w-5 text-blue-600" />
-                <span>Imaging Requests</span>
+                <span>{t('imagingRequests') || 'Imaging Requests'}</span>
               </CardTitle>
               <CardDescription>
-                Manage assigned imaging requests and upload reports
+                {t('manageAssignedImagingRequestsUploadReports') || 'Manage assigned imaging requests and upload reports'}
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search requests..."
+                  placeholder={t('searchRequests') || 'Search requests...'}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 w-64"
@@ -231,8 +231,8 @@ const RadiologistDashboard: React.FC = () => {
             {filteredImagingRequests.length === 0 ? (
               <div className="text-center py-12">
                 <Scan className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Imaging Requests</h3>
-                <p className="text-gray-500">No imaging requests found.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('noImagingRequests') || 'No Imaging Requests'}</h3>
+                <p className="text-gray-500">{t('noImagingRequestsFound') || 'No imaging requests found.'}</p>
               </div>
             ) : (
               filteredImagingRequests.map((request) => (
@@ -254,7 +254,7 @@ const RadiologistDashboard: React.FC = () => {
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{request.title}</p>
                         <p className="text-xs text-gray-500">
-                          Requested: {new Date(request.createdAt).toLocaleDateString()}
+                          {t('requested') || 'Requested'}: {new Date(request.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                       {request.status === 'pending' && (
@@ -264,7 +264,7 @@ const RadiologistDashboard: React.FC = () => {
                           disabled={fulfillId === request._id}
                         >
                           <Upload className="h-4 w-4 mr-2" />
-                          Upload Report
+                          {t('uploadReport') || 'Upload Report'}
                         </Button>
                       )}
                     </div>
@@ -280,38 +280,38 @@ const RadiologistDashboard: React.FC = () => {
       <Dialog open={!!fulfillId} onOpenChange={() => closeFulfillModal()}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Upload Imaging Report</DialogTitle>
+            <DialogTitle>{t('uploadImagingReport') || 'Upload Imaging Report'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Impression</Label>
+              <Label>{t('impression') || 'Impression'}</Label>
               <Textarea
                 value={report.impression}
                 onChange={(e) => setReport(prev => ({ ...prev, impression: e.target.value }))}
-                placeholder="Enter radiological impression..."
+                placeholder={t('enterRadiologicalImpression') || 'Enter radiological impression...'}
                 rows={3}
               />
             </div>
             <div>
-              <Label>Findings</Label>
+              <Label>{t('findings') || 'Findings'}</Label>
               <Textarea
                 value={report.findings}
                 onChange={(e) => setReport(prev => ({ ...prev, findings: e.target.value }))}
-                placeholder="Enter detailed findings..."
+                placeholder={t('enterDetailedFindings') || 'Enter detailed findings...'}
                 rows={3}
               />
             </div>
             <div>
-              <Label>Additional Feedback</Label>
+              <Label>{t('additionalFeedback') || 'Additional Feedback'}</Label>
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Any additional notes..."
+                placeholder={t('anyAdditionalNotes') || 'Any additional notes...'}
                 rows={2}
               />
             </div>
             <div>
-              <Label>Upload Files</Label>
+              <Label>{t('uploadFiles') || 'Upload Files'}</Label>
               <Input
                 type="file"
                 multiple
@@ -339,10 +339,10 @@ const RadiologistDashboard: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeFulfillModal}>
-              Cancel
+              {t('cancel') || 'Cancel'}
             </Button>
             <Button onClick={handleFulfill} disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Report'}
+              {uploading ? t('uploading') || 'Uploading...' : t('uploadReport') || 'Upload Report'}
             </Button>
           </DialogFooter>
         </DialogContent>

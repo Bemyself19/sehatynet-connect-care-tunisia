@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
 
 const REQUEST_TYPES = [
   { value: 'pharmacy', label: 'Pharmacy' },
@@ -21,6 +22,7 @@ const PROVIDER_TYPE_MAP: Record<string, string> = {
 };
 
 const CreateServiceRequest: React.FC = () => {
+  const { t } = useTranslation();
   const [requestType, setRequestType] = useState('pharmacy');
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [selectedPrescription, setSelectedPrescription] = useState<string>('');
@@ -76,11 +78,11 @@ const CreateServiceRequest: React.FC = () => {
         isPrivate: false,
         privacyLevel: 'patient_visible',
       });
-      setSuccess('Service request created successfully!');
+      setSuccess(t('serviceRequestCreatedSuccessfully'));
       setSelectedProvider('');
       setNotes('');
     } catch (err: any) {
-      setError(err.message || 'Failed to create service request');
+      setError(err.message || t('failedToCreateServiceRequest'));
     } finally {
       setLoading(false);
     }
@@ -90,28 +92,28 @@ const CreateServiceRequest: React.FC = () => {
     <div className="max-w-xl mx-auto p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Create Service Request</CardTitle>
+          <CardTitle>{t('createServiceRequest')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-medium mb-1">Request Type</label>
+              <label className="block font-medium mb-1">{t('requestType')}</label>
               <Select value={requestType} onValueChange={setRequestType}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select request type" />
+                  <SelectValue placeholder={t('selectRequestType')} />
                 </SelectTrigger>
                 <SelectContent>
                   {REQUEST_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    <SelectItem key={type.value} value={type.value}>{t(type.label.toLowerCase())}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block font-medium mb-1">Prescription</label>
+              <label className="block font-medium mb-1">{t('prescription')}</label>
               <Select value={selectedPrescription} onValueChange={setSelectedPrescription}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select prescription" />
+                  <SelectValue placeholder={t('selectPrescription')} />
                 </SelectTrigger>
                 <SelectContent>
                   {prescriptions.map(p => (
@@ -123,10 +125,10 @@ const CreateServiceRequest: React.FC = () => {
               </Select>
             </div>
             <div>
-              <label className="block font-medium mb-1">Provider</label>
+              <label className="block font-medium mb-1">{t('provider')}</label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select provider" />
+                  <SelectValue placeholder={t('selectProvider')} />
                 </SelectTrigger>
                 <SelectContent>
                   {providers.map(p => (
@@ -138,11 +140,11 @@ const CreateServiceRequest: React.FC = () => {
               </Select>
             </div>
             <div>
-              <label className="block font-medium mb-1">Notes (optional)</label>
-              <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add any notes..." />
+              <label className="block font-medium mb-1">{t('notesOptional')}</label>
+              <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('addAnyNotes')} />
             </div>
             <Button type="submit" className="w-full" disabled={loading || !selectedPrescription || !selectedProvider}>
-              {loading ? 'Submitting...' : 'Create Request'}
+              {loading ? t('submitting') : t('createRequest')}
             </Button>
             {success && <div className="text-green-600 mt-2">{success}</div>}
             {error && <div className="text-red-600 mt-2">{error}</div>}

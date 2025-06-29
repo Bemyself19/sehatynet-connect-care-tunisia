@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 function humanize(key: string) {
   return key
@@ -11,6 +12,7 @@ function humanize(key: string) {
 }
 
 const MedicalRecordDetail: React.FC = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [record, setRecord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,34 +24,34 @@ const MedicalRecordDetail: React.FC = () => {
     setError(null);
     api.getMedicalRecord(id)
       .then(setRecord)
-      .catch(() => setError('Failed to load medical record'))
+      .catch(() => setError(t('failedToLoadMedicalRecord')))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, t]);
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) return <div className="p-8">{t('loading')}</div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
-  if (!record) return <div className="p-8">No record found.</div>;
+  if (!record) return <div className="p-8">{t('noRecordFound')}</div>;
 
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-bold mb-4">Medical Record Details</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('medicalRecordDetails')}</h1>
       {/* General Info */}
       <div className="space-y-1">
-        <div><span className="font-semibold">Date:</span> {new Date(record.date).toLocaleString()}</div>
-        <div><span className="font-semibold">Type:</span> {humanize(record.type)}</div>
-        <div><span className="font-semibold">Title:</span> {record.title}</div>
+        <div><span className="font-semibold">{t('date')}:</span> {new Date(record.date).toLocaleString()}</div>
+        <div><span className="font-semibold">{t('type')}:</span> {humanize(record.type)}</div>
+        <div><span className="font-semibold">{t('title')}:</span> {record.title}</div>
       </div>
       {/* Provider */}
       {record.providerId && (
         <div>
-          <div className="font-semibold mb-1">Provider:</div>
-          <div>{record.providerId.firstName} {record.providerId.lastName}{record.providerId.specialization ? ` (${record.providerId.specialization})` : ''}</div>
+          <div className="font-semibold mb-1">{t('provider')}:</div>
+          <div>{record.providerId.firstName} {record.providerId.lastName}{record.providerId.specialization ? ` (${t(record.providerId.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase()))})` : ''}</div>
         </div>
       )}
       {/* Tags */}
       {record.tags && record.tags.length > 0 && (
         <div>
-          <div className="font-semibold mb-1">Tags:</div>
+          <div className="font-semibold mb-1">{t('tags')}:</div>
           <div className="flex flex-wrap gap-2">
             {record.tags.map((tag: string) => (
               <span key={tag} className="bg-gray-200 rounded px-2 py-0.5 text-xs">{tag}</span>
@@ -59,22 +61,22 @@ const MedicalRecordDetail: React.FC = () => {
       )}
       {/* Details */}
       <div>
-        <div className="font-semibold mb-1">Details:</div>
+        <div className="font-semibold mb-1">{t('details')}:</div>
         {record.details && typeof record.details === 'object' && !Array.isArray(record.details) ? (
           <>
             {/* Medications */}
             {Array.isArray(record.details.medications) && record.details.medications.length > 0 && (
               <div className="mb-4">
-                <div className="font-semibold mb-1">Medications</div>
+                <div className="font-semibold mb-1">{t('medications')}</div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="px-2 py-1 text-left">Medication</th>
-                        <th className="px-2 py-1 text-left">Dosage</th>
-                        <th className="px-2 py-1 text-left">Frequency</th>
-                        <th className="px-2 py-1 text-left">Duration</th>
-                        <th className="px-2 py-1 text-left">Instructions</th>
+                        <th className="px-2 py-1 text-left">{t('medication')}</th>
+                        <th className="px-2 py-1 text-left">{t('dosage')}</th>
+                        <th className="px-2 py-1 text-left">{t('frequency')}</th>
+                        <th className="px-2 py-1 text-left">{t('duration')}</th>
+                        <th className="px-2 py-1 text-left">{t('instructions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -95,13 +97,13 @@ const MedicalRecordDetail: React.FC = () => {
             {/* Lab Tests */}
             {Array.isArray(record.details.labTests) && record.details.labTests.length > 0 && (
               <div className="mb-4">
-                <div className="font-semibold mb-1">Lab Tests</div>
+                <div className="font-semibold mb-1">{t('labTests')}</div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="px-2 py-1 text-left">Test Name</th>
-                        <th className="px-2 py-1 text-left">Notes</th>
+                        <th className="px-2 py-1 text-left">{t('testName')}</th>
+                        <th className="px-2 py-1 text-left">{t('notes')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -119,13 +121,13 @@ const MedicalRecordDetail: React.FC = () => {
             {/* Radiology Exams */}
             {Array.isArray(record.details.radiology) && record.details.radiology.length > 0 && (
               <div className="mb-4">
-                <div className="font-semibold mb-1">Radiology Exams</div>
+                <div className="font-semibold mb-1">{t('radiology')}</div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm border">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="px-2 py-1 text-left">Exam Name</th>
-                        <th className="px-2 py-1 text-left">Notes</th>
+                        <th className="px-2 py-1 text-left">{t('examName')}</th>
+                        <th className="px-2 py-1 text-left">{t('notes')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -158,7 +160,7 @@ const MedicalRecordDetail: React.FC = () => {
       </div>
       <Button asChild variant="outline">
         <Link to={record.appointmentId ? `/live-consultation/${record.appointmentId._id || record.appointmentId}` : "/dashboard/doctor"}>
-          Back to Live Consultation
+          {t('backToLiveConsultation')}
         </Link>
       </Button>
     </div>

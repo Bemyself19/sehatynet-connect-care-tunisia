@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, description, onSucces
     paymentMethod: 'card'
   });
 
-  const { t } = useLanguage();
+  const { t } = useTranslation();
 
   const handleInputChange = (field: string, value: string) => {
     setPaymentData(prev => ({ ...prev, [field]: value }));

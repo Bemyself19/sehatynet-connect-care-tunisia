@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   onClose,
   onSelectDoctor
 }) => {
+  const { t } = useTranslation();
   const [selectionMode, setSelectionMode] = useState<'browse' | 'chatbot'>('browse');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,11 +76,11 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
     const newMessages = [...chatMessages, { role: 'user' as const, message: userInput }];
     
     // Simple chatbot logic - in real implementation, this would use an LLM
-    let botResponse = "Based on your symptoms, I recommend consulting with a General Practitioner first. ";
+    let botResponse = t('chatbotGeneralResponse') || "Based on your symptoms, I recommend consulting with a General Practitioner first. ";
     if (userInput.toLowerCase().includes('chest') || userInput.toLowerCase().includes('heart')) {
-      botResponse = "Your symptoms suggest you should see a Cardiologist. Here are some recommendations:";
+      botResponse = t('chatbotCardiologyResponse') || "Your symptoms suggest you should see a Cardiologist. Here are some recommendations:";
     } else if (userInput.toLowerCase().includes('skin') || userInput.toLowerCase().includes('rash')) {
-      botResponse = "For skin-related issues, I recommend seeing a Dermatologist:";
+      botResponse = t('chatbotDermatologyResponse') || "For skin-related issues, I recommend seeing a Dermatologist:";
     }
 
     newMessages.push({ role: 'bot', message: botResponse });
@@ -87,7 +89,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Select a Doctor">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('selectDoctor') || 'Select a Doctor'}>
       <div className="space-y-6">
         {/* Selection Mode Toggle */}
         <div className="flex space-x-2">
@@ -97,7 +99,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
             className="flex-1"
           >
             <Search className="h-4 w-4 mr-2" />
-            Browse Doctors
+            {t('browseDoctors') || 'Browse Doctors'}
           </Button>
           <Button
             variant={selectionMode === 'chatbot' ? 'default' : 'outline'}
@@ -105,7 +107,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
             className="flex-1"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
-            AI Assistant
+            {t('aiAssistant') || 'AI Assistant'}
           </Button>
         </div>
 
@@ -116,7 +118,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
               <div>
                 <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Specialty" />
+                    <SelectValue placeholder={t('selectSpecialty') || 'Select Specialty'} />
                   </SelectTrigger>
                   <SelectContent>
                     {specialties.map((specialty) => (
@@ -128,7 +130,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                 </Select>
               </div>
               <Input
-                placeholder="Search doctors..."
+                placeholder={t('searchDoctors') || 'Search doctors...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -136,7 +138,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
 
             {/* Doctors List */}
             {isLoading ? (
-              <div className="text-center">Loading doctors...</div>
+              <div className="text-center">{t('loadingDoctors') || 'Loading doctors...'}</div>
             ) : error ? (
               <div className="text-center text-red-500">{error}</div>
             ) : Object.keys(groupedDoctors).length > 0 ? (
@@ -149,10 +151,14 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                         <Card key={doctor._id} className="cursor-pointer hover:bg-gray-50" onClick={() => onSelectDoctor(doctor)}>
                           <CardHeader>
                             <CardTitle className="text-base">{doctor.firstName} {doctor.lastName}</CardTitle>
-                            <CardDescription>{doctor.specialization}</CardDescription>
+                            <CardDescription>{doctor.specialization ? t(
+                              doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
+                            ) : ''}</CardDescription>
                           </CardHeader>
                           <CardContent>
-                            <p className="text-sm text-gray-600">{doctor.address}</p>
+                            <p className="text-sm text-gray-600">{doctor.specialization ? t(
+                              doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
+                            ) : ''}</p>
                           </CardContent>
                         </Card>
                       ))}
@@ -162,7 +168,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
               </ScrollArea>
             ) : (
               <div className="text-center text-gray-500 py-8">
-                No doctors found matching your criteria.
+                {t('noDoctorsFound') || 'No doctors found matching your criteria.'}
               </div>
             )}
           </div>
@@ -173,7 +179,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
               <div className="border rounded-lg h-64 overflow-y-auto p-4 bg-gray-50">
                 {chatMessages.length === 0 && (
                   <p className="text-gray-500 text-center mt-8">
-                    Tell me about your symptoms and I'll help you find the right doctor.
+                    {t('chatbotWelcomeMessage') || "Tell me about your symptoms and I'll help you find the right doctor."}
                   </p>
                 )}
                 {chatMessages.map((msg, index) => (
@@ -192,12 +198,12 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
               {/* Chat Input */}
               <div className="flex space-x-2">
                 <Input
-                  placeholder="Describe your symptoms..."
+                  placeholder={t('describeSymptoms') || 'Describe your symptoms...'}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleChatSubmit(e)}
                 />
-                <Button onClick={handleChatSubmit}>Send</Button>
+                <Button onClick={handleChatSubmit}>{t('send') || 'Send'}</Button>
               </div>
 
               {/* Recommended Doctors (after chat) */}
@@ -210,7 +216,9 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <h3 className="font-semibold">{`${doctor.firstName} ${doctor.lastName}`}</h3>
-                            <p className="text-sm text-gray-600">{doctor.specialization}</p>
+                            <p className="text-sm text-gray-600">{doctor.specialization ? t(
+                              doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
+                            ) : ''}</p>
                             <p className="text-sm text-gray-500">${doctor.consultationFee || 'N/A'}</p>
                           </div>
                           <Button size="sm" onClick={() => onSelectDoctor(doctor)}>Select</Button>

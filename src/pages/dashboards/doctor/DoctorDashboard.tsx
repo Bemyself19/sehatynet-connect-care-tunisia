@@ -4,6 +4,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { useUser } from '@/hooks/useUser';
 import { format, startOfDay, addMinutes, isSameDay, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 
 // Helper function to convert time string (HH:mm) to minutes since midnight
 const timeToMinutes = (timeStr: string): number => {
@@ -63,6 +64,7 @@ const getSlotStatus = (slotTime: Date, appointments: any[], workingHours: { star
 };
 
 const DoctorDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { appointments = [], isLoading } = useAppointments();
   const { user } = useUser();
   const today = startOfDay(new Date());
@@ -118,43 +120,43 @@ const DoctorDashboard: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Doctor Dashboard</h1>
-        <p className="text-lg text-gray-600">Manage your patients, consultations, and medical records</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('doctorDashboard') || 'Doctor Dashboard'}</h1>
+        <p className="text-lg text-gray-600">{t('doctorDashboardSubtitle') || 'Manage your patients, consultations, and medical records'}</p>
       </div>
 
       {/* Working Hours Display */}
       <div className="bg-blue-50 rounded-lg p-4 mb-8">
         <div className="text-sm text-blue-700">
-          <strong>Working Hours:</strong> {workingHours.start} - {workingHours.end} | 
-          <strong> Slot Duration:</strong> {slotDuration} minutes
+          <strong>{t('workingHours') || 'Working Hours'}:</strong> {workingHours.start} - {workingHours.end} | 
+          <strong> {t('slotDuration') || 'Slot Duration'}:</strong> {slotDuration} {t('minutes') || 'minutes'}
         </div>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-sm text-blue-700 font-semibold">Today's Appointments</div>
+          <div className="text-sm text-blue-700 font-semibold">{t('todaysAppointments') || "Today's Appointments"}</div>
           <div className="text-2xl font-bold">{stats.total}</div>
         </div>
         <div className="bg-yellow-50 rounded-lg p-4">
-          <div className="text-sm text-yellow-700 font-semibold">Pending Requests</div>
+          <div className="text-sm text-yellow-700 font-semibold">{t('pendingRequests') || 'Pending Requests'}</div>
           <div className="text-2xl font-bold">{stats.pending}</div>
         </div>
         <div className="bg-green-50 rounded-lg p-4">
-          <div className="text-sm text-green-700 font-semibold">Completed</div>
+          <div className="text-sm text-green-700 font-semibold">{t('completed') || 'Completed'}</div>
           <div className="text-2xl font-bold">{stats.completed}</div>
         </div>
         <div className="bg-red-50 rounded-lg p-4">
-          <div className="text-sm text-red-700 font-semibold">Cancelled/No-show</div>
+          <div className="text-sm text-red-700 font-semibold">{t('cancelledNoShow') || 'Cancelled/No-show'}</div>
           <div className="text-2xl font-bold">{stats.cancelled}</div>
         </div>
         {/* Tele-Expertise Card */}
         <div className="bg-purple-50 rounded-lg p-4">
-          <div className="text-sm text-purple-700 font-semibold">Tele-Expertise Requests</div>
+          <div className="text-sm text-purple-700 font-semibold">{t('teleExpertiseRequests') || 'Tele-Expertise Requests'}</div>
           <div className="text-2xl font-bold">{teleExpertiseStats.pending}</div>
           <div className="mt-2">
             {teleExpertiseStats.upcoming.length === 0 ? (
-              <span className="text-xs text-gray-500">No upcoming requests</span>
+              <span className="text-xs text-gray-500">{t('noUpcomingRequests') || 'No upcoming requests'}</span>
             ) : (
               <ul className="text-xs text-gray-700 space-y-1">
                 {teleExpertiseStats.upcoming.slice(0, 2).map(req => (
@@ -172,9 +174,9 @@ const DoctorDashboard: React.FC = () => {
 
       {/* Upcoming Appointments Card */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">Upcoming Appointments Today</h2>
+        <h2 className="text-lg font-semibold mb-4">{t('upcomingAppointmentsToday') || 'Upcoming Appointments Today'}</h2>
         {todaysAppointments.length === 0 ? (
-          <div className="text-gray-500">No appointments scheduled for today.</div>
+          <div className="text-gray-500">{t('noAppointmentsToday') || 'No appointments scheduled for today.'}</div>
         ) : (
           <ul className="divide-y divide-slate-100">
             {todaysAppointments

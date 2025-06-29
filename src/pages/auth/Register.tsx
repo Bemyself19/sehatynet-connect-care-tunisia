@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Heart, User, Stethoscope } from 'lucide-react';
 import { RegisterData } from '@/types/user';
 import api from '@/lib/api';
@@ -31,7 +31,7 @@ const Register: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const handleInputChange = (field: keyof RegisterData, value: string) => {
@@ -90,7 +90,7 @@ const Register: React.FC = () => {
   );
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <Card className="w-full max-w-2xl shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <SehatyLogo />

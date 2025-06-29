@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useTranslation } from 'react-i18next';
 
 // Extend Window interface for tab coordination
 declare global {
@@ -27,6 +28,7 @@ declare global {
 const WS_URL = 'ws://localhost:5000';
 
 const LiveConsultation: React.FC = () => {
+    const { t } = useTranslation();
     const { appointmentId } = useParams<{ appointmentId: string }>();
 
     // Component State
@@ -437,7 +439,7 @@ const LiveConsultation: React.FC = () => {
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Initializing consultation...</p>
+                    <p className="text-gray-600">{t('initializingConsultation')}</p>
                 </div>
             </div>
         );
@@ -448,10 +450,10 @@ const LiveConsultation: React.FC = () => {
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
                 <div className="text-center max-w-md mx-auto p-6">
                     <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">Connection Error</h2>
-                    <p className="text-gray-600 mb-4">{error || 'Unable to load consultation data'}</p>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('connectionError')}</h2>
+                    <p className="text-gray-600 mb-4">{error || t('unableToLoadConsultationData')}</p>
                     <Button onClick={() => window.history.back()} className="bg-blue-600 hover:bg-blue-700">
-                        Go Back
+                        {t('goBack')}
                     </Button>
                 </div>
             </div>
@@ -491,7 +493,7 @@ const LiveConsultation: React.FC = () => {
                                 className="flex items-center space-x-2"
                             >
                                 <ArrowLeft className="h-4 w-4" />
-                                <span>Back</span>
+                                <span>{t('back')}</span>
                             </Button>
                             <Link to="/" className="flex items-center group">
                                 <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg group-hover:scale-105 transition-transform">
@@ -506,12 +508,12 @@ const LiveConsultation: React.FC = () => {
                         <div className="flex items-center space-x-4">
                             {!isActiveTabRef.current && (
                                 <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                                    ⚠️ Inactive Tab
+                                    ⚠️ {t('inactiveTab')}
                                 </Badge>
                             )}
                             <div className="flex items-center space-x-2">
                                 <div className={`w-2 h-2 rounded-full ${status === 'Connected' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                                <span className="text-sm text-gray-600">{status}</span>
+                                <span className="text-sm text-gray-600">{t('appointmentId')}: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{appointmentId}</span></span>
                             </div>
                             <Button 
                                 variant="destructive" 
@@ -633,7 +635,7 @@ const LiveConsultation: React.FC = () => {
                                 
                                 <div className="mt-4 text-center">
                                     <p className="text-sm text-gray-600">
-                                        Appointment ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{appointmentId}</span>
+                                        {t('appointmentId')}: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{appointmentId}</span>
                                     </p>
                                 </div>
                             </CardContent>
@@ -648,7 +650,7 @@ const LiveConsultation: React.FC = () => {
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <Calendar className="h-5 w-5 text-blue-600" />
-                                        <span>Appointment Info</span>
+                                        <span>{t('appointmentInfo')}</span>
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -666,7 +668,7 @@ const LiveConsultation: React.FC = () => {
                                                 {isPatient ? patientName : doctorName}
                                             </p>
                                             <p className="text-sm text-gray-600">
-                                                {isPatient ? 'Patient' : 'Healthcare Provider'}
+                                                {isPatient ? t('patient') : t('healthcareProvider')}
                                             </p>
                                         </div>
                                     </div>
@@ -694,7 +696,7 @@ const LiveConsultation: React.FC = () => {
                                     <CardHeader>
                                         <CardTitle className="flex items-center space-x-2">
                                             <Settings className="h-5 w-5 text-purple-600" />
-                                            <span>Actions</span>
+                                            <span>{t('actions')}</span>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
@@ -704,7 +706,7 @@ const LiveConsultation: React.FC = () => {
                                             disabled={!isActiveTabRef.current}
                                         >
                                             <FilePlus className="h-4 w-4 mr-2" /> 
-                                            Create Prescription
+                                            {t('createPrescription')}
                                         </Button>
                                         <Button 
                                             className="w-full justify-start bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
@@ -712,7 +714,7 @@ const LiveConsultation: React.FC = () => {
                                             disabled={!isActiveTabRef.current}
                                         >
                                             <Notebook className="h-4 w-4 mr-2" /> 
-                                            Add Note
+                                            {t('addNote')}
                                         </Button>
                                         <Button
                                             className="w-full justify-start bg-gradient-to-r from-pink-600 to-red-600 hover:from-pink-700 hover:to-red-700"
@@ -720,7 +722,7 @@ const LiveConsultation: React.FC = () => {
                                             disabled={!isActiveTabRef.current}
                                         >
                                             <HeartPulse className="h-4 w-4 mr-2" />
-                                            View Live Vitals
+                                            {t('viewLiveVitals')}
                                         </Button>
                                     </CardContent>
                                 </Card>
@@ -731,27 +733,27 @@ const LiveConsultation: React.FC = () => {
                                 <CardHeader>
                                     <CardTitle className="flex items-center space-x-2">
                                         <MessageSquare className="h-5 w-5 text-blue-600" />
-                                        <span>Connection</span>
+                                        <span>{t('connection')}</span>
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600">Status</span>
+                                            <span className="text-sm text-gray-600">{t('status')}</span>
                                             <Badge className={status === 'Connected' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                                                 {status}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600">Audio</span>
+                                            <span className="text-sm text-gray-600">{t('audio')}</span>
                                             <Badge variant={isMicMuted ? "destructive" : "default"}>
-                                                {isMicMuted ? 'Muted' : 'Active'}
+                                                {isMicMuted ? t('muted') : t('active')}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-600">Video</span>
+                                            <span className="text-sm text-gray-600">{t('video')}</span>
                                             <Badge variant={isCameraOff ? "destructive" : "default"}>
-                                                {isCameraOff ? 'Off' : 'Active'}
+                                                {isCameraOff ? t('off') : t('active')}
                                             </Badge>
                                         </div>
                                     </div>
@@ -767,7 +769,7 @@ const LiveConsultation: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center space-x-2">
                                 <User className="h-5 w-5 text-purple-600" />
-                                <span>Patient Information</span>
+                                <span>{t('patientInformation')}</span>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -775,11 +777,11 @@ const LiveConsultation: React.FC = () => {
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="notes" className="flex items-center space-x-2">
                                         <Notebook className="h-4 w-4" />
-                                        <span>Notes History</span>
+                                        <span>{t('notesHistory')}</span>
                                     </TabsTrigger>
                                     <TabsTrigger value="records" className="flex items-center space-x-2">
                                         <Activity className="h-4 w-4" />
-                                        <span>Medical Records</span>
+                                        <span>{t('medicalRecords')}</span>
                                     </TabsTrigger>
                                 </TabsList>
                                 
@@ -787,7 +789,7 @@ const LiveConsultation: React.FC = () => {
                                     {notesLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                            <p className="text-gray-600">Loading notes...</p>
+                                            <p className="text-gray-600">{t('loadingNotes')}</p>
                                         </div>
                                     ) : notesError ? (
                                         <div className="text-center py-8">
@@ -797,7 +799,7 @@ const LiveConsultation: React.FC = () => {
                                     ) : doctorNotes.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Notebook className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                            <p className="text-gray-500">No notes found.</p>
+                                            <p className="text-gray-500">{t('noNotesFound')}</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -806,9 +808,9 @@ const LiveConsultation: React.FC = () => {
                                                     <CardContent className="p-4">
                                                         <div className="flex items-start justify-between mb-2">
                                                             <div className="text-xs text-gray-500">
-                                                                {new Date(note.date).toLocaleString()} by {note.providerId?.firstName} {note.providerId?.lastName}
+                                                                {new Date(note.date).toLocaleString()} {t('by')} {note.providerId?.firstName} {note.providerId?.lastName}
                                                             </div>
-                                                            <Badge variant="outline" className="text-xs">Private</Badge>
+                                                            <Badge variant="outline" className="text-xs">{t('private')}</Badge>
                                                         </div>
                                                         <div className="font-semibold text-gray-900 mb-2">{note.title}</div>
                                                         <div className="text-gray-700">
@@ -829,7 +831,7 @@ const LiveConsultation: React.FC = () => {
                                     {recordsLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                            <p className="text-gray-600">Loading medical records...</p>
+                                            <p className="text-gray-600">{t('loadingMedicalRecords')}</p>
                                         </div>
                                     ) : recordsError ? (
                                         <div className="text-center py-8">
@@ -839,18 +841,18 @@ const LiveConsultation: React.FC = () => {
                                     ) : medicalRecords.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                            <p className="text-gray-500">No medical records found.</p>
+                                            <p className="text-gray-500">{t('noMedicalRecordsFound')}</p>
                                         </div>
                                     ) : (
                                         <div className="overflow-x-auto">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Date</TableHead>
-                                                        <TableHead>Type</TableHead>
-                                                        <TableHead>Title</TableHead>
-                                                        <TableHead>Provider</TableHead>
-                                                        <TableHead>Actions</TableHead>
+                                                        <TableHead>{t('date')}</TableHead>
+                                                        <TableHead>{t('type')}</TableHead>
+                                                        <TableHead>{t('title')}</TableHead>
+                                                        <TableHead>{t('provider')}</TableHead>
+                                                        <TableHead>{t('actions')}</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -864,7 +866,7 @@ const LiveConsultation: React.FC = () => {
                                                             <TableCell>{record.providerId?.firstName} {record.providerId?.lastName}</TableCell>
                                                             <TableCell>
                                                                 <Button asChild size="sm" variant="outline">
-                                                                    <Link to={`/medical-records/${record._id}`}>View Details</Link>
+                                                                    <Link to={`/medical-records/${record._id}`}>{t('viewDetails')}</Link>
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
@@ -895,21 +897,21 @@ const LiveConsultation: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center space-x-2">
                             <Notebook className="h-5 w-5 text-blue-600" />
-                            <span>Add Doctor Note</span>
+                            <span>{t('addDoctorNote')}</span>
                         </DialogTitle>
                         <DialogDescription>
-                            Add a private note for this consultation. This note will be saved to the patient's medical record with <strong>doctor-only privacy</strong> - it will not be visible to the patient unless you explicitly change the privacy settings later.
+                            {t('addPrivateNoteDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     <Textarea
                         value={note}
                         onChange={e => setNote(e.target.value)}
-                        placeholder="Enter your private note for the patient's EHR..."
+                        placeholder={t('enterPrivateNotePlaceholder')}
                         rows={6}
                         className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setNoteModalOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setNoteModalOpen(false)}>{t('cancel')}</Button>
                         <Button 
                             onClick={handleCreateNote} 
                             disabled={noteLoading || !note.trim()}
@@ -918,12 +920,12 @@ const LiveConsultation: React.FC = () => {
                             {noteLoading ? (
                                 <div className="flex items-center space-x-2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    <span>Saving...</span>
+                                    <span>{t('saving')}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center space-x-2">
                                     <Notebook className="h-4 w-4" />
-                                    <span>Save Note</span>
+                                    <span>{t('saveNote')}</span>
                                 </div>
                             )}
                         </Button>
@@ -936,10 +938,10 @@ const LiveConsultation: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center space-x-2">
                             <HeartPulse className="h-5 w-5 text-red-600" />
-                            <span>Live Vital Signs</span>
+                            <span>{t('liveVitalSigns')}</span>
                         </DialogTitle>
                         <DialogDescription>
-                            Real-time data from patient monitoring devices during this consultation.
+                            {t('liveVitalSignsDescription')}
                         </DialogDescription>
                     </DialogHeader>
                     {vitals ? (
@@ -947,25 +949,25 @@ const LiveConsultation: React.FC = () => {
                             <div className="flex flex-col items-center">
                                 <HeartPulse className="h-8 w-8 text-red-500 mb-1" />
                                 <span className="font-bold text-lg">{vitals.heartRate ?? '--'}</span>
-                                <span className="text-xs text-gray-500">Heart Rate (bpm)</span>
+                                <span className="text-xs text-gray-500">{t('heartRateBpm')}</span>
                             </div>
                             <div className="flex flex-col items-center">
                                 <Wind className="h-8 w-8 text-blue-500 mb-1" />
                                 <span className="font-bold text-lg">{vitals.respiration ?? '--'}</span>
-                                <span className="text-xs text-gray-500">Respiration (rpm)</span>
+                                <span className="text-xs text-gray-500">{t('respirationRpm')}</span>
                             </div>
                             <div className="flex flex-col items-center">
                                 <Droplets className="h-8 w-8 text-indigo-500 mb-1" />
                                 <span className="font-bold text-lg">{vitals.spo2 ?? '--'}</span>
-                                <span className="text-xs text-gray-500">SpO₂ (%)</span>
+                                <span className="text-xs text-gray-500">{t('spo2Percent')}</span>
                             </div>
                             {/* Add more vitals as needed */}
                         </div>
                     ) : (
-                        <div className="text-center text-gray-500 py-8">Waiting for live data...</div>
+                        <div className="text-center text-gray-500 py-8">{t('waitingForLiveData')}</div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setVitalsModalOpen(false)}>Close</Button>
+                        <Button variant="outline" onClick={() => setVitalsModalOpen(false)}>{t('close')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

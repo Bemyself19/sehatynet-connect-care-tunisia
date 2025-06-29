@@ -6,6 +6,7 @@ import { User, Pill } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
 
 interface PrescriptionDetailProps {
   prescription: Prescription;
@@ -26,6 +27,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
   const [selectedNewPharmacy, setSelectedNewPharmacy] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const prescriptionId = prescription._id;
 
@@ -84,14 +86,14 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
       });
       refreshServiceRequests();
     } catch (err: any) {
-      setOrderError(err.message || 'Failed to request pharmacy');
+      setOrderError(err.message || t('failedToRequestPharmacy') || 'Failed to request pharmacy');
     } finally {
       setAssigning('');
     }
   };
 
   const handleCancelRequest = async (recordId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this pharmacy request?')) return;
+    if (!window.confirm(t('confirmCancelPharmacyRequest') || 'Are you sure you want to cancel this pharmacy request?')) return;
     setCancellingId(recordId);
     try {
       await api.cancelMedicalRecordRequest(recordId);
@@ -110,7 +112,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
       await api.acceptPartialPharmacyOrder(recordId);
       refreshServiceRequests();
     } catch (err: any) {
-      setError(err.message || 'Failed to accept partial order');
+      setError(err.message || t('failedToAcceptPartialOrder') || 'Failed to accept partial order');
     } finally {
       setAcceptingId(null);
     }
@@ -128,7 +130,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
       const req = getActivePharmacyRequest();
       console.log('After reassignment, feedback is:', req?.details?.feedback);
     } catch (err: any) {
-      setError(err.message || 'Failed to reassign pharmacy');
+      setError(err.message || t('failedToReassignPharmacy') || 'Failed to reassign pharmacy');
     } finally {
       setReassigningId(null);
     }
@@ -145,35 +147,35 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Prescription Details</CardTitle>
+          <CardTitle>{t('prescriptionDetails') || 'Prescription Details'}</CardTitle>
           <CardDescription>
-            Prescribed on {new Date(prescription.createdAt).toLocaleDateString()}
+            {t('prescribedOn') || 'Prescribed on'} {new Date(prescription.createdAt).toLocaleDateString()}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm mb-4">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <strong>Patient:</strong> {prescription.patientId.firstName} {prescription.patientId.lastName}
+              <strong>{t('patient') || 'Patient'}:</strong> {prescription.patientId.firstName} {prescription.patientId.lastName}
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <strong>Doctor:</strong> Dr. {prescription.providerId.firstName} {prescription.providerId.lastName}
+              <strong>{t('doctor') || 'Doctor'}:</strong> Dr. {prescription.providerId.firstName} {prescription.providerId.lastName}
             </div>
           </div>
           {/* Medications Section */}
           <h3 className="font-semibold mb-2 flex items-center gap-2">
             <Pill className="h-5 w-5" />
-            Medications
+            {t('medications') || 'Medications'}
           </h3>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Medication</TableHead>
-                <TableHead>Dosage</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Instructions</TableHead>
+                <TableHead>{t('medication') || 'Medication'}</TableHead>
+                <TableHead>{t('dosage') || 'Dosage'}</TableHead>
+                <TableHead>{t('frequency') || 'Frequency'}</TableHead>
+                <TableHead>{t('duration') || 'Duration'}</TableHead>
+                <TableHead>{t('instructions') || 'Instructions'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -199,28 +201,28 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     return (
                       <div className="text-yellow-700 space-y-2">
                         <div>
-                          Pharmacy Request: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                          Status: {req.status.replace('_', ' ')}
+                          {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
+                          {t('status') || 'Status'}: {req.status.replace('_', ' ')}
                         </div>
-                        <div className="font-medium">Pharmacist Feedback:</div>
-                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || 'No feedback provided.'}</div>
+                        <div className="font-medium">{t('pharmacistFeedback') || 'Pharmacist Feedback'}:</div>
+                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || t('noFeedbackProvided') || 'No feedback provided.'}</div>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <Button
                             onClick={() => handleAcceptPartialOrder(req._id)}
                             disabled={acceptingId === req._id}
                           >
-                            {acceptingId === req._id ? 'Accepting...' : 'Accept Partial Order'}
+                            {acceptingId === req._id ? t('accepting') || 'Accepting...' : t('acceptPartialOrder') || 'Accept Partial Order'}
                           </Button>
                           <Button
                             variant="destructive"
                             onClick={() => handleCancelRequest(req._id)}
                             disabled={cancellingId === req._id}
                           >
-                            {cancellingId === req._id ? 'Cancelling...' : 'Cancel Request'}
+                            {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
                           </Button>
                           <Select value={selectedNewPharmacy} onValueChange={setSelectedNewPharmacy}>
                             <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Change Pharmacy" />
+                              <SelectValue placeholder={t('changePharmacy') || 'Change Pharmacy'} />
                             </SelectTrigger>
                             <SelectContent>
                               {pharmacies.filter(p => p._id !== extractProviderId(req.providerId)).map((pharm) => (
@@ -234,7 +236,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                             onClick={() => handleReassignPharmacy(req._id)}
                             disabled={!selectedNewPharmacy || reassigningId === req._id}
                           >
-                            {reassigningId === req._id ? 'Reassigning...' : 'Confirm Change'}
+                            {reassigningId === req._id ? t('reassigning') || 'Reassigning...' : t('confirmChange') || 'Confirm Change'}
                           </Button>
                         </div>
                         {error && <div className="text-red-600 mt-2">{error}</div>}
@@ -245,22 +247,22 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     return (
                       <div className="text-yellow-700 space-y-2">
                         <div>
-                          Pharmacy Request: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                          Status: {req.status.replace('_', ' ')}
+                          {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
+                          {t('status') || 'Status'}: {req.status.replace('_', ' ')}
                         </div>
-                        <div className="font-medium">Pharmacist Feedback:</div>
-                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || 'No feedback provided.'}</div>
+                        <div className="font-medium">{t('pharmacistFeedback') || 'Pharmacist Feedback'}:</div>
+                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || t('noFeedbackProvided') || 'No feedback provided.'}</div>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <Button
                             variant="destructive"
                             onClick={() => handleCancelRequest(req._id)}
                             disabled={cancellingId === req._id}
                           >
-                            {cancellingId === req._id ? 'Cancelling...' : 'Cancel Request'}
+                            {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
                           </Button>
                           <Select value={selectedNewPharmacy} onValueChange={setSelectedNewPharmacy}>
                             <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Change Pharmacy" />
+                              <SelectValue placeholder={t('changePharmacy') || 'Change Pharmacy'} />
                             </SelectTrigger>
                             <SelectContent>
                               {pharmacies.filter(p => p._id !== extractProviderId(req.providerId)).map((pharm) => (
@@ -274,7 +276,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                             onClick={() => handleReassignPharmacy(req._id)}
                             disabled={!selectedNewPharmacy || reassigningId === req._id}
                           >
-                            {reassigningId === req._id ? 'Reassigning...' : 'Confirm Change'}
+                            {reassigningId === req._id ? t('reassigning') || 'Reassigning...' : t('confirmChange') || 'Confirm Change'}
                           </Button>
                         </div>
                         {error && <div className="text-red-600 mt-2">{error}</div>}
@@ -283,8 +285,8 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                   }
                   return (
                     <div className="text-green-700">
-                      Pharmacy Request: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                      Status: {req.status || 'Requested'}
+                      {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
+                      {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
                       {/* Cancel button for eligible statuses */}
                       {['pending', 'ready_for_pickup'].includes(req.status) && (
                         <Button
@@ -293,7 +295,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                           onClick={() => handleCancelRequest(req._id)}
                           disabled={cancellingId === req._id}
                         >
-                          {cancellingId === req._id ? 'Cancelling...' : 'Cancel Request'}
+                          {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
                         </Button>
                       )}
                     </div>
@@ -301,11 +303,11 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                 }
                 return (
                   <>
-                    <div className="text-gray-500 mb-2">Status: Not requested</div>
+                    <div className="text-gray-500 mb-2">{t('status') || 'Status'}: {t('notRequested') || 'Not requested'}</div>
                     <div className="flex items-center gap-2">
                       <Select value={selectedPharmacy} onValueChange={setSelectedPharmacy}>
                         <SelectTrigger className="w-64">
-                          <SelectValue placeholder="Select Pharmacy" />
+                          <SelectValue placeholder={t('selectPharmacy') || 'Select Pharmacy'} />
                         </SelectTrigger>
                         <SelectContent>
                           {pharmacies
@@ -318,7 +320,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                         </SelectContent>
                       </Select>
                       <Button onClick={() => handleRequest('prescription', selectedPharmacy)} disabled={!selectedPharmacy || assigning === 'prescription'}>
-                        {assigning === 'prescription' ? 'Requesting...' : 'Request Pharmacy'}
+                        {assigning === 'prescription' ? t('requesting') || 'Requesting...' : t('requestPharmacy') || 'Request Pharmacy'}
                       </Button>
                     </div>
                     {orderError && <div className="text-red-600 mt-2">{orderError}</div>}
@@ -330,12 +332,12 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
           {/* Lab Tests Section */}
           {prescription.labTests && prescription.labTests.length > 0 && (
             <>
-              <h3 className="font-semibold mt-6 mb-2">Lab Tests</h3>
+              <h3 className="font-semibold mt-6 mb-2">{t('labTests') || 'Lab Tests'}</h3>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Test Name</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('testName') || 'Test Name'}</TableHead>
+                    <TableHead>{t('notes') || 'Notes'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -354,18 +356,18 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                   if (req) {
                     return (
                       <div className="text-green-700">
-                        Lab Request: {getProviderName(extractProviderId(req.details?.providerId), labs)}<br />
-                        Status: {req.status || 'Requested'}
+                        {t('labRequest') || 'Lab Request'}: {getProviderName(extractProviderId(req.details?.providerId), labs)}<br />
+                        {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
                       </div>
                     );
                   }
                   return (
                     <>
-                      <div className="text-gray-500 mb-2">Status: Not requested</div>
+                      <div className="text-gray-500 mb-2">{t('status') || 'Status'}: {t('notRequested') || 'Not requested'}</div>
                       <div className="flex items-center gap-2">
                         <Select value={selectedLab} onValueChange={setSelectedLab}>
                           <SelectTrigger className="w-64">
-                            <SelectValue placeholder="Select Lab" />
+                            <SelectValue placeholder={t('selectLab') || 'Select Lab'} />
                           </SelectTrigger>
                           <SelectContent>
                             {labs.map((lab) => (
@@ -376,7 +378,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                           </SelectContent>
                         </Select>
                         <Button onClick={() => handleRequest('lab_result', selectedLab)} disabled={!selectedLab || assigning === 'lab_result'}>
-                          {assigning === 'lab_result' ? 'Requesting...' : 'Request Lab'}
+                          {assigning === 'lab_result' ? t('requesting') || 'Requesting...' : t('requestLab') || 'Request Lab'}
                         </Button>
                       </div>
                     </>
@@ -388,12 +390,12 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
           {/* Radiology Section */}
           {prescription.radiology && prescription.radiology.length > 0 && (
             <>
-              <h3 className="font-semibold mt-6 mb-2">Radiology</h3>
+              <h3 className="font-semibold mt-6 mb-2">{t('radiology') || 'Radiology'}</h3>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Exam Name</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('examName') || 'Exam Name'}</TableHead>
+                    <TableHead>{t('notes') || 'Notes'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -412,18 +414,18 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                   if (req) {
                     return (
                       <div className="text-green-700">
-                        Radiology Request: {getProviderName(extractProviderId(req.details?.providerId), radiologists)}<br />
-                        Status: {req.status || 'Requested'}
+                        {t('radiologyRequest') || 'Radiology Request'}: {getProviderName(extractProviderId(req.details?.providerId), radiologists)}<br />
+                        {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
                       </div>
                     );
                   }
                   return (
                     <>
-                      <div className="text-gray-500 mb-2">Status: Not requested</div>
+                      <div className="text-gray-500 mb-2">{t('status') || 'Status'}: {t('notRequested') || 'Not requested'}</div>
                       <div className="flex items-center gap-2">
                         <Select value={selectedRadiologist} onValueChange={setSelectedRadiologist}>
                           <SelectTrigger className="w-64">
-                            <SelectValue placeholder="Select Radiologist" />
+                            <SelectValue placeholder={t('selectRadiologist') || 'Select Radiologist'} />
                           </SelectTrigger>
                           <SelectContent>
                             {radiologists.map((rad) => (
@@ -434,7 +436,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                           </SelectContent>
                         </Select>
                         <Button onClick={() => handleRequest('imaging', selectedRadiologist)} disabled={!selectedRadiologist || assigning === 'imaging'}>
-                          {assigning === 'imaging' ? 'Requesting...' : 'Request Radiology'}
+                          {assigning === 'imaging' ? t('requesting') || 'Requesting...' : t('requestRadiology') || 'Request Radiology'}
                         </Button>
                       </div>
                     </>
@@ -445,7 +447,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
           )}
           {prescription.notes && (
             <div className="mt-4">
-              <h4 className="font-semibold">Notes from Doctor:</h4>
+              <h4 className="font-semibold">{t('notesFromDoctor') || 'Notes from Doctor'}:</h4>
               <p className="text-sm text-gray-600 p-2 bg-gray-50 rounded">{prescription.notes}</p>
             </div>
           )}

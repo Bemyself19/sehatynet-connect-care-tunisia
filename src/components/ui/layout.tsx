@@ -25,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
 import { useLanguage } from '@/hooks/useLanguage';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,6 +39,26 @@ interface LayoutProps {
     badge?: string | number;
   }>;
 }
+
+const LanguageMenu = () => {
+  const { i18n } = useTranslation();
+  const currentLang = i18n.language;
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('sehatynet-language', lang);
+    document.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  };
+  return (
+    <div className="flex flex-col px-4 py-2">
+      <span className="text-xs text-gray-500 mb-1">Language</span>
+      <div className="flex gap-2">
+        <button onClick={() => changeLanguage('en')} disabled={currentLang === 'en'} className={`px-2 py-1 rounded ${currentLang === 'en' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>EN</button>
+        <button onClick={() => changeLanguage('fr')} disabled={currentLang === 'fr'} className={`px-2 py-1 rounded ${currentLang === 'fr' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>FR</button>
+        <button onClick={() => changeLanguage('ar')} disabled={currentLang === 'ar'} className={`px-2 py-1 rounded ${currentLang === 'ar' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}>AR</button>
+      </div>
+    </div>
+  );
+};
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
@@ -141,6 +162,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <LanguageMenu />
                     <div className="py-1">
                       <button
                         onClick={handleLogout}

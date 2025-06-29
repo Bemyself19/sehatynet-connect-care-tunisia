@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Video, MapPin, User, AlertCircle } from 'lucide-react';
@@ -14,7 +14,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/useUser';
 
 const AppointmentsList: React.FC = () => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -44,6 +44,21 @@ const AppointmentsList: React.FC = () => {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return t('confirmed') || 'confirmed';
+      case 'scheduled':
+        return t('scheduled') || 'scheduled';
+      case 'pending':
+        return t('pending') || 'pending';
+      case 'cancelled':
+        return t('cancelled') || 'cancelled';
+      default:
+        return status;
+    }
+  };
+
   const handleJoinCall = (appointment: Appointment) => {
     if (appointment.appointmentType === 'video') {
       navigate(`/live-consultation/${appointment._id}`);
@@ -66,12 +81,12 @@ const AppointmentsList: React.FC = () => {
         await api.updateAppointment(selectedAppointment._id, updatedData);
         
         queryClient.invalidateQueries({ queryKey: ['appointments', user?._id] });
-        toast.success('Appointment Rescheduled', {
-          description: 'Your reschedule request has been sent.',
+        toast.success(t('appointmentRescheduled') || 'Appointment Rescheduled', {
+          description: t('rescheduleRequestSent') || 'Your reschedule request has been sent.',
         });
       } catch (err) {
-        toast.error('Error', {
-          description: 'Could not reschedule the appointment.',
+        toast.error(t('error') || 'Error', {
+          description: t('couldNotReschedule') || 'Could not reschedule the appointment.',
         });
       } finally {
         setIsRescheduleModalOpen(false);
@@ -84,12 +99,12 @@ const AppointmentsList: React.FC = () => {
     try {
       await api.cancelAppointment(appointmentId);
       queryClient.invalidateQueries({ queryKey: ['appointments', user?._id] });
-      toast.success('Appointment Cancelled', {
-        description: 'Your appointment has been successfully cancelled.',
+      toast.success(t('appointmentCancelled') || 'Appointment Cancelled', {
+        description: t('appointmentCancelledSuccess') || 'Your appointment has been successfully cancelled.',
       });
     } catch (err) {
-      toast.error('Error', {
-        description: 'Could not cancel the appointment.',
+      toast.error(t('error') || 'Error', {
+        description: t('couldNotCancelAppointment') || 'Could not cancel the appointment.',
       });
     }
   };
@@ -107,7 +122,7 @@ const AppointmentsList: React.FC = () => {
           ) : isError ? (
             <div className="text-red-500 text-center py-4 flex items-center justify-center">
               <AlertCircle className="h-5 w-5 mr-2" />
-              {'Failed to load appointments. Please try again later.'}
+              {t('failedToLoadAppointments') || 'Failed to load appointments. Please try again later.'}
             </div>
           ) : appointments.length === 0 ? (
             <p className="text-gray-500 text-center py-4">{t('noAppointments') || 'No appointments scheduled.'}</p>
@@ -120,7 +135,13 @@ const AppointmentsList: React.FC = () => {
                       <User className="h-5 w-5 text-blue-600 mt-0.5" />
                       <div>
                         <h3 className="font-semibold">{`${appointment.providerId.firstName} ${appointment.providerId.lastName}`}</h3>
-                        <p className="text-sm text-gray-600">{appointment.providerId.specialization}</p>
+                        <p className="text-sm text-gray-600">
+                          {appointment.providerId.specialization ? t(
+                            appointment.providerId.specialization
+                              .replace(/ /g, '')
+                              .replace(/([A-Z])/g, (m) => m.toLowerCase())
+                          ) : ''}
+                        </p>
                         <div className="flex items-center space-x-4 mt-1">
                           <div className="flex items-center text-sm text-gray-500">
                             <Calendar className="h-4 w-4 mr-1" />
@@ -132,9 +153,9 @@ const AppointmentsList: React.FC = () => {
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             {appointment.appointmentType === 'video' ? (
-                              <><Video className="h-4 w-4 mr-1" /> Video Call</>
+                              <><Video className="h-4 w-4 mr-1" />{t('videoCall') || 'Video Call'}</>
                             ) : (
-                              <><MapPin className="h-4 w-4 mr-1" /> In Person</>
+                              <><MapPin className="h-4 w-4 mr-1" />{t('inPerson') || 'In Person'}</>
                             )}
                           </div>
                         </div>
@@ -142,7 +163,7 @@ const AppointmentsList: React.FC = () => {
                       </div>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(appointment.status)}`}>
-                      {appointment.status}
+                      {getStatusLabel(appointment.status)}
                     </span>
                   </div>
                   <div className="flex justify-end space-x-2">
@@ -158,22 +179,22 @@ const AppointmentsList: React.FC = () => {
           )}
         </div>
       
-      <Modal isOpen={isRescheduleModalOpen} onClose={() => setIsRescheduleModalOpen(false)} title="Reschedule Appointment">
+      <Modal isOpen={isRescheduleModalOpen} onClose={() => setIsRescheduleModalOpen(false)} title={t('rescheduleAppointment') || 'Reschedule Appointment'}>
         <div className="space-y-4">
             <div>
-              <label htmlFor="newDate" className="block text-sm font-medium text-gray-700">New Date</label>
+              <label htmlFor="newDate" className="block text-sm font-medium text-gray-700">{t('newDate') || 'New Date'}</label>
               <Input type="date" id="newDate" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="newTime" className="block text-sm font-medium text-gray-700">New Time</label>
+              <label htmlFor="newTime" className="block text-sm font-medium text-gray-700">{t('newTime') || 'New Time'}</label>
               <select id="newTime" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="w-full mt-1 p-2 border rounded-md">
-                <option value="">Select a time</option>
+                <option value="">{t('selectTime') || 'Select a time'}</option>
                 {timeSlots.map(slot => <option key={slot} value={slot}>{slot}</option>)}
               </select>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsRescheduleModalOpen(false)}>Cancel</Button>
-              <Button onClick={confirmReschedule}>Confirm Reschedule</Button>
+              <Button variant="outline" onClick={() => setIsRescheduleModalOpen(false)}>{t('cancel') || 'Cancel'}</Button>
+              <Button onClick={confirmReschedule}>{t('confirmReschedule') || 'Confirm Reschedule'}</Button>
             </div>
         </div>
       </Modal>

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Heart, User, Mail, Phone, MapPin, Calendar, ArrowLeft, Save, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const Profile: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, isLoading: isUserLoading, error: userError, refetch } = useUser();
   const { logout } = useAuth();
@@ -91,15 +91,15 @@ const Profile: React.FC = () => {
       }
       await api.updateProfile(submitData);
       await refetch();
-      toast.success('Profile Updated', {
-        description: 'Your profile has been saved successfully',
+      toast.success(t('profileUpdated') || 'Profile Updated', {
+        description: t('profileSavedSuccessfully') || 'Your profile has been saved successfully',
       });
       setTimeout(() => {
         navigate('/dashboard/patient');
       }, 1500);
     } catch (error) {
-      toast.error('Update Failed', {
-        description: 'Unable to update profile. Please try again.',
+      toast.error(t('updateFailed') || 'Update Failed', {
+        description: t('unableToUpdateProfile') || 'Unable to update profile. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -111,7 +111,7 @@ const Profile: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">{t('loadingProfile') || 'Loading profile...'}</p>
         </div>
       </div>
     );
@@ -122,14 +122,14 @@ const Profile: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Failed to load profile.</p>
+          <p className="text-red-600">{t('failedToLoadProfile') || 'Failed to load profile.'}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -168,11 +168,10 @@ const Profile: React.FC = () => {
                 <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-yellow-800 mb-1">
-                    Complete your medical profile
+                    {t('completeMedicalProfile') || 'Complete your medical profile'}
                   </h4>
                   <p className="text-yellow-700 text-sm">
-                    For your safety and best care, please provide your allergies, medications, and medical history. 
-                    This information is confidential and helps your healthcare providers understand your needs.
+                    {t('medicalProfileWarning') || 'For your safety and best care, please provide your allergies, medications, and medical history. This information is confidential and helps your healthcare providers understand your needs.'}
                   </p>
                 </div>
               </div>
@@ -201,8 +200,7 @@ const Profile: React.FC = () => {
                     name="firstName"
                     value={profileData.firstName}
                     onChange={handleChange}
-                    required
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder={t('enterFirstName') || 'Enter your first name'}
                   />
                 </div>
                 <div>
@@ -212,97 +210,70 @@ const Profile: React.FC = () => {
                     name="lastName"
                     value={profileData.lastName}
                     onChange={handleChange}
-                    required
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder={t('enterLastName') || 'Enter your last name'}
                   />
                 </div>
               </div>
-
-              <div>
-                <Label htmlFor="email" className="flex items-center space-x-1">
-                  <Mail className="h-4 w-4 text-gray-600" />
-                  <span>{t('email') || 'Email'}</span>
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={profileData.email}
-                  onChange={handleChange}
-                  required
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">{t('email') || 'Email'}</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={profileData.email}
+                    onChange={handleChange}
+                    placeholder={t('enterEmail') || 'Enter your email'}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">{t('phone') || 'Phone'}</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={profileData.phone}
+                    onChange={handleChange}
+                    placeholder={t('enterPhone') || 'Enter your phone number'}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="phone" className="flex items-center space-x-1">
-                    <Phone className="h-4 w-4 text-gray-600" />
-                    <span>{t('phone') || 'Phone'}</span>
-                  </Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dateOfBirth" className="flex items-center space-x-1">
-                    <Calendar className="h-4 w-4 text-gray-600" />
-                    <span>{t('dateOfBirth') || 'Date of Birth'}</span>
-                  </Label>
+                  <Label htmlFor="dateOfBirth">{t('dateOfBirth') || 'Date of Birth'}</Label>
                   <Input
                     id="dateOfBirth"
                     name="dateOfBirth"
                     type="date"
                     value={profileData.dateOfBirth}
                     onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="gender">{t('gender') || 'Gender'}</Label>
-                  <Select value={profileData.gender} onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, gender: value }))}>
-                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                      <SelectValue placeholder="Select gender" />
+                  <Select name="gender" value={profileData.gender} onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectGender') || 'Select gender'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="male">{t('male') || 'Male'}</SelectItem>
+                      <SelectItem value="female">{t('female') || 'Female'}</SelectItem>
+                      <SelectItem value="other">{t('other') || 'Other'}</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'}</Label>
-                  <Input
-                    id="cnamId"
-                    name="cnamId"
-                    value={profileData.cnamId}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="address" className="flex items-center space-x-1">
-                  <MapPin className="h-4 w-4 text-gray-600" />
-                  <span>{t('address') || 'Address'}</span>
-                </Label>
+                <Label htmlFor="address">{t('address') || 'Address'}</Label>
                 <Textarea
                   id="address"
                   name="address"
                   value={profileData.address}
                   onChange={handleChange}
+                  placeholder={t('enterAddress') || 'Enter your address'}
                   rows={3}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </CardContent>
@@ -320,7 +291,7 @@ const Profile: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="emergencyContactName">{t('contactName') || 'Contact Name'}</Label>
                   <Input
@@ -328,7 +299,7 @@ const Profile: React.FC = () => {
                     name="emergencyContactName"
                     value={profileData.emergencyContactName}
                     onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder={t('enterContactName') || 'Enter contact name'}
                   />
                 </div>
                 <div>
@@ -336,89 +307,85 @@ const Profile: React.FC = () => {
                   <Input
                     id="emergencyContactPhone"
                     name="emergencyContactPhone"
-                    type="tel"
                     value={profileData.emergencyContactPhone}
                     onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder={t('enterContactPhone') || 'Enter contact phone'}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="emergencyContactRelationship">{t('relationship') || 'Relationship'}</Label>
-                  <Input
-                    id="emergencyContactRelationship"
-                    name="emergencyContactRelationship"
-                    value={profileData.emergencyContactRelationship}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
+              </div>
+              <div>
+                <Label htmlFor="emergencyContactRelationship">{t('relationship') || 'Relationship'}</Label>
+                <Input
+                  id="emergencyContactRelationship"
+                  name="emergencyContactRelationship"
+                  value={profileData.emergencyContactRelationship}
+                  onChange={handleChange}
+                  placeholder={t('enterRelationship') || 'e.g., Spouse, Parent, Friend'}
+                />
               </div>
             </CardContent>
           </Card>
 
-          {/* Medical Information (for patients) */}
+          {/* Medical Information - Only for patients */}
           {user.role === 'patient' && (
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5 text-green-600" />
+                  <Heart className="h-5 w-5 text-green-600" />
                   <span>{t('medicalInformation') || 'Medical Information'}</span>
                 </CardTitle>
                 <CardDescription>
-                  {t('medicalInformationDescription') || 'Important medical information for your healthcare providers'}
+                  {t('medicalInfoDescription') || 'To provide you with the best care, we ask a few questions about your medical background. This information is confidential and helps your healthcare providers understand your needs and keep you safe.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="medicalHistory">{t('medicalHistory') || 'Medical History'}</Label>
-                  <Textarea
-                    id="medicalHistory"
-                    name="medicalHistory"
-                    value={profileData.medicalHistory}
-                    onChange={handleChange}
-                    placeholder="Enter your medical history, separated by commas"
-                    rows={3}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="allergies">{t('allergies') || 'Allergies'}</Label>
+                  <Label htmlFor="allergies">{t('allergiesQuestion') || 'Do you have any known allergies?'}</Label>
                   <Textarea
                     id="allergies"
                     name="allergies"
                     value={profileData.allergies}
                     onChange={handleChange}
-                    placeholder="Enter your allergies, separated by commas"
+                    placeholder={t('allergiesPlaceholder') || 'List allergies separated by commas (e.g. penicillin, peanuts)'}
                     rows={2}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="currentMedications">{t('currentMedications') || 'Current Medications'}</Label>
+                  <Label htmlFor="currentMedications">{t('medicationsQuestion') || 'Are you currently taking any medications?'}</Label>
                   <Textarea
                     id="currentMedications"
                     name="currentMedications"
                     value={profileData.currentMedications}
                     onChange={handleChange}
-                    placeholder="Enter your current medications, separated by commas"
+                    placeholder={t('medicationsPlaceholder') || 'List medications separated by commas (e.g. aspirin, insulin)'}
                     rows={2}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="medicalHistory">{t('conditionsQuestion') || 'Do you have any chronic medical conditions or past major illnesses?'}</Label>
+                  <Textarea
+                    id="medicalHistory"
+                    name="medicalHistory"
+                    value={profileData.medicalHistory}
+                    onChange={handleChange}
+                    placeholder={t('conditionsPlaceholder') || 'List conditions separated by commas (e.g. diabetes, asthma, hypertension)'}
+                    rows={2}
                   />
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Professional Information (for providers) */}
+          {/* Professional Information - Only for providers */}
           {user.role !== 'patient' && (
             <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 text-purple-600" />
                   <span>{t('professionalInformation') || 'Professional Information'}</span>
                 </CardTitle>
                 <CardDescription>
-                  {t('professionalInformationDescription') || 'Your professional credentials and specialization'}
+                  {t('professionalInfoDescription') || 'Your professional credentials and specializations'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -430,7 +397,7 @@ const Profile: React.FC = () => {
                       name="specialization"
                       value={profileData.specialization}
                       onChange={handleChange}
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      placeholder={t('enterSpecialization') || 'Enter your specialization'}
                     />
                   </div>
                   <div>
@@ -440,9 +407,19 @@ const Profile: React.FC = () => {
                       name="licenseNumber"
                       value={profileData.licenseNumber}
                       onChange={handleChange}
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      placeholder={t('enterLicenseNumber') || 'Enter your license number'}
                     />
                   </div>
+                </div>
+                <div>
+                  <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'}</Label>
+                  <Input
+                    id="cnamId"
+                    name="cnamId"
+                    value={profileData.cnamId}
+                    onChange={handleChange}
+                    placeholder={t('enterCnamId') || 'Enter your CNAM ID'}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -450,30 +427,15 @@ const Profile: React.FC = () => {
 
           {/* Save Button */}
           <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="border-2 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Saving...</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Save className="h-4 w-4" />
-                  <span>Save Profile</span>
-                </div>
-              )}
+            <Link to="/dashboard/patient">
+              <Button variant="outline" type="button">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                {t('cancel') || 'Cancel'}
+              </Button>
+            </Link>
+            <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? t('saving') || 'Saving...' : t('saveChanges') || 'Save Changes'}
             </Button>
           </div>
         </form>

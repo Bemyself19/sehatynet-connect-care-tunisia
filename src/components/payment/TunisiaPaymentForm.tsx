@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,22 +27,22 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<any>(null);
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [paymentsEnabled, setPaymentsEnabled] = useState(true);
 
   const paymentMethods = [
     {
       id: 'click_to_pay',
-      name: 'Click to Pay',
-      description: 'Tunisie Monétique - Cartes bancaires tunisiennes',
+      name: t('clickToPay') || 'Click to Pay',
+      description: t('clickToPayDescription') || 'Tunisie Monétique - Tunisian bank cards',
       icon: <CreditCard className="h-5 w-5" />,
       color: 'bg-blue-500',
       available: true
     },
     {
       id: 'international_card',
-      name: 'Carte Internationale',
-      description: 'Visa, Mastercard, American Express',
+      name: t('internationalCard') || 'International Card',
+      description: t('internationalCardDescription') || 'Visa, Mastercard, American Express',
       icon: <Globe className="h-5 w-5" />,
       color: 'bg-green-500',
       available: true
@@ -50,23 +50,23 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
     {
       id: 'paypal',
       name: 'PayPal',
-      description: 'Paiement sécurisé via PayPal',
+      description: t('paypalDescription') || 'Secure payment via PayPal',
       icon: <Shield className="h-5 w-5" />,
       color: 'bg-indigo-500',
       available: true
     },
     {
       id: 'mobile_money',
-      name: 'Mobile Money',
-      description: 'Orange Money, Tunisie Telecom Money',
+      name: t('mobileMoney') || 'Mobile Money',
+      description: t('mobileMoneyDescription') || 'Orange Money, Tunisie Telecom Money',
       icon: <Smartphone className="h-5 w-5" />,
       color: 'bg-orange-500',
       available: false // Not implemented yet
     },
     {
       id: 'bank_transfer',
-      name: 'Virement Bancaire',
-      description: 'Transfert bancaire direct',
+      name: t('bankTransfer') || 'Bank Transfer',
+      description: t('bankTransferDescription') || 'Direct bank transfer',
       icon: <Building className="h-5 w-5" />,
       color: 'bg-purple-500',
       available: false // Not implemented yet
@@ -102,8 +102,8 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
       }
 
     } catch (error: any) {
-      toast.error('Erreur lors de la création du paiement', {
-        description: error.message || 'Veuillez réessayer'
+      toast.error(t('paymentCreationError') || 'Error creating payment', {
+        description: error.message || t('pleaseTryAgain') || 'Please try again'
       });
     } finally {
       setIsProcessing(false);
@@ -114,7 +114,7 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
     // This would integrate with Adyen Drop-in or PayPal buttons
     // For now, simulate success
     setTimeout(() => {
-      toast.success('Paiement traité avec succès');
+      toast.success(t('paymentProcessedSuccessfully') || 'Payment processed successfully');
       onSuccess?.(paymentId!);
     }, 2000);
   };
@@ -132,14 +132,16 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-6 w-6 text-blue-600" />
-            Paiement Désactivé
+            {t('paymentDisabled') || 'Payment Disabled'}
           </CardTitle>
           <CardDescription>
-            Les paiements sont actuellement désactivés. Ce service est gratuit.
+            {t('paymentsCurrentlyDisabled') || 'Payments are currently disabled. This service is free.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => onSuccess && onSuccess('free')} className="bg-blue-600 hover:bg-blue-700 w-full">Continuer</Button>
+          <Button onClick={() => onSuccess && onSuccess('free')} className="bg-blue-600 hover:bg-blue-700 w-full">
+            {t('continue') || 'Continue'}
+          </Button>
         </CardContent>
       </Card>
     );
@@ -150,7 +152,7 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-blue-600" />
-          Paiement Sécurisé
+          {t('securePayment') || 'Secure Payment'}
         </CardTitle>
         <CardDescription>
           {description} - {formatAmount(amount)}
@@ -160,7 +162,7 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
       <CardContent className="space-y-6">
         {/* Payment Method Selection */}
         <div className="space-y-3">
-          <h3 className="font-semibold text-gray-900">Choisissez votre méthode de paiement</h3>
+          <h3 className="font-semibold text-gray-900">{t('choosePaymentMethod') || 'Choose your payment method'}</h3>
           <div className="grid gap-3">
             {paymentMethods.map((method) => (
               <div
@@ -181,7 +183,7 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
                       <span className="font-medium">{method.name}</span>
                       {!method.available && (
                         <Badge variant="secondary" className="text-xs">
-                          Bientôt disponible
+                          {t('comingSoon') || 'Coming Soon'}
                         </Badge>
                       )}
                     </div>
@@ -200,15 +202,15 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
         <div className="border-t pt-4">
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Montant de la consultation:</span>
+              <span>{t('consultationAmount') || 'Consultation amount'}:</span>
               <span>{formatAmount(amount)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Frais de traitement:</span>
+              <span>{t('processingFee') || 'Processing fee'}:</span>
               <span>{formatAmount(2.50)}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-2">
-              <span>Total:</span>
+              <span>{t('total') || 'Total'}:</span>
               <span>{formatAmount(amount + 2.50)}</span>
             </div>
           </div>
@@ -219,10 +221,9 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
           <div className="flex items-start gap-3">
             <Shield className="h-5 w-5 text-green-600 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-green-800">Paiement 100% Sécurisé</p>
+              <p className="font-medium text-green-800">{t('hundredPercentSecure') || '100% Secure Payment'}</p>
               <p className="text-green-700">
-                Vos données de paiement sont protégées par un chiffrement SSL 256-bit. 
-                Nous ne stockons jamais vos informations de carte bancaire.
+                {t('paymentDataProtected') || 'Your payment data is protected by 256-bit SSL encryption. We never store your card information.'}
               </p>
             </div>
           </div>
@@ -236,7 +237,7 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
             disabled={isProcessing}
             className="flex-1"
           >
-            Annuler
+            {t('cancel') || 'Cancel'}
           </Button>
           <Button
             onClick={handlePayment}
@@ -246,11 +247,11 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
             {isProcessing ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Traitement...
+                {t('processing') || 'Processing...'}
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                Payer {formatAmount(amount + 2.50)}
+                {t('pay') || 'Pay'} {formatAmount(amount + 2.50)}
                 <ArrowRight className="h-4 w-4" />
               </div>
             )}

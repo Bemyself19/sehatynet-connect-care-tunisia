@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { User, Stethoscope, Shield } from 'lucide-react';
 
 const SehatyLogo = () => (
@@ -15,10 +15,10 @@ const SehatyLogo = () => (
 );
 
 const LoginSelection: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <Card className="w-full max-w-2xl shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <SehatyLogo />

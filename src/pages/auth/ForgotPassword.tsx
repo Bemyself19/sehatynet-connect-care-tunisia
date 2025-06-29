@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/hooks/useLanguage';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const SehatyLogo = () => (
   <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-md mb-4">
@@ -18,7 +18,7 @@ const SehatyLogo = () => (
 );
 
 const ForgotPassword: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <SehatyLogo />
@@ -70,21 +70,18 @@ const ForgotPassword: React.FC = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t('enterEmail') || 'Enter your email'}
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
+                  autoFocus
+                  autoComplete="email"
+                  className="mt-1"
                 />
               </div>
-              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+              {error && <div className="text-red-600 text-sm">{error}</div>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (t('sending') || 'Sending...') : (t('sendResetLink') || 'Send Reset Link')}
+                {loading ? t('loading') || 'Loading...' : t('sendResetLink') || 'Send Reset Link'}
               </Button>
-              <div className="text-center mt-4">
-                <Link to="/auth/login" className="text-blue-600 hover:underline">
-                  {t('backToLogin') || 'Back to login'}
-                </Link>
-              </div>
             </form>
           )}
         </CardContent>

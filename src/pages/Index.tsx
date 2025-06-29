@@ -1,15 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Globe, Heart, Shield, Clock, Users, Activity, CheckCircle, ArrowRight, Play } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Index = () => {
-  const { t, currentLanguage, setLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
+
+  const handleLanguageChange = (language: string) => {
+    i18n.changeLanguage(language);
+  };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,8 +32,8 @@ const Index = () => {
               <div className="flex items-center space-x-2 bg-white/50 rounded-lg px-3 py-1 border border-gray-200">
                 <Globe className="h-4 w-4 text-gray-600" />
                 <select 
-                  value={currentLanguage} 
-                  onChange={(e) => setLanguage(e.target.value as 'en' | 'fr' | 'ar')}
+                  value={i18n.language} 
+                  onChange={(e) => handleLanguageChange(e.target.value)}
                   className="bg-transparent border-none text-sm focus:outline-none focus:ring-0"
                 >
                   <option value="en">English</option>
@@ -61,16 +65,16 @@ const Index = () => {
           <div className="mb-8">
             <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-6">
               <Activity className="h-4 w-4 mr-2" />
-              Leading Telehealth Platform in Tunisia
+              {t('leadingTelehealthPlatform') || 'Leading Telehealth Platform in Tunisia'}
             </div>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Your Health,
+              {t('yourHealth') || 'Your Health,'}
             </span>
             <br />
-            Connected
+            {t('connected') || 'Connected'}
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
@@ -96,19 +100,19 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600 mb-2">50K+</div>
-              <div className="text-sm text-gray-600">Active Users</div>
+              <div className="text-sm text-gray-600">{t('activeUsers') || 'Active Users'}</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-600 mb-2">500+</div>
-              <div className="text-sm text-gray-600">Healthcare Providers</div>
+              <div className="text-sm text-gray-600">{t('healthcareProviders') || 'Healthcare Providers'}</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-600 mb-2">24/7</div>
-              <div className="text-sm text-gray-600">Support Available</div>
+              <div className="text-sm text-gray-600">{t('supportAvailable') || 'Support Available'}</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-orange-600 mb-2">99.9%</div>
-              <div className="text-sm text-gray-600">Uptime</div>
+              <div className="text-sm text-gray-600">{t('uptime') || 'Uptime'}</div>
             </div>
           </div>
         </div>
@@ -162,10 +166,10 @@ const Index = () => {
         <div className="mt-24">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose SehatyNet+?
+              {t('whyChooseSehatyNet') || 'Why Choose SehatyNet+?'}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Experience the future of healthcare with our innovative telehealth platform
+              {t('experienceFutureHealthcare') || 'Experience the future of healthcare with our innovative telehealth platform'}
             </p>
           </div>
           
@@ -174,32 +178,32 @@ const Index = () => {
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Users className="h-6 w-6 text-purple-600" />
               </div>
-              <h3 className="font-semibold mb-2">Multi-Provider Support</h3>
-              <p className="text-sm text-gray-600">Doctors, labs, pharmacies, and radiologists</p>
+              <h3 className="font-semibold mb-2">{t('multiProviderSupport') || 'Multi-Provider Support'}</h3>
+              <p className="text-sm text-gray-600">{t('doctorsLabsPharmaciesRadiologists') || 'Doctors, labs, pharmacies, and radiologists'}</p>
             </div>
             
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-6 w-6 text-orange-600" />
               </div>
-              <h3 className="font-semibold mb-2">Instant Access</h3>
-              <p className="text-sm text-gray-600">Real-time medical records and results</p>
+              <h3 className="font-semibold mb-2">{t('instantAccess') || 'Instant Access'}</h3>
+              <p className="text-sm text-gray-600">{t('realTimeMedicalRecords') || 'Real-time medical records and results'}</p>
             </div>
             
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Activity className="h-6 w-6 text-teal-600" />
               </div>
-              <h3 className="font-semibold mb-2">Smart Analytics</h3>
-              <p className="text-sm text-gray-600">Health insights and progress tracking</p>
+              <h3 className="font-semibold mb-2">{t('smartAnalytics') || 'Smart Analytics'}</h3>
+              <p className="text-sm text-gray-600">{t('healthInsightsProgressTracking') || 'Health insights and progress tracking'}</p>
             </div>
             
             <div className="text-center p-6">
               <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <Globe className="h-6 w-6 text-pink-600" />
               </div>
-              <h3 className="font-semibold mb-2">Global Reach</h3>
-              <p className="text-sm text-gray-600">Connect with specialists worldwide</p>
+              <h3 className="font-semibold mb-2">{t('globalConnectivity') || 'Global Connectivity'}</h3>
+              <p className="text-sm text-gray-600">{t('connectWithSpecialistsWorldwide') || 'Connect with specialists worldwide'}</p>
             </div>
           </div>
         </div>

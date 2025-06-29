@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,27 +13,28 @@ interface MedicalProfileQAModalProps {
   onSave: (data: { allergies: string[]; medications: string[]; conditions: string[] }) => void;
 }
 
-const questions = [
-  {
-    key: 'allergies',
-    label: 'Do you have any known allergies?',
-    placeholder: 'List allergies separated by commas (e.g. penicillin, peanuts)'
-  },
-  {
-    key: 'medications',
-    label: 'Are you currently taking any medications?',
-    placeholder: 'List medications separated by commas (e.g. aspirin, insulin)'
-  },
-  {
-    key: 'conditions',
-    label: 'Do you have any chronic medical conditions or past major illnesses?',
-    placeholder: 'List conditions separated by commas (e.g. diabetes, asthma, hypertension)'
-  }
-];
-
 export const MedicalProfileQAModal: React.FC<MedicalProfileQAModalProps> = ({ open, onClose, onSave }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
+
+  const questions = [
+    {
+      key: 'allergies',
+      label: t('allergiesQuestion') || 'Do you have any known allergies?',
+      placeholder: t('allergiesPlaceholder') || 'List allergies separated by commas (e.g. penicillin, peanuts)'
+    },
+    {
+      key: 'medications',
+      label: t('medicationsQuestion') || 'Are you currently taking any medications?',
+      placeholder: t('medicationsPlaceholder') || 'List medications separated by commas (e.g. aspirin, insulin)'
+    },
+    {
+      key: 'conditions',
+      label: t('conditionsQuestion') || 'Do you have any chronic medical conditions or past major illnesses?',
+      placeholder: t('conditionsPlaceholder') || 'List conditions separated by commas (e.g. diabetes, asthma, hypertension)'
+    }
+  ];
 
   React.useEffect(() => {
     if (!open) {
@@ -71,10 +73,10 @@ export const MedicalProfileQAModal: React.FC<MedicalProfileQAModalProps> = ({ op
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Medical Information</DialogTitle>
+          <DialogTitle>{t('medicalInformation') || 'Medical Information'}</DialogTitle>
         </DialogHeader>
         <div className="mb-4 text-gray-700 text-sm">
-          To provide you with the best care, we ask a few questions about your medical background. This information is confidential and helps your healthcare providers understand your needs and keep you safe.
+          {t('medicalInfoDescription') || 'To provide you with the best care, we ask a few questions about your medical background. This information is confidential and helps your healthcare providers understand your needs and keep you safe.'}
         </div>
         <div className="space-y-4">
           <Label htmlFor={questions[step].key}>{questions[step].label}</Label>
@@ -87,8 +89,8 @@ export const MedicalProfileQAModal: React.FC<MedicalProfileQAModalProps> = ({ op
           />
         </div>
         <DialogFooter className="flex justify-between mt-4">
-          <Button variant="ghost" type="button" onClick={handleSkip}>Skip for now</Button>
-          <Button type="button" onClick={handleNext}>{isLastStep ? 'Save & Continue' : 'Next'}</Button>
+          <Button variant="ghost" type="button" onClick={handleSkip}>{t('skipForNow') || 'Skip for now'}</Button>
+          <Button type="button" onClick={handleNext}>{isLastStep ? t('saveContinue') || 'Save & Continue' : t('next') || 'Next'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
