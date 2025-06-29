@@ -14,7 +14,6 @@ const RegisterSelection: React.FC = () => {
       <Card className="w-full max-w-xl shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <BrandLogo size={48} className="mb-4" />
-          <CardTitle className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</CardTitle>
           <CardDescription className="text-lg text-gray-600 mb-2">
             {t('selectRegistrationType') || 'Select Registration Type'}
           </CardDescription>
@@ -28,7 +27,6 @@ const RegisterSelection: React.FC = () => {
                 </span>
                 <span className="font-semibold text-blue-700 text-lg mb-1">{t('patient') || 'Patient'}</span>
                 <span className="text-gray-500 text-sm mb-3 text-center">{t('patientRegisterDesc') || 'Register as a patient to access healthcare services.'}</span>
-                <Button className="w-full" variant="secondary">{t('registerAsPatient') || 'Register as Patient'}</Button>
               </div>
             </Link>
             <Link to="/auth/register?type=provider" className="group">
@@ -38,7 +36,6 @@ const RegisterSelection: React.FC = () => {
                 </span>
                 <span className="font-semibold text-green-700 text-lg mb-1">{t('provider') || 'Healthcare Provider'}</span>
                 <span className="text-gray-500 text-sm mb-3 text-center">{t('providerRegisterDesc') || 'Register as a healthcare provider to offer services.'}</span>
-                <Button className="w-full" variant="secondary">{t('registerAsProvider') || 'Register as Provider'}</Button>
               </div>
             </Link>
           </div>

@@ -6,7 +6,7 @@ i18n
   .use(HttpApi)
   .use(initReactI18next)
   .init({
-    lng: localStorage.getItem('sehatynet-language') || 'en',
+    lng: localStorage.getItem('sehatynet-language') || 'fr',
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     backend: {

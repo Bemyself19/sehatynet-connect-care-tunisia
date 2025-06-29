@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import fs from "fs";
+// import fs from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -10,10 +10,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 5173,
     strictPort: true,
-    https: {
-      key: fs.readFileSync("cert/localhost.key"),
-      cert: fs.readFileSync("cert/localhost.crt"),
-    },
+    // Commented out HTTPS for now since certificates are missing
+    // https: {
+    //   key: fs.readFileSync("cert/localhost.key"),
+    //   cert: fs.readFileSync("cert/localhost.crt"),
+    // },
     proxy: {
       '/api': 'http://localhost:5000'
     }

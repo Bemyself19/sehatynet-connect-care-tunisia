@@ -30,14 +30,13 @@ const AdminLogin = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center pb-2">
-          <BrandLogo size={48} className="mb-4" />
-          <span className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</span>
-          <span className="text-lg text-gray-600 mb-2">Admin Login</span>
-          <span className="text-gray-500 text-base mb-2">Sign in to your administrator account</span>
-        </div>
         <div className="bg-white rounded-xl shadow-xl p-8 mt-2">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col items-center pb-2">
+              <BrandLogo size={48} className="mb-4" />
+              <span className="text-lg text-gray-600 mb-2">Admin Login</span>
+              <span className="text-gray-500 text-base mb-2">Sign in to your administrator account</span>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="email">{t('email') || 'Email'}</Label>
               <Input
