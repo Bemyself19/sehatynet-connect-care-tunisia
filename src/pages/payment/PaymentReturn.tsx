@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 
 const PaymentReturn: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
@@ -31,9 +33,9 @@ const PaymentReturn: React.FC = () => {
       });
     } else {
       setIsLoading(false);
-      toast.error('Paramètres de paiement manquants');
+      toast.error(t('missingPaymentParameters'));
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const verifyPayment = async (paymentData: any) => {
     try {
@@ -49,12 +51,12 @@ const PaymentReturn: React.FC = () => {
       setPaymentStatus(result);
       
       if (result.success) {
-        toast.success('Paiement effectué avec succès!');
+        toast.success(t('paymentCompletedSuccessfully'));
       } else {
-        toast.error('Échec du paiement');
+        toast.error(t('paymentFailed'));
       }
     } catch (error) {
-      toast.error('Erreur lors de la vérification du paiement');
+      toast.error(t('paymentVerificationError'));
     } finally {
       setIsLoading(false);
     }
@@ -73,15 +75,15 @@ const PaymentReturn: React.FC = () => {
   };
 
   const getStatusText = () => {
-    if (isLoading) return 'Vérification du paiement...';
-    if (paymentStatus?.success) return 'Paiement Réussi';
-    return 'Échec du Paiement';
+    if (isLoading) return t('verifyingPayment');
+    if (paymentStatus?.success) return t('paymentSuccessful');
+    return t('paymentFailed');
   };
 
   const getStatusDescription = () => {
-    if (isLoading) return 'Veuillez patienter pendant que nous vérifions votre paiement.';
-    if (paymentStatus?.success) return 'Votre rendez-vous a été confirmé. Vous recevrez un email de confirmation.';
-    return paymentStatus?.message || 'Une erreur est survenue lors du traitement du paiement.';
+    if (isLoading) return t('pleaseWaitWhileVerifyingPayment');
+    if (paymentStatus?.success) return t('appointmentConfirmedEmailSent');
+    return paymentStatus?.message || t('errorOccurredDuringPaymentProcessing');
   };
 
   return (
@@ -104,14 +106,14 @@ const PaymentReturn: React.FC = () => {
           {paymentStatus && (
             <div className="bg-white rounded-lg p-4 space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Statut:</span>
+                <span className="text-sm text-gray-600">{t('status')}:</span>
                 <Badge variant={paymentStatus.success ? "default" : "destructive"}>
                   {paymentStatus.status}
                 </Badge>
               </div>
               {paymentStatus.paymentId && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">ID Paiement:</span>
+                  <span className="text-sm text-gray-600">{t('paymentId')}:</span>
                   <span className="text-sm font-mono">{paymentStatus.paymentId}</span>
                 </div>
               )}
@@ -125,14 +127,14 @@ const PaymentReturn: React.FC = () => {
               className="flex-1"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Retour au Tableau de Bord
+              {t('backToDashboard')}
             </Button>
             {paymentStatus?.success && (
               <Button
                 onClick={() => navigate('/appointments')}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                Mes Rendez-vous
+                {t('myAppointments')}
               </Button>
             )}
           </div>

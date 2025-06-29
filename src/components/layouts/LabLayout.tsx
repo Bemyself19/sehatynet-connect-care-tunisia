@@ -2,18 +2,23 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Layout } from '@/components/ui/layout';
 import { Activity, FileText, TestTube, User as UserIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-const sidebarItems = [
-  { label: 'Dashboard', icon: <Activity className="h-5 w-5" />, href: '/dashboard/lab' },
-  { label: 'Test Results', icon: <FileText className="h-5 w-5" />, href: '/dashboard/lab/results' },
-  { label: 'Test Catalog', icon: <TestTube className="h-5 w-5" />, href: '/dashboard/lab/catalog' },
-  { label: 'Profile', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/lab/profile' },
-];
+const LabLayout = () => {
+  const { t } = useTranslation();
 
-const LabLayout = () => (
-  <Layout sidebarItems={sidebarItems}>
-    <Outlet />
-  </Layout>
-);
+  const sidebarItems = [
+    { label: t('dashboard') || 'Dashboard', icon: <Activity className="h-5 w-5" />, href: '/dashboard/lab' },
+    { label: t('testResults') || 'Test Results', icon: <FileText className="h-5 w-5" />, href: '/dashboard/lab/results' },
+    { label: t('testCatalog') || 'Test Catalog', icon: <TestTube className="h-5 w-5" />, href: '/dashboard/lab/catalog' },
+    { label: t('profile') || 'Profile', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/lab/profile' },
+  ];
+
+  return (
+    <Layout sidebarItems={sidebarItems}>
+      <Outlet />
+    </Layout>
+  );
+};
 
 export default LabLayout; 

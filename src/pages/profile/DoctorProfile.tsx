@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Heart, User, Mail, Phone, MapPin, Calendar, Save, AlertTriangle, Shield, Activity } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import api from '@/lib/api';
@@ -19,7 +19,7 @@ const DoctorProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, refetch } = useUser();
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [profileData, setProfileData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
@@ -88,15 +88,15 @@ const DoctorProfile: React.FC = () => {
     try {
       await api.updateProfile(profileData);
       await refetch();
-      toast.success('Profile Updated', {
-        description: 'Your profile has been saved successfully',
+      toast.success(t('profileUpdated') || 'Profile Updated', {
+        description: t('profileSavedSuccessfully') || 'Your profile has been saved successfully',
       });
       setTimeout(() => {
         navigate('/dashboard/doctor');
       }, 1500);
     } catch (error) {
-      toast.error('Update Failed', {
-        description: 'Unable to update profile. Please try again.',
+      toast.error(t('updateFailed') || 'Update Failed', {
+        description: t('unableToUpdateProfile') || 'Unable to update profile. Please try again.',
       });
     } finally {
       setIsSaving(false);
@@ -108,7 +108,7 @@ const DoctorProfile: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">{t('loadingProfile') || 'Loading profile...'}</p>
         </div>
       </div>
     );
@@ -119,14 +119,14 @@ const DoctorProfile: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Failed to load profile.</p>
+          <p className="text-red-600">{t('failedToLoadProfile') || 'Failed to load profile.'}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
@@ -210,61 +210,18 @@ const DoctorProfile: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone" className="flex items-center space-x-1">
-                    <Phone className="h-4 w-4 text-gray-600" />
-                    <span>{t('phone') || 'Phone'}</span>
-                  </Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="dateOfBirth" className="flex items-center space-x-1">
-                    <Calendar className="h-4 w-4 text-gray-600" />
-                    <span>{t('dateOfBirth') || 'Date of Birth'}</span>
-                  </Label>
-                  <Input
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    type="date"
-                    value={profileData.dateOfBirth}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="gender">{t('gender') || 'Gender'}</Label>
-                  <Select value={profileData.gender} onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, gender: value }))}>
-                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'}</Label>
-                  <Input
-                    id="cnamId"
-                    name="cnamId"
-                    value={profileData.cnamId}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="phone" className="flex items-center space-x-1">
+                  <Phone className="h-4 w-4 text-gray-600" />
+                  <span>{t('phone') || 'Phone'}</span>
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={profileData.phone}
+                  onChange={handleChange}
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
               </div>
 
               <div>
@@ -281,31 +238,6 @@ const DoctorProfile: React.FC = () => {
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="workingHours.start">Working Hours Start</Label>
-                  <Input
-                    id="workingHours.start"
-                    name="workingHours.start"
-                    type="time"
-                    value={profileData.workingHours?.start || ''}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="workingHours.end">Working Hours End</Label>
-                  <Input
-                    id="workingHours.end"
-                    name="workingHours.end"
-                    type="time"
-                    value={profileData.workingHours?.end || ''}
-                    onChange={handleChange}
-                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
 
@@ -313,31 +245,34 @@ const DoctorProfile: React.FC = () => {
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5 text-purple-600" />
+                <Shield className="h-5 w-5 text-blue-600" />
                 <span>{t('professionalInformation') || 'Professional Information'}</span>
               </CardTitle>
               <CardDescription>
-                {t('professionalInformationDescription') || 'Your professional credentials and specialization'}
+                {t('professionalInfoDescription') || 'Your professional credentials and specializations'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="specialization">{t('specialization') || 'Specialization'}</Label>
+                <Select
+                  value={profileData.specialization}
+                  onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, specialization: value }))}
+                >
+                  <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                    <SelectValue placeholder={t('selectSpecialization') || 'Select Specialization'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {specialties.map((specialty) => (
+                      <SelectItem key={specialty} value={specialty}>
+                        {specialty}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="specialization">{t('specialization') || 'Specialization'}</Label>
-                  <Select
-                    value={profileData.specialization}
-                    onValueChange={(value) => setProfileData((prev: any) => ({ ...prev, specialization: value }))}
-                  >
-                    <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                      <SelectValue placeholder="Select specialization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {specialties.map((spec) => (
-                        <SelectItem key={spec} value={spec}>{spec}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div>
                   <Label htmlFor="licenseNumber">{t('licenseNumber') || 'License Number'}</Label>
                   <Input
@@ -348,34 +283,68 @@ const DoctorProfile: React.FC = () => {
                     className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'}</Label>
+                  <Input
+                    id="cnamId"
+                    name="cnamId"
+                    value={profileData.cnamId}
+                    onChange={handleChange}
+                    className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Working Hours */}
+              <div>
+                <Label className="flex items-center space-x-1">
+                  <Calendar className="h-4 w-4 text-gray-600" />
+                  <span>{t('workingHours') || 'Working Hours'}</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div>
+                    <Label htmlFor="workingHours.start">{t('startTime') || 'Start Time'}</Label>
+                    <Input
+                      id="workingHours.start"
+                      name="workingHours.start"
+                      type="time"
+                      value={profileData.workingHours.start}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="workingHours.end">{t('endTime') || 'End Time'}</Label>
+                    <Input
+                      id="workingHours.end"
+                      name="workingHours.end"
+                      type="time"
+                      value={profileData.workingHours.end}
+                      onChange={handleChange}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Save Button */}
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="border-2 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
+          <div className="flex justify-end">
             <Button
               type="submit"
               disabled={isSaving}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
             >
               {isSaving ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Saving...</span>
+                  <span>{t('saving') || 'Saving...'}</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <Save className="h-4 w-4" />
-                  <span>Save Profile</span>
+                  <span>{t('saveChanges') || 'Save Changes'}</span>
                 </div>
               )}
             </Button>

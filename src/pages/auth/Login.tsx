@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/hooks/useLanguage';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { LoginForm, UserRole } from '@/types/user';
 import { Heart } from 'lucide-react';
@@ -11,6 +10,7 @@ import api from '@/lib/api';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginForm>({
@@ -20,7 +20,7 @@ const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const userTypeFromUrl = searchParams.get('type') || 'patient';
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const { t } = useLanguage();
+  const { t, i18n } = useTranslation();
   const { login, isLoggingIn } = useAuth();
   const navigate = useNavigate();
 
@@ -39,18 +39,22 @@ const Login: React.FC = () => {
     }));
   };
 
+  const handleRoleChange = (value: string) => {
+    setSelectedRole(value as UserRole);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (userTypeFromUrl === 'provider' && !selectedRole) {
-      toast.error('Please select your specific provider role.');
+      toast.error(t('selectProviderRole') || 'Please select your specific provider role.');
       return;
     }
 
     const roleToSubmit = userTypeFromUrl === 'provider' ? selectedRole : (userTypeFromUrl as UserRole);
 
     if (!roleToSubmit) {
-       toast.error('Could not determine user role. Please go back and select a login type.');
+       toast.error(t('couldNotDetermineRole') || 'Could not determine user role. Please go back and select a login type.');
        return;
     }
     
@@ -79,81 +83,77 @@ const Login: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
-      <div className="w-full max-w-md">
+    <AuthLayout title={getTitle()}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col items-center pb-2">
           <SehatyLogo />
           <span className="text-3xl font-bold text-gray-900 mb-1">SehatyNet+</span>
           <span className="text-lg text-gray-600 mb-2">{getTitle()}</span>
           <span className="text-gray-500 text-base mb-2">{getSubtitle()}</span>
         </div>
-        <div className="bg-white rounded-xl shadow-xl p-8 mt-2">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {userTypeFromUrl === 'provider' && (
-              <div>
-                <Label htmlFor="role">{t('yourRole') || 'Your Role'}</Label>
-                <Select onValueChange={(value) => setSelectedRole(value as UserRole)} value={selectedRole}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder={t('selectYourRole') || 'Select Your Role'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">{t('doctor') || 'Doctor'}</SelectItem>
-                    <SelectItem value="pharmacy">{t('pharmacy') || 'Pharmacy'}</SelectItem>
-                    <SelectItem value="lab">{t('lab') || 'Lab'}</SelectItem>
-                    <SelectItem value="radiologist">{t('radiologist') || 'Radiologist'}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              <Label htmlFor="email">{t('email') || 'Email'}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder={t('enterEmail') || 'Enter your email'}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">{t('password') || 'Password'}</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                placeholder={t('enterPassword') || 'Enter your password'}
-                className="mt-1"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Link to="/auth/login-selection" className="text-sm text-blue-600 hover:text-blue-500">
-                {t('changeAccountType') || 'Change account type'}
-              </Link>
-              <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
-                {t('forgotPassword') || 'Forgot password?'}
-              </Link>
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
-              {isLoggingIn ? (t('signingIn') || 'Signing in...') : (t('signIn') || 'Sign In')}
-            </Button>
-            <div className="text-center">
-              <span className="text-sm text-gray-600">
-                {t('noAccount') || "Don't have an account?"}{' '}
-                <Link to="/auth/register-selection" className="text-blue-600 hover:text-blue-500 font-medium">
-                  {t('signUp') || 'Sign up'}
-                </Link>
-              </span>
-            </div>
-          </form>
+        {userTypeFromUrl === 'provider' && (
+          <div>
+            <Label htmlFor="role">{t('selectProviderRole') || 'Select Provider Role'}</Label>
+            <Select value={selectedRole} onValueChange={handleRoleChange}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder={t('selectRole') || 'Select role'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="doctor">{t('doctor') || 'Doctor'}</SelectItem>
+                <SelectItem value="pharmacy">{t('pharmacy') || 'Pharmacy'}</SelectItem>
+                <SelectItem value="lab">{t('lab') || 'Lab'}</SelectItem>
+                <SelectItem value="radiologist">{t('radiologist') || 'Radiologist'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div>
+          <Label htmlFor="email">{t('email') || 'Email'}</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            className="mt-1"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <Label htmlFor="password">{t('password') || 'Password'}</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={formData.password}
+            onChange={handleChange}
+            className="mt-1"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Link to="/auth/login-selection" className="text-sm text-blue-600 hover:text-blue-500">
+            {t('changeAccountType') || 'Change account type'}
+          </Link>
+          <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+            {t('forgotPassword') || 'Forgot password?'}
+          </Link>
+        </div>
+        <Button type="submit" className="w-full" disabled={isLoggingIn}>
+          {isLoggingIn ? t('loading') || 'Loading...' : t('login') || 'Login'}
+        </Button>
+        <div className="text-center">
+          <span className="text-sm text-gray-600">
+            {t('noAccount') || "Don't have an account?"}{' '}
+            <Link to="/auth/register-selection" className="text-blue-600 hover:text-blue-500 font-medium">
+              {t('signUp') || 'Sign up'}
+            </Link>
+          </span>
+        </div>
+      </form>
+    </AuthLayout>
   );
 };
 

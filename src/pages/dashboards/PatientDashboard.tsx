@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, FileText, MessageSquare, Plus, Activity, TrendingUp, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -16,7 +16,7 @@ import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useQuery } from '@tanstack/react-query';
 
 const PatientDashboard: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [activeView, setActiveView] = useState<'overview' | 'appointments' | 'medical-records'>('overview');
   const { user, isLoading, refetch } = useUser();
   const { logout } = useAuth();
@@ -116,8 +116,8 @@ const PatientDashboard: React.FC = () => {
   return (
     <>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Patient Dashboard</h1>
-        <p className="text-lg text-gray-600">Welcome back! Here's your health overview and quick actions</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('patientDashboard') || 'Patient Dashboard'}</h1>
+        <p className="text-lg text-gray-600">{t('dashboardSubtitle') || "Welcome back! Here's your health overview and quick actions"}</p>
       </div>
       <div className="w-full max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-10 mt-8">
         {/* Stats Overview */}
@@ -125,7 +125,7 @@ const PatientDashboard: React.FC = () => {
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-6 flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-blue-600">Upcoming Appointments</p>
+                <p className="text-sm font-medium text-blue-600">{t('upcomingAppointments') || 'Upcoming Appointments'}</p>
                 <p className="text-2xl font-bold text-blue-900">{appointmentsLoading ? '...' : upcomingAppointmentsCount}</p>
               </div>
               <div className="p-3 bg-blue-500 rounded-full">
@@ -136,7 +136,7 @@ const PatientDashboard: React.FC = () => {
           <Card className="bg-green-50 border-green-200">
             <CardContent className="p-6 flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-green-600">Active Prescriptions</p>
+                <p className="text-sm font-medium text-green-600">{t('activePrescriptions') || 'Active Prescriptions'}</p>
                 <p className="text-2xl font-bold text-green-900">{prescriptionsLoading ? '...' : activePrescriptionsCount}</p>
               </div>
               <div className="p-3 bg-green-500 rounded-full">
@@ -147,7 +147,7 @@ const PatientDashboard: React.FC = () => {
           <Card className="bg-purple-50 border-purple-200">
             <CardContent className="p-6 flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-purple-600">Medical Records</p>
+                <p className="text-sm font-medium text-purple-600">{t('medicalRecords') || 'Medical Records'}</p>
                 <p className="text-2xl font-bold text-purple-900">{recordsLoading ? '...' : medicalRecordsCount}</p>
               </div>
               <div className="p-3 bg-purple-500 rounded-full">
@@ -158,7 +158,7 @@ const PatientDashboard: React.FC = () => {
           <Card className="bg-orange-50 border-orange-200">
             <CardContent className="p-6 flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-orange-600">Health Score</p>
+                <p className="text-sm font-medium text-orange-600">{t('healthScore') || 'Health Score'}</p>
                 <p className="text-2xl font-bold text-orange-900">{healthScore}%</p>
               </div>
               <div className="p-3 bg-orange-500 rounded-full">
@@ -169,16 +169,16 @@ const PatientDashboard: React.FC = () => {
         </div>
         {/* Quick Actions */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('quickActions') || 'Quick Actions'}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link to="/dashboard/patient/book">
               <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 border-2 border-transparent hover:border-blue-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <Plus className="h-6 w-6 text-blue-500 group-hover:text-blue-700" />
-                    <span className="text-lg font-semibold text-blue-900 group-hover:text-blue-700">Book Appointment</span>
+                    <span className="text-lg font-semibold text-blue-900 group-hover:text-blue-700">{t('bookAppointment') || 'Book Appointment'}</span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Schedule a new consultation</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('scheduleConsultation') || 'Schedule a new consultation'}</p>
                 </CardHeader>
               </Card>
             </Link>
@@ -187,9 +187,9 @@ const PatientDashboard: React.FC = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <Calendar className="h-6 w-6 text-green-500 group-hover:text-green-700" />
-                    <span className="text-lg font-semibold text-green-900 group-hover:text-green-700">My Appointments</span>
+                    <span className="text-lg font-semibold text-green-900 group-hover:text-green-700">{t('myAppointments') || 'My Appointments'}</span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">View upcoming appointments</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('viewAppointments') || 'View upcoming appointments'}</p>
                 </CardHeader>
               </Card>
             </Link>
@@ -198,9 +198,9 @@ const PatientDashboard: React.FC = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <FileText className="h-6 w-6 text-purple-500 group-hover:text-purple-700" />
-                    <span className="text-lg font-semibold text-purple-900 group-hover:text-purple-700">Medical Records</span>
+                    <span className="text-lg font-semibold text-purple-900 group-hover:text-purple-700">{t('medicalRecords') || 'Medical Records'}</span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">Access health records</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('accessRecords') || 'Access your health records'}</p>
                 </CardHeader>
               </Card>
             </Link>

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ const SehatyLogo = () => (
 );
 
 const ResetPassword: React.FC = () => {
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
@@ -62,7 +62,7 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="flex flex-col items-center pb-2">
           <SehatyLogo />

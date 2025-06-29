@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 import { Heart, Calendar, Clock, User as UserIcon, ArrowLeft, Search, CalendarDays, MapPin, Phone, Mail } from 'lucide-react';
 import DoctorSelectionModal from '@/components/patient/DoctorSelectionModal';
 import { CreateAppointmentData } from '@/types/appointment';
@@ -38,6 +38,7 @@ function generateTimeSlots(start = '09:00', end = '17:00', slotDuration = 30) {
 }
 
 const BookAppointment: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<Partial<CreateAppointmentData>>({
     providerId: '',
     type: 'consultation',
@@ -45,7 +46,6 @@ const BookAppointment: React.FC = () => {
   });
   const [selectedDoctor, setSelectedDoctor] = useState<Provider | null>(null);
   const [showDoctorModal, setShowDoctorModal] = useState(false);
-  const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const { user, isLoading: isUserLoading } = useUser();
   const queryClient = useQueryClient();
@@ -62,15 +62,15 @@ const BookAppointment: React.FC = () => {
   const { mutate: createAppointment, isPending: isBooking } = useMutation({
     mutationFn: (appointmentData: Partial<Appointment>) => api.createAppointment(appointmentData),
     onSuccess: () => {
-      toast.success('Appointment Booked Successfully', {
-        description: 'Your appointment is pending confirmation from the doctor.',
+      toast.success(t('appointmentBookedSuccessfully') || 'Appointment Booked Successfully', {
+        description: t('appointmentPendingConfirmation') || 'Your appointment is pending confirmation from the doctor.',
       });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       navigate('/dashboard/patient');
     },
     onError: () => {
-      toast.error('Booking Failed', {
-        description: 'Unable to book appointment. Please try again.',
+      toast.error(t('bookingFailed') || 'Booking Failed', {
+        description: t('unableToBookAppointment') || 'Unable to book appointment. Please try again.',
       });
     },
   });
@@ -84,14 +84,14 @@ const BookAppointment: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">{t('loading') || 'Loading...'}</p>
         </div>
       </div>
     );
   }
 
   if (!user || user.role !== 'patient') {
-    toast.error("Access Denied", { description: "Only patients can book appointments." });
+    toast.error(t('accessDenied') || "Access Denied", { description: t('onlyPatientsCanBook') || "Only patients can book appointments." });
     navigate(-1);
     return null;
   }
@@ -105,8 +105,8 @@ const BookAppointment: React.FC = () => {
     e.preventDefault();
 
     if (!selectedDoctor) {
-      toast.error('Doctor Not Selected', {
-        description: 'Please select a doctor to book an appointment.',
+      toast.error(t('doctorNotSelected') || 'Doctor Not Selected', {
+        description: t('pleaseSelectDoctor') || 'Please select a doctor to book an appointment.',
       });
       return;
     }
@@ -174,7 +174,7 @@ const BookAppointment: React.FC = () => {
   const timeSlots = generateTimeSlots(workingHours.start, workingHours.end, slotDuration);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
@@ -224,7 +224,9 @@ const BookAppointment: React.FC = () => {
                                 Dr. {selectedDoctor.firstName} {selectedDoctor.lastName}
                               </h3>
                               <p className="text-sm text-gray-600">
-                                {selectedDoctor.specialization || 'General Practitioner'}
+                                {selectedDoctor.specialization ? t(
+                                  selectedDoctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
+                                ) : t('generalPractitioner')}
                               </p>
                               <div className="flex items-center space-x-4 mt-1">
                                 <Badge variant="outline" className="text-xs">
