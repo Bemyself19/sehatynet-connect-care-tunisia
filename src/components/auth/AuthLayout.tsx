@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Heart } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
+import Logo from '@/components/ui/logo';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center items-center mb-4">
-            <Heart className="h-12 w-12 text-blue-600 mr-2" />
+            <Logo size={48} className="mr-2" />
             <span className="text-3xl font-bold text-gray-900">SehatyNet+</span>
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900">{title}</h2>
