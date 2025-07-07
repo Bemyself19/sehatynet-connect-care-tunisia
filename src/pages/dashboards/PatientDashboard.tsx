@@ -147,7 +147,7 @@ const PatientDashboard: React.FC = () => {
           <Card className="bg-purple-50 border-purple-200">
             <CardContent className="p-6 flex items-center gap-4">
               <div>
-                <p className="text-sm font-medium text-purple-600">{t('medicalRecords') || 'Medical Records'}</p>
+                <p className="text-sm font-medium text-purple-600">{t('medicalRecordsLabel') || 'Medical Records'}</p>
                 <p className="text-2xl font-bold text-purple-900">{recordsLoading ? '...' : medicalRecordsCount}</p>
               </div>
               <div className="p-3 bg-purple-500 rounded-full">
@@ -198,7 +198,7 @@ const PatientDashboard: React.FC = () => {
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
                     <FileText className="h-6 w-6 text-purple-500 group-hover:text-purple-700" />
-                    <span className="text-lg font-semibold text-purple-900 group-hover:text-purple-700">{t('medicalRecords') || 'Medical Records'}</span>
+                    <span className="text-lg font-semibold text-purple-900 group-hover:text-purple-700">{t('medicalRecordsLabel') || 'Medical Records'}</span>
                   </div>
                   <p className="text-sm text-gray-500 mt-1">{t('accessRecords') || 'Access your health records'}</p>
                 </CardHeader>

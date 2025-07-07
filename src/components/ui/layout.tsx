@@ -69,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const { logout } = useAuth();
   const { user } = useUser();
-  const { t, currentLanguage } = useLanguage();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -103,7 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ${currentLanguage === 'ar' ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`}>
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -148,7 +148,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <div className="text-xs text-gray-500 flex items-center space-x-1">
                     {getRoleIcon(user?.role || '')}
                     <span className={getRoleColor(user?.role || '')}>
-                      {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                      {user?.role ? t(user?.role) : ''}
                     </span>
                   </div>
                 </div>
@@ -200,8 +200,8 @@ export const Layout: React.FC<LayoutProps> = ({
               <div className="flex flex-col h-full">
                 {/* Sidebar Header */}
                 <div className="p-6 border-b border-slate-200">
-                  <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
-                  <p className="text-sm text-gray-500 mt-1">Quick access to features</p>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('navigation')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('quickAccess')}</p>
                 </div>
 
                 {/* Navigation Items */}
@@ -237,9 +237,9 @@ export const Layout: React.FC<LayoutProps> = ({
                 {/* Sidebar Footer */}
                 <div className="p-4 border-t border-slate-200">
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3">
-                    <div className="text-xs text-gray-600 mb-1">Need Help?</div>
+                    <div className="text-xs text-gray-600 mb-1">{t('needHelp')}</div>
                     <Button variant="outline" size="sm" className="w-full text-xs">
-                      Contact Support
+                      {t('contactSupport')}
                     </Button>
                   </div>
                 </div>

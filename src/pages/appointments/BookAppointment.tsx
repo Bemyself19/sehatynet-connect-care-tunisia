@@ -230,7 +230,7 @@ const BookAppointment: React.FC = () => {
                               </p>
                               <div className="flex items-center space-x-4 mt-1">
                                 <Badge variant="outline" className="text-xs">
-                                  {selectedDoctor.licenseNumber ? 'Licensed' : 'Verified'}
+                                  {selectedDoctor.licenseNumber ? t('licensed') : t('verified')}
                                 </Badge>
                               </div>
                             </div>
@@ -240,7 +240,7 @@ const BookAppointment: React.FC = () => {
                               size="sm"
                               onClick={() => setSelectedDoctor(null)}
                             >
-                              Change
+                              {t('change')}
                             </Button>
                           </div>
                         </div>
@@ -259,7 +259,7 @@ const BookAppointment: React.FC = () => {
                             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                           >
                             <Search className="h-4 w-4 mr-2" />
-                            Browse Doctors
+                            {t('browseDoctors')}
                           </Button>
                         </div>
                       )}
@@ -270,10 +270,10 @@ const BookAppointment: React.FC = () => {
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <CalendarDays className="h-5 w-5 text-blue-600" />
-                        Select Date & Time
+                        {t('selectDateTime')}
                       </CardTitle>
                       <CardDescription>
-                        Choose a date and an available time slot for your appointment
+                        {t('chooseDateTimeDescription')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -300,7 +300,7 @@ const BookAppointment: React.FC = () => {
                         </div>
                         {formData.scheduledDate && formData.scheduledTime && (
                           <div className="my-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-semibold text-center">
-                            Selected: {formData.scheduledDate} at {formData.scheduledTime}
+                            {t('selectedSlot', { date: formData.scheduledDate, time: formData.scheduledTime })}
                           </div>
                         )}
                       </div>
@@ -309,10 +309,10 @@ const BookAppointment: React.FC = () => {
                           className="max-h-[70vh] overflow-y-auto"
                         >
                           <DialogHeader>
-                            <DialogTitle>Available Time Slots for {modalDate}</DialogTitle>
+                            <DialogTitle>{t('availableTimeSlotsFor', { date: modalDate })}</DialogTitle>
                           </DialogHeader>
                           {modalSlots.length === 0 ? (
-                            <div className="text-gray-500 py-4">No available slots for this day.</div>
+                            <div className="text-gray-500 py-4">{t('noAvailableSlots')}</div>
                           ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
                               {timeSlots.map(slot => {
@@ -376,8 +376,8 @@ const BookAppointment: React.FC = () => {
                         <SelectValue placeholder={t('selectAppointmentType') || 'Select appointment type'} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="in-person">In-Person</SelectItem>
-                        <SelectItem value="video">Video Consultation</SelectItem>
+                        <SelectItem value="in-person">{t('inPerson')}</SelectItem>
+                        <SelectItem value="video">{t('videoConsultation')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -394,10 +394,10 @@ const BookAppointment: React.FC = () => {
                         <SelectValue placeholder={t('selectConsultationType') || 'Select consultation type'} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="consultation">General Consultation</SelectItem>
-                        <SelectItem value="follow-up">Follow-up</SelectItem>
-                        <SelectItem value="emergency">Emergency</SelectItem>
-                        <SelectItem value="routine">Routine Check-up</SelectItem>
+                        <SelectItem value="consultation">{t('generalConsultation')}</SelectItem>
+                        <SelectItem value="follow-up">{t('followUp')}</SelectItem>
+                        <SelectItem value="emergency">{t('emergency')}</SelectItem>
+                        <SelectItem value="routine">{t('routineCheckup')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -423,7 +423,7 @@ const BookAppointment: React.FC = () => {
                       onClick={() => navigate(-1)}
                       className="border-2 hover:bg-gray-50"
                     >
-                      Cancel
+                      {t('cancel')}
                     </Button>
                     <Button
                       type="submit"
@@ -433,12 +433,12 @@ const BookAppointment: React.FC = () => {
                       {isBooking ? (
                         <div className="flex items-center space-x-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>Booking...</span>
+                          <span>{t('booking') || 'Booking...'}</span>
                         </div>
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4" />
-                          <span>Book Appointment</span>
+                          <span>{t('bookAppointment')}</span>
                         </div>
                       )}
                     </Button>
@@ -454,7 +454,7 @@ const BookAppointment: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <UserIcon className="h-5 w-5 text-blue-600" />
-                    <span>Patient Information</span>
+                    <span>{t('patientInformation')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -498,26 +498,26 @@ const BookAppointment: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Clock className="h-5 w-5 text-blue-600" />
-                    <span>Appointment Tips</span>
+                    <span>{t('appointmentTips')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <div className="flex items-start space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-gray-700">Arrive 10 minutes before your scheduled time</p>
+                      <p className="text-gray-700">{t('appointmentTipArriveEarly')}</p>
                     </div>
                     <div className="flex items-start space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-gray-700">Bring your ID and insurance information</p>
+                      <p className="text-gray-700">{t('appointmentTipBringID')}</p>
                     </div>
                     <div className="flex items-start space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-gray-700">Prepare a list of current medications</p>
+                      <p className="text-gray-700">{t('appointmentTipMedications')}</p>
                     </div>
                     <div className="flex items-start space-x-2">
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-gray-700">Note down any symptoms or concerns</p>
+                      <p className="text-gray-700">{t('appointmentTipNoteSymptoms')}</p>
                     </div>
                   </div>
                 </CardContent>

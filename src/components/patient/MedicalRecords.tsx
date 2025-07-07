@@ -7,18 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   FileText, Pill, Microscope, Camera, Syringe, Scissors, Eye, EyeOff, Lock, Unlock, 
-  Calendar, User, Stethoscope, Download, BarChart2, Clock
+  Calendar, User, Stethoscope, Download, BarChart2, Clock, Plus, AlertTriangle, Shield
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import api from '@/lib/api';
 import { MedicalRecord } from '@/types/medicalRecord';
 import { Appointment } from '@/types/appointment';
 import { Prescription } from '@/types/prescription';
+import { LabResult } from '@/types/labResult';
+import { MedicationHistory as Medication } from '@/types/medication';
+import { Allergy } from '@/types/allergy';
+import { Immunization } from '@/types/immunization';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/modal';
 import PrescriptionDetail from '@/components/prescription/PrescriptionDetail';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { useTranslation } from 'react-i18next';
 
 type DashboardData = {
   stats: {
@@ -44,8 +49,17 @@ const MedicalRecords: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ViewableRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Enhanced medical records data
+  const [labResults, setLabResults] = useState<LabResult[]>([]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [allergies, setAllergies] = useState<Allergy[]>([]);
+  const [immunizations, setImmunizations] = useState<Immunization[]>([]);
+  const [isLoadingEnhanced, setIsLoadingEnhanced] = useState(false);
 
   const isDoctor = currentUser?.role === 'doctor';
+
+  const { t, i18n } = useTranslation();
 
   const fetchDashboardData = async () => {
     try {
@@ -61,9 +75,34 @@ const MedicalRecords: React.FC = () => {
     }
   };
 
+  const fetchEnhancedMedicalRecords = async () => {
+    if (!currentUser?._id) return;
+    
+    try {
+      setIsLoadingEnhanced(true);
+      const [labResultsData, medicationsData, allergiesData, immunizationsData] = await Promise.all([
+        api.getLabResults(),
+        api.getMedicationHistory(),
+        api.getAllergies(),
+        api.getImmunizations()
+      ]);
+      
+      setLabResults(labResultsData);
+      setMedications(medicationsData);
+      setAllergies(allergiesData);
+      setImmunizations(immunizationsData);
+    } catch (err) {
+      console.error('Failed to fetch enhanced medical records:', err);
+      toast.error('Failed to load some medical records');
+    } finally {
+      setIsLoadingEnhanced(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+    fetchEnhancedMedicalRecords();
+  }, [currentUser?._id]);
 
   const handleView = (item: ViewableRecord) => {
     setSelectedItem(item);
@@ -178,7 +217,7 @@ const MedicalRecords: React.FC = () => {
   const renderConsultationHistory = () => {
     const sortedHistory = [...(dashboardData?.consultationHistory ?? [])].sort((a, b) => new Date(b.appointment.scheduledDate).getTime() - new Date(a.appointment.scheduledDate).getTime());
     if (sortedHistory.length === 0) {
-      return <div className="text-gray-500 text-center py-8">No consultation history found.</div>;
+      return <div className="text-gray-500 text-center py-8">{t('noConsultationHistory')}</div>;
     }
     return (
       <Accordion type="single" collapsible className="w-full">
@@ -190,15 +229,21 @@ const MedicalRecords: React.FC = () => {
                   <Calendar className="h-6 w-6 text-blue-600" />
                   <div>
                     <p className="font-semibold text-base">
-                      Consultation: {new Date(consultation.appointment.scheduledDate).toLocaleDateString()}
+                      {t('consultation')}: {new Date(consultation.appointment.scheduledDate).toLocaleDateString()}
                     </p>
                     <p className="text-sm text-gray-600 text-left">
                       Dr. {consultation.appointment.providerId.firstName} {consultation.appointment.providerId.lastName}
                     </p>
                   </div>
                 </div>
-                <Badge variant={consultation.totalRecords > 0 ? "default" : "secondary"}>
-                  {consultation.totalRecords} record{consultation.totalRecords !== 1 && 's'}
+                <Badge 
+                  variant={consultation.totalRecords > 0 ? "default" : "secondary"}
+                  {...(i18n.language === 'ar' ? { dir: 'rtl' } : {})}
+                >
+                  {i18n.language === 'ar'
+                    ? `${t('record', { count: consultation.totalRecords })} ${consultation.totalRecords}`
+                    : `${consultation.totalRecords} ${t('record', { count: consultation.totalRecords })}`
+                  }
                 </Badge>
               </div>
             </AccordionTrigger>
@@ -212,7 +257,7 @@ const MedicalRecords: React.FC = () => {
                     <div className="space-y-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-orange-600">
                         <Pill className="h-4 w-4" />
-                        Prescriptions ({consultation.prescriptions.length})
+                        {t('prescriptions')} ({consultation.prescriptions.length})
                       </h4>
                       {consultation.prescriptions.map((prescription: Prescription) => (
                         <div key={prescription._id} className="p-3 bg-white rounded-lg border flex justify-between items-center">
@@ -223,8 +268,8 @@ const MedicalRecords: React.FC = () => {
                             prescribed
                           </p>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => handleView(prescription)}><Eye className="h-4 w-4 mr-1" />View</Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDownload(prescription)}><Download className="h-4 w-4 mr-1" />Download</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleView(prescription)}><Eye className="h-4 w-4 mr-1" />{t('view')}</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDownload(prescription)}><Download className="h-4 w-4 mr-1" />{t('download')}</Button>
                           </div>
                         </div>
                       ))}
@@ -236,7 +281,7 @@ const MedicalRecords: React.FC = () => {
                     <div className="space-y-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
                         <FileText className="h-4 w-4" />
-                        Other Records ({consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').length})
+                        {t('otherRecords')} ({consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').length})
                       </h4>
                       {consultation.medicalRecords.filter(record => !isDoctor || record.title !== 'Pharmacy Request').map((record: MedicalRecord) => (
                         <div key={record._id} className="p-3 bg-white rounded-lg border flex justify-between items-center gap-2">
@@ -260,8 +305,8 @@ const MedicalRecords: React.FC = () => {
                                 </SelectContent>
                               </Select>
                             )}
-                            <Button size="sm" variant="outline" onClick={() => handleView(record)}><Eye className="h-4 w-4" /></Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDownload(record)}><Download className="h-4 w-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => handleView(record)}><Eye className="h-4 w-4" />{t('view')}</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleDownload(record)}><Download className="h-4 w-4" />{t('download')}</Button>
                           </div>
                         </div>
                       ))}
@@ -279,7 +324,7 @@ const MedicalRecords: React.FC = () => {
   const renderRecentRecords = () => {
     const records = dashboardData?.recentRecords ?? [];
     if (records.length === 0) {
-      return <div className="text-gray-500 text-center py-8">No recent records found.</div>;
+      return <div className="text-gray-500 text-center py-8">{t('noRecentRecords')}</div>;
     }
     return (
       <div className="space-y-3">
@@ -294,7 +339,328 @@ const MedicalRecords: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => handleView(record)}>View</Button>
+              <Button variant="outline" size="sm" onClick={() => handleView(record)}>{t('view')}</Button>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderLabResults = () => {
+    if (isLoadingEnhanced) return <div className="text-center py-8">Loading lab results...</div>;
+    
+    if (labResults.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Microscope className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No lab results found.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {labResults.map((result) => (
+          <Card key={result._id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{result.labName}</CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Ordered: {new Date(result.orderDate).toLocaleDateString()}
+                    {result.resultDate && ` • Results: ${new Date(result.resultDate).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <Badge 
+                  variant={result.overallStatus === 'normal' ? 'default' : 
+                          result.overallStatus === 'critical' ? 'destructive' : 'secondary'}
+                >
+                  {result.overallStatus}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {result.tests.map((test, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div>
+                      <p className="font-medium">{test.testName}</p>
+                      <p className="text-sm text-gray-600">{test.value} {test.unit}</p>
+                    </div>
+                    <div className="text-right">
+                      {test.referenceRange && (
+                        <p className="text-xs text-gray-500">
+                          Ref: {test.referenceRange.min}-{test.referenceRange.max} {test.unit}
+                        </p>
+                      )}
+                      <Badge 
+                        variant={test.status === 'normal' ? 'default' : 
+                                test.status === 'critical' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {test.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {result.clinicalNotes && (
+                <div className="mt-4 p-3 bg-blue-50 rounded">
+                  <p className="text-sm font-medium text-blue-900">Clinical Notes:</p>
+                  <p className="text-sm text-blue-800">{result.clinicalNotes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderMedications = () => {
+    if (isLoadingEnhanced) return <div className="text-center py-8">Loading medications...</div>;
+    
+    if (medications.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Pill className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No medications found.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {medications.map((medication) => (
+          <Card key={medication._id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{medication.medicationName}</CardTitle>
+                  {medication.genericName && (
+                    <p className="text-sm text-gray-600">Generic: {medication.genericName}</p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    Started: {new Date(medication.startDate).toLocaleDateString()}
+                    {medication.endDate && ` • Ended: ${new Date(medication.endDate).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <Badge 
+                  variant={medication.status === 'active' ? 'default' : 
+                          medication.status === 'discontinued' ? 'destructive' : 'secondary'}
+                >
+                  {medication.status}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="font-medium text-sm">Dosage:</p>
+                  <p className="text-sm text-gray-600">
+                    {medication.dosage.amount} {medication.dosage.unit} {medication.dosage.frequency}
+                    {medication.dosage.timing && ` (${medication.dosage.timing})`}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Type:</p>
+                  <p className="text-sm text-gray-600 capitalize">{medication.medicationType.replace('_', ' ')}</p>
+                </div>
+              </div>
+              {medication.reason && (
+                <div className="mt-3">
+                  <p className="font-medium text-sm">Reason:</p>
+                  <p className="text-sm text-gray-600">{medication.reason}</p>
+                </div>
+              )}
+              {medication.sideEffects.length > 0 && (
+                <div className="mt-3">
+                  <p className="font-medium text-sm">Side Effects:</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {medication.sideEffects.map((effect, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {effect}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {medication.notes && (
+                <div className="mt-3 p-2 bg-yellow-50 rounded">
+                  <p className="text-sm text-yellow-800">{medication.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderAllergies = () => {
+    if (isLoadingEnhanced) return <div className="text-center py-8">Loading allergies...</div>;
+    
+    if (allergies.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No allergies found.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {allergies.map((allergy) => (
+          <Card key={allergy._id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{allergy.allergenName}</CardTitle>
+                  <p className="text-sm text-gray-600 capitalize">
+                    {allergy.allergenType.replace('_', ' ')}
+                    {allergy.category && ` • ${allergy.category}`}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge 
+                    variant={allergy.status === 'active' ? 'destructive' : 'secondary'}
+                  >
+                    {allergy.status}
+                  </Badge>
+                  {allergy.isHighRisk && (
+                    <Badge variant="destructive">High Risk</Badge>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {allergy.reactions.map((reaction, index) => (
+                  <div key={index} className="p-2 bg-red-50 rounded">
+                    <div className="flex justify-between items-start">
+                      <p className="font-medium text-sm">{reaction.reaction}</p>
+                      <Badge 
+                        variant={reaction.severity === 'life_threatening' ? 'destructive' : 
+                                reaction.severity === 'severe' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {reaction.severity.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    {reaction.notes && (
+                      <p className="text-sm text-red-700 mt-1">{reaction.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {allergy.emergencyInstructions && (
+                <div className="mt-4 p-3 bg-red-50 rounded border border-red-200">
+                  <p className="text-sm font-medium text-red-900">Emergency Instructions:</p>
+                  <p className="text-sm text-red-800">{allergy.emergencyInstructions}</p>
+                </div>
+              )}
+              {allergy.avoidanceInstructions && (
+                <div className="mt-3 p-3 bg-yellow-50 rounded">
+                  <p className="text-sm font-medium text-yellow-900">Avoidance Instructions:</p>
+                  <p className="text-sm text-yellow-800">{allergy.avoidanceInstructions}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderImmunizations = () => {
+    if (isLoadingEnhanced) return <div className="text-center py-8">Loading immunizations...</div>;
+    
+    if (immunizations.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No immunizations found.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {immunizations.map((immunization) => (
+          <Card key={immunization._id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">{immunization.vaccineName}</CardTitle>
+                  {immunization.vaccineType && (
+                    <p className="text-sm text-gray-600">{immunization.vaccineType}</p>
+                  )}
+                  <p className="text-sm text-gray-600 capitalize">
+                    {immunization.category.replace('_', ' ')}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Badge 
+                    variant={immunization.status === 'up_to_date' ? 'default' : 
+                            immunization.status === 'overdue' ? 'destructive' : 'secondary'}
+                  >
+                    {immunization.status.replace('_', ' ')}
+                  </Badge>
+                  {immunization.isRequired && (
+                    <Badge variant="outline">Required</Badge>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <p className="font-medium text-sm">Doses ({immunization.doses.length}/{immunization.totalDosesRequired}):</p>
+                  <div className="space-y-2 mt-2">
+                    {immunization.doses.map((dose, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-green-50 rounded">
+                        <div>
+                          <p className="text-sm font-medium">Dose {dose.doseNumber}</p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(dose.date).toLocaleDateString()}
+                            {dose.site && ` • ${dose.site}`}
+                          </p>
+                        </div>
+                        {dose.lotNumber && (
+                          <p className="text-xs text-gray-500">Lot: {dose.lotNumber}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {immunization.nextDueDate && (
+                  <div className="p-2 bg-blue-50 rounded">
+                    <p className="text-sm font-medium text-blue-900">Next Due:</p>
+                    <p className="text-sm text-blue-800">
+                      {new Date(immunization.nextDueDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                {immunization.contraindications.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-medium text-sm">Contraindications:</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {immunization.contraindications.map((contraindication, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {contraindication}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {immunization.notes && (
+                  <div className="mt-3 p-2 bg-gray-50 rounded">
+                    <p className="text-sm text-gray-700">{immunization.notes}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -305,21 +671,46 @@ const MedicalRecords: React.FC = () => {
     const stats = dashboardData?.stats;
     if (!stats) return null;
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 flex flex-col items-center justify-center">
           <Stethoscope className="h-8 w-8 text-blue-500 mb-2" />
           <p className="text-2xl font-bold">{stats.totalConsultations}</p>
-          <p className="text-sm text-gray-500">Consultations</p>
+          <p className="text-sm text-gray-500">{t('consultations')}</p>
         </Card>
         <Card className="p-4 flex flex-col items-center justify-center">
           <Pill className="h-8 w-8 text-orange-500 mb-2" />
           <p className="text-2xl font-bold">{stats.totalPrescriptions}</p>
-          <p className="text-sm text-gray-500">Prescriptions</p>
+          <p className="text-sm text-gray-500">{t('prescriptions')}</p>
         </Card>
         <Card className="p-4 flex flex-col items-center justify-center">
           <FileText className="h-8 w-8 text-green-500 mb-2" />
           <p className="text-2xl font-bold">{stats.totalRecords}</p>
-          <p className="text-sm text-gray-500">Medical Records</p>
+          <p className="text-sm text-gray-500">{t('medicalRecordsLabel')}</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <Microscope className="h-8 w-8 text-purple-500 mb-2" />
+          <p className="text-2xl font-bold">{labResults.length}</p>
+          <p className="text-sm text-gray-500">{t('labResults')}</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <Pill className="h-8 w-8 text-indigo-500 mb-2" />
+          <p className="text-2xl font-bold">{medications.filter(m => m.status === 'active').length}</p>
+          <p className="text-sm text-gray-500">{t('activeMedications')}</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-red-500 mb-2" />
+          <p className="text-2xl font-bold">{allergies.filter(a => a.status === 'active').length}</p>
+          <p className="text-sm text-gray-500">{t('activeAllergies')}</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <Shield className="h-8 w-8 text-green-500 mb-2" />
+          <p className="text-2xl font-bold">{immunizations.filter(i => i.status === 'up_to_date').length}</p>
+          <p className="text-sm text-gray-500">{t('upToDateVaccines')}</p>
+        </Card>
+        <Card className="p-4 flex flex-col items-center justify-center">
+          <BarChart2 className="h-8 w-8 text-yellow-500 mb-2" />
+          <p className="text-2xl font-bold">{immunizations.filter(i => i.status === 'overdue').length}</p>
+          <p className="text-sm text-gray-500">{t('overdueVaccines')}</p>
         </Card>
       </div>
     );
@@ -332,13 +723,44 @@ const MedicalRecords: React.FC = () => {
 
     return (
       <Tabs defaultValue="consultations" className="w-full">
-        <TabsList className="w-full flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap bg-muted p-1 rounded-md">
-          <TabsTrigger value="consultations" className="flex-1 min-w-[160px] max-w-full"><Calendar className="h-4 w-4 mr-2"/>Consultation History</TabsTrigger>
-          <TabsTrigger value="recent" className="flex-1 min-w-[120px] max-w-full"><Clock className="h-4 w-4 mr-2"/>Recent Records</TabsTrigger>
-          <TabsTrigger value="stats" className="flex-1 min-w-[100px] max-w-full"><BarChart2 className="h-4 w-4 mr-2"/>Statistics</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto max-w-full">
+          <TabsList>
+            <TabsTrigger value="consultations" className="flex-1 min-w-[160px] max-w-full">
+              <Calendar className="h-4 w-4 mr-2" style={{ color: '#2563eb' }} />
+              {t('medicalRecords.tabs.consultations')}
+            </TabsTrigger>
+            <TabsTrigger value="recent" className="flex-1 min-w-[120px] max-w-full">
+              <Calendar className="h-4 w-4 mr-2" style={{ color: '#334155' }} />
+              {t('medicalRecords.tabs.recent')}
+            </TabsTrigger>
+            <TabsTrigger value="lab-results" className="flex-1 min-w-[120px] max-w-full">
+              <Microscope className="h-4 w-4 mr-2" style={{ color: '#7c3aed' }} />
+              {t('medicalRecords.tabs.labResults')}
+            </TabsTrigger>
+            <TabsTrigger value="medications" className="flex-1 min-w-[120px] max-w-full">
+              <Pill className="h-4 w-4 mr-2" style={{ color: '#0ea5e9' }} />
+              {t('medicalRecords.tabs.medications')}
+            </TabsTrigger>
+            <TabsTrigger value="allergies" className="flex-1 min-w-[120px] max-w-full">
+              <AlertTriangle className="h-4 w-4 mr-2" style={{ color: '#f59e42' }} />
+              {t('medicalRecords.tabs.allergies')}
+            </TabsTrigger>
+            <TabsTrigger value="immunizations" className="flex-1 min-w-[120px] max-w-full">
+              <Syringe className="h-4 w-4 mr-2" style={{ color: '#64748b' }} />
+              {t('medicalRecords.tabs.immunizations')}
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex-1 min-w-[100px] max-w-full">
+              <BarChart2 className="h-4 w-4 mr-2" style={{ color: '#eab308' }} />
+              {t('medicalRecords.tabs.statistics')}
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="consultations" className="mt-4">{renderConsultationHistory()}</TabsContent>
         <TabsContent value="recent" className="mt-4">{renderRecentRecords()}</TabsContent>
+        <TabsContent value="lab-results" className="mt-4">{renderLabResults()}</TabsContent>
+        <TabsContent value="medications" className="mt-4">{renderMedications()}</TabsContent>
+        <TabsContent value="allergies" className="mt-4">{renderAllergies()}</TabsContent>
+        <TabsContent value="immunizations" className="mt-4">{renderImmunizations()}</TabsContent>
         <TabsContent value="stats" className="mt-4">{renderStats()}</TabsContent>
       </Tabs>
     );
@@ -356,10 +778,18 @@ const MedicalRecords: React.FC = () => {
           // Prescription view with tabs
           <Tabs defaultValue="prescription" className="w-full">
             <TabsList className="w-full flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap bg-muted p-1 rounded-md mb-4">
-              <TabsTrigger value="prescription" className="flex-1 min-w-[120px] max-w-full">Prescription</TabsTrigger>
-              <TabsTrigger value="lab" className="flex-1 min-w-[120px] max-w-full">Lab Results</TabsTrigger>
-              <TabsTrigger value="radiology" className="flex-1 min-w-[120px] max-w-full">Radiology Results</TabsTrigger>
-              <TabsTrigger value="pharmacy" className="flex-1 min-w-[120px] max-w-full">Pharmacy</TabsTrigger>
+              <TabsTrigger value="prescription" className="flex-1 min-w-[120px] max-w-full">
+                {t('medicalRecords.tabs.prescription')}
+              </TabsTrigger>
+              <TabsTrigger value="lab" className="flex-1 min-w-[120px] max-w-full">
+                {t('medicalRecords.tabs.lab')}
+              </TabsTrigger>
+              <TabsTrigger value="radiology" className="flex-1 min-w-[120px] max-w-full">
+                {t('medicalRecords.tabs.radiology')}
+              </TabsTrigger>
+              <TabsTrigger value="pharmacy" className="flex-1 min-w-[120px] max-w-full">
+                {t('medicalRecords.tabs.pharmacy')}
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="prescription" className="mt-2">
               <PrescriptionDetail prescription={selectedItem as Prescription} />

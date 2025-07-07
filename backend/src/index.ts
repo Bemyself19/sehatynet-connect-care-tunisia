@@ -17,11 +17,15 @@ import teleExpertiseRequestRoutes from './routes/teleExpertiseRequest.routes';
 import paymentRoutes from "./routes/payment.routes";
 import systemSettingRoutes from './routes/systemSetting.routes';
 import reportRoutes from './routes/report.routes';
+import labResultRoutes from './routes/labResult.routes';
+import medicationRoutes from './routes/medication.routes';
+import allergyRoutes from './routes/allergy.routes';
+import immunizationRoutes from './routes/immunization.routes';
 
 dotenv.config();
 const app = express();
 
-// Temporarily disable HTTPS to prevent SSL file access issues
+// NOTE: HTTPS server code removed. HTTPS is now handled via a reverse proxy (e.g., Nginx) for security and maintainability. See documentation for details.
 // const httpsOptions = {
 //   key: fs.readFileSync('cert/localhost.key'),
 //   cert: fs.readFileSync('cert/localhost.crt'),
@@ -119,6 +123,10 @@ app.use("/api/tele-expertise", teleExpertiseRequestRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/system-settings", systemSettingRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/lab-results', labResultRoutes);
+app.use('/api/medications', medicationRoutes);
+app.use('/api/allergies', allergyRoutes);
+app.use('/api/immunizations', immunizationRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
