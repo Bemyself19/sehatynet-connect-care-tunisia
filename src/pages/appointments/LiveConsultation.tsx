@@ -781,7 +781,7 @@ const LiveConsultation: React.FC = () => {
                                     </TabsTrigger>
                                     <TabsTrigger value="records" className="flex items-center space-x-2">
                                         <Activity className="h-4 w-4" />
-                                        <span>{t('medicalRecords')}</span>
+                                        <span>{t('medicalRecordsLabel')}</span>
                                     </TabsTrigger>
                                 </TabsList>
                                 

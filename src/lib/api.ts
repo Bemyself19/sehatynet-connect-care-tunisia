@@ -3,6 +3,10 @@ import { Appointment, CreateAppointmentData } from '@/types/appointment';
 import { MedicalRecord, CreateMedicalRecordData } from '@/types/medicalRecord';
 import { Prescription, CreatePrescriptionData } from '@/types/prescription';
 import { DashboardStats } from '@/types/api';
+import { LabResult, CreateLabResultData, UpdateLabResultData } from '@/types/labResult';
+import { MedicationHistory, CreateMedicationHistoryData, UpdateMedicationHistoryData, MedicationInteraction } from '@/types/medication';
+import { Allergy, CreateAllergyData, UpdateAllergyData } from '@/types/allergy';
+import { Immunization, CreateImmunizationData, UpdateImmunizationData, AddDoseData, ImmunizationSchedule } from '@/types/immunization';
 
 class ApiClient {
   private baseURL: string;
@@ -417,6 +421,167 @@ class ApiClient {
 
   async getPaymentHistory(): Promise<any[]> {
     return this.request<any[]>('/payments/history');
+  }
+
+  // Lab Results API
+  async createLabResult(data: CreateLabResultData): Promise<LabResult> {
+    return this.request<LabResult>('/lab-results', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getLabResults(params?: { patientId?: string }): Promise<LabResult[]> {
+    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return this.request<LabResult[]>(`/lab-results${queryString}`);
+  }
+
+  async getLabResult(id: string): Promise<LabResult> {
+    return this.request<LabResult>(`/lab-results/${id}`);
+  }
+
+  async updateLabResult(id: string, data: UpdateLabResultData): Promise<LabResult> {
+    return this.request<LabResult>(`/lab-results/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async verifyLabResult(id: string): Promise<LabResult> {
+    return this.request<LabResult>(`/lab-results/${id}/verify`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getLabResultsByPatient(patientId: string): Promise<LabResult[]> {
+    return this.request<LabResult[]>(`/lab-results/patient/${patientId}`);
+  }
+
+  async getCriticalLabResults(): Promise<LabResult[]> {
+    return this.request<LabResult[]>('/lab-results/critical/all');
+  }
+
+  // Medication History API
+  async createMedicationHistory(data: CreateMedicationHistoryData): Promise<MedicationHistory> {
+    return this.request<MedicationHistory>('/medications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMedicationHistory(params?: { patientId?: string; status?: string; isCurrent?: boolean }): Promise<MedicationHistory[]> {
+    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : '';
+    return this.request<MedicationHistory[]>(`/medications${queryString}`);
+  }
+
+  async getMedicationHistoryById(id: string): Promise<MedicationHistory> {
+    return this.request<MedicationHistory>(`/medications/${id}`);
+  }
+
+  async updateMedicationHistory(id: string, data: UpdateMedicationHistoryData): Promise<MedicationHistory> {
+    return this.request<MedicationHistory>(`/medications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async discontinueMedication(id: string, data: { reason?: string; notes?: string }): Promise<MedicationHistory> {
+    return this.request<MedicationHistory>(`/medications/${id}/discontinue`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getCurrentMedications(patientId: string): Promise<MedicationHistory[]> {
+    return this.request<MedicationHistory[]>(`/medications/patient/${patientId}/current`);
+  }
+
+  async getMedicationInteractions(patientId: string): Promise<{ currentMedications: MedicationHistory[]; interactions: MedicationInteraction[] }> {
+    return this.request<{ currentMedications: MedicationHistory[]; interactions: MedicationInteraction[] }>(`/medications/patient/${patientId}/interactions`);
+  }
+
+  // Allergies API
+  async createAllergy(data: CreateAllergyData): Promise<Allergy> {
+    return this.request<Allergy>('/allergies', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAllergies(params?: { patientId?: string; status?: string; allergenType?: string; isHighRisk?: boolean }): Promise<Allergy[]> {
+    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : '';
+    return this.request<Allergy[]>(`/allergies${queryString}`);
+  }
+
+  async getAllergy(id: string): Promise<Allergy> {
+    return this.request<Allergy>(`/allergies/${id}`);
+  }
+
+  async updateAllergy(id: string, data: UpdateAllergyData): Promise<Allergy> {
+    return this.request<Allergy>(`/allergies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async confirmAllergy(id: string): Promise<Allergy> {
+    return this.request<Allergy>(`/allergies/${id}/confirm`, {
+      method: 'PATCH',
+    });
+  }
+
+  async resolveAllergy(id: string, data: { notes?: string }): Promise<Allergy> {
+    return this.request<Allergy>(`/allergies/${id}/resolve`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getHighRiskAllergies(): Promise<Allergy[]> {
+    return this.request<Allergy[]>('/allergies/high-risk/all');
+  }
+
+  async checkMedicationAllergies(patientId: string, medicationName: string): Promise<{ hasAllergies: boolean; allergies: Allergy[] }> {
+    return this.request<{ hasAllergies: boolean; allergies: Allergy[] }>(`/allergies/patient/${patientId}/medication/${medicationName}`);
+  }
+
+  // Immunizations API
+  async createImmunization(data: CreateImmunizationData): Promise<Immunization> {
+    return this.request<Immunization>('/immunizations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getImmunizations(params?: { patientId?: string; status?: string; vaccineType?: string; category?: string }): Promise<Immunization[]> {
+    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : '';
+    return this.request<Immunization[]>(`/immunizations${queryString}`);
+  }
+
+  async getImmunization(id: string): Promise<Immunization> {
+    return this.request<Immunization>(`/immunizations/${id}`);
+  }
+
+  async updateImmunization(id: string, data: UpdateImmunizationData): Promise<Immunization> {
+    return this.request<Immunization>(`/immunizations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async addDose(id: string, data: AddDoseData): Promise<Immunization> {
+    return this.request<Immunization>(`/immunizations/${id}/doses`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOverdueImmunizations(): Promise<Immunization[]> {
+    return this.request<Immunization[]>('/immunizations/overdue/all');
+  }
+
+  async getImmunizationSchedule(patientId: string): Promise<ImmunizationSchedule> {
+    return this.request<ImmunizationSchedule>(`/immunizations/patient/${patientId}/schedule`);
   }
 }
 

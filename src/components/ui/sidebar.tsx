@@ -2,6 +2,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
+import { useTranslation } from 'react-i18next'
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -67,6 +68,7 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
+    const { t } = useTranslation()
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
@@ -174,6 +176,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { t } = useTranslation()
 
     if (collapsible === "none") {
       return (
@@ -248,7 +251,17 @@ const Sidebar = React.forwardRef<
             data-sidebar="sidebar"
             className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
           >
+            {/* Render navigation header */}
+            <div className="sidebar-header">
+              <h2>{t('navigation')}</h2>
+              <span>{t('quickAccess')}</span>
+            </div>
             {children}
+          </div>
+          {/* Render sidebar footer */}
+          <div className="sidebar-footer">
+            <span>{t('needHelp')}</span>
+            <Button>{t('contactSupport')}</Button>
           </div>
         </div>
       </div>

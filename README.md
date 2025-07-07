@@ -183,3 +183,61 @@ MIT License - see LICENSE file for details
 ## 🆘 Support
 
 For support and questions, please contact the development team.
+
+# HTTPS & Reverse Proxy Strategy
+
+## HTTPS Handling
+SehatyNet backend no longer manages HTTPS/TLS directly. All HTTPS traffic should be terminated at a reverse proxy (e.g., Nginx, Caddy, or a cloud load balancer). The Express app listens on HTTP (e.g., port 3000 or 8000) and should not be exposed directly to the public internet.
+
+## Environment Variables
+- `HTTPS_ENABLED`: (boolean) If true, backend will attempt to use HTTPS (not recommended; use a proxy instead). Default: `false`.
+- `SSL_CERT_PATH`, `SSL_KEY_PATH`: Paths to certificate and key files (used only if HTTPS_ENABLED is true).
+
+These are provided for flexibility but are not recommended for production. Use a reverse proxy for TLS termination.
+
+## Nginx Reverse Proxy Example
+```
+server {
+    listen 443 ssl;
+    server_name sehatynet.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/sehatynet.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/sehatynet.example.com/privkey.pem;
+
+    location /api/ {
+        proxy_pass http://localhost:3000/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location / {
+        proxy_pass http://localhost:5173/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 80;
+    server_name sehatynet.example.com;
+    return 301 https://$host$request_uri;
+}
+```
+- Replace `sehatynet.example.com` and certificate paths as needed.
+- WebSocket support is enabled for `/api/`.
+- Frontend (port 5173) and backend (port 3000) can coexist.
+
+## .env File Tracking
+If your `.env` file is not tracked or shows a disabled icon in your editor, ensure it is not listed in `.gitignore` if you want it versioned (not recommended for secrets in production). For local development, copy `env.example` to `.env` and adjust values as needed.
+
+## Deployment Notes
+- Deploy the backend behind a reverse proxy for HTTPS.
+- Do not expose the Express HTTP port directly.
+- Use the provided Nginx config as a template for secure deployment.

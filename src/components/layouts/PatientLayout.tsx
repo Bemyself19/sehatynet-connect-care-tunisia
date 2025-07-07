@@ -23,7 +23,7 @@ const PatientLayout = () => {
     { label: t('dashboard') || 'Dashboard', icon: <Activity className="h-5 w-5" />, href: '/dashboard/patient' },
     { label: t('bookAppointment') || 'Book Appointment', icon: <Plus className="h-5 w-5" />, href: '/dashboard/patient/book' },
     { label: t('myAppointments') || 'My Appointments', icon: <Calendar className="h-5 w-5" />, href: '/dashboard/patient/appointments', badge },
-    { label: t('medicalRecords') || 'Medical Records', icon: <FileText className="h-5 w-5" />, href: '/dashboard/patient/medical-records' },
+    { label: t('medicalRecordsLabel') || 'Medical Records', icon: <FileText className="h-5 w-5" />, href: '/dashboard/patient/medical-records' },
     { label: t('teleExpertise') || 'Tele-Expertise', icon: <MessageSquare className="h-5 w-5" />, href: '/dashboard/patient/tele-expertise' },
     { label: t('profile') || 'Profile', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/patient/profile' },
   ];

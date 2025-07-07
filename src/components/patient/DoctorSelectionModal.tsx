@@ -123,7 +123,9 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                   <SelectContent>
                     {specialties.map((specialty) => (
                       <SelectItem key={specialty} value={specialty}>
-                        {specialty}
+                        {specialty === 'General' || specialty === 'generalpractitioner'
+                          ? t('generalpractitioner')
+                          : t(specialty.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase()))}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -145,7 +147,9 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
               <ScrollArea className="h-[400px]">
                 {Object.entries(groupedDoctors).map(([specialty, docs]) => (
                   <div key={specialty} className="mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">{specialty}</h3>
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 border-b pb-2">
+                      {specialty === 'General' ? t('generalPractitioner') : t(specialty.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase()))}
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {docs.map(doctor => (
                         <Card key={doctor._id} className="cursor-pointer hover:bg-gray-50" onClick={() => onSelectDoctor(doctor)}>
@@ -153,12 +157,12 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                             <CardTitle className="text-base">{doctor.firstName} {doctor.lastName}</CardTitle>
                             <CardDescription>{doctor.specialization ? t(
                               doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
-                            ) : ''}</CardDescription>
+                            ) : t('generalPractitioner')}</CardDescription>
                           </CardHeader>
                           <CardContent>
                             <p className="text-sm text-gray-600">{doctor.specialization ? t(
                               doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
-                            ) : ''}</p>
+                            ) : t('generalPractitioner')}</p>
                           </CardContent>
                         </Card>
                       ))}
