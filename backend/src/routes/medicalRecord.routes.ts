@@ -1,45 +1,24 @@
 import express from "express";
-import { 
-    createMedicalRecord, 
-    getMedicalRecords, 
-    getMedicalRecordById, 
-    updateMedicalRecord, 
-    deleteMedicalRecord, 
-    getPatientMedicalHistory,
-    getPatientDashboard,
-    updateRecordPrivacy,
-    getDoctorNotesForPatient,
-    assignProviderToSection,
-    getMedicalRecordsByPrescriptionId,
-    getAssignedRequests,
-    fulfillAssignedRequest,
-    cancelMedicalRecordRequest,
-    reassignPharmacyForMedicalRecord,
-    uploadLabRadiologyReport
-} from "../controllers/medicalRecord.controller";
+import multer from "multer";
+import path from "path";
+import { createMedicalRecord, getMedicalRecords } from "../controllers/medicalRecord.controller";
 import { authenticateJWT } from "../middleware/auth";
+import { authorizeRoles } from "../middleware/roles";
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticateJWT);
+const storage = multer.diskStorage({
+  destination: function (_req, _file, cb) {
+    cb(null, path.join(__dirname, '../../uploads'));
+  },
+  filename: function (_req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
 
-// Medical record management
-router.post("/", createMedicalRecord);
-router.get("/", getMedicalRecords);
-router.get("/patient/:patientId", getPatientMedicalHistory);
-router.get("/dashboard", getPatientDashboard);
-router.get("/assigned", getAssignedRequests);
-router.get("/:id", getMedicalRecordById);
-router.put("/:id", updateMedicalRecord);
-router.patch("/:id/privacy", updateRecordPrivacy);
-router.delete("/:id", deleteMedicalRecord);
-router.get("/patient/:patientId/notes", getDoctorNotesForPatient);
-router.post("/:id/assign-provider", assignProviderToSection);
-router.get("/by-prescription/:prescriptionId", getMedicalRecordsByPrescriptionId);
-router.patch("/:id/fulfill", fulfillAssignedRequest);
-router.patch("/:id/cancel", cancelMedicalRecordRequest);
-router.post("/:id/reassign-pharmacy", reassignPharmacyForMedicalRecord);
-router.post('/:id/upload-report', uploadLabRadiologyReport);
+router.post("/upload", authenticateJWT, authorizeRoles("patient"), upload.single("file"), createMedicalRecord);
+router.get("/my", authenticateJWT, authorizeRoles("patient"), getMedicalRecords);
 
-export default router; 
+export default router;

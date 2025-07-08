@@ -8,9 +8,11 @@ import { useUser } from '@/hooks/useUser';
 import api from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const DoctorPatients: React.FC = () => {
   const { user } = useUser();
+  const { t } = useTranslation();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientMedicalRecords, setPatientMedicalRecords] = useState<MedicalRecord[]>([]);
@@ -92,24 +94,24 @@ const DoctorPatients: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Patients</h2>
+      <h2 className="text-2xl font-bold mb-4">{t('patientsSectionTitle')}</h2>
       <div className="mb-6 flex items-center gap-2 max-w-md relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
           <Search size={18} />
         </span>
         <Input
           type="text"
-          placeholder="Search patients by name, email, or phone..."
+          placeholder={t('searchPatientsPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          aria-label="Search patients"
+          aria-label={t('searchPatientsAriaLabel')}
           className="pl-10 pr-8 py-2 rounded shadow-sm focus:ring-2 focus:ring-blue-500"
         />
         {search && (
           <button
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             onClick={() => setSearch('')}
-            aria-label="Clear search"
+            aria-label={t('clearSearch')}
             tabIndex={0}
           >
             ×
@@ -118,7 +120,7 @@ const DoctorPatients: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredPatients.length === 0 ? (
-          <div className="col-span-full text-center text-gray-500 py-8">No patients found.</div>
+          <div className="col-span-full text-center text-gray-500 py-8">{t('noPatientsFound')}</div>
         ) : (
           filteredPatients.map((patient) => (
             <Card key={patient._id} className="mb-4">
@@ -127,13 +129,13 @@ const DoctorPatients: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-2">
-                  <span>Email: {patient.email}</span>
-                  <span>Phone: {patient.phone}</span>
+                  <span>{t('emailLabel')}: {patient.email}</span>
+                  <span>{t('phoneLabel')}: {patient.phone}</span>
                   <button
                     className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     onClick={() => handleViewMedicalRecords(patient)}
                   >
-                    View Medical Records
+                    {t('viewMedicalRecordsBtn')}
                   </button>
                 </div>
               </CardContent>
@@ -144,9 +146,9 @@ const DoctorPatients: React.FC = () => {
       {/* Medical Records Accordion */}
       {selectedPatient && (
         <div className="mt-8">
-          <h3 className="text-xl font-semibold mb-2">Medical Records for {`${selectedPatient.firstName} ${selectedPatient.lastName}`}</h3>
+          <h3 className="text-xl font-semibold mb-2">{t('medicalRecordsFor', { name: `${selectedPatient.firstName} ${selectedPatient.lastName}` })}</h3>
           {loadingMedicalRecords ? (
-            <div>Loading...</div>
+            <div>{t('loading')}</div>
           ) : (
             <Accordion type="multiple">
               {/* Grouped by prescription */}
@@ -155,13 +157,13 @@ const DoctorPatients: React.FC = () => {
                 return (
                   <AccordionItem key={prescription._id} value={prescription._id}>
                     <AccordionTrigger onClick={() => handleAccordionToggle(prescription._id)}>
-                      Prescription
-                      <Badge className="ml-2">{prescription.status}</Badge>
+                      {t('prescriptionLabel')}
+                      <Badge className="ml-2">{t(prescription.status)}</Badge>
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="p-2">
-                        <div><strong>Date:</strong> {new Date(prescription.date).toLocaleDateString()}</div>
-                        <div><strong>Medications:</strong>
+                        <div><strong>{t('dateLabel')}:</strong> {new Date(prescription.date).toLocaleDateString()}</div>
+                        <div><strong>{t('medicationsLabel')}:</strong>
                           <ul className="list-disc ml-6">
                             {prescription.details.medications?.map((med: any, idx: number) => (
                               <li key={idx}>{med.name} - {med.dosage}, {med.frequency}, {med.duration} {med.instructions && `(${med.instructions})`}</li>
@@ -169,7 +171,7 @@ const DoctorPatients: React.FC = () => {
                           </ul>
                         </div>
                         {prescription.details.labTests && (
-                          <div><strong>Lab Tests:</strong>
+                          <div><strong>{t('labTestsLabel')}:</strong>
                             <ul className="list-disc ml-6">
                               {prescription.details.labTests.map((test: any, idx: number) => (
                                 <li key={idx}>{test.testName} {test.notes && `(${test.notes})`}</li>
@@ -178,7 +180,7 @@ const DoctorPatients: React.FC = () => {
                           </div>
                         )}
                         {prescription.details.radiologyExams && (
-                          <div><strong>Radiology Exams:</strong>
+                          <div><strong>{t('radiologyExamsLabel')}:</strong>
                             <ul className="list-disc ml-6">
                               {prescription.details.radiologyExams.map((exam: any, idx: number) => (
                                 <li key={idx}>{exam.examName} {exam.notes && `(${exam.notes})`}</li>
@@ -189,13 +191,12 @@ const DoctorPatients: React.FC = () => {
                         {/* Nested lab results */}
                         {results.lab.length > 0 && (
                           <div className="mt-4">
-                            <strong>Lab Results:</strong>
+                            <strong>{t('labResultsLabel')}:</strong>
                             {results.lab.map((lab) => (
                               <div key={lab._id} className="border rounded p-2 my-2 bg-gray-50">
-                                <div><strong>Title:</strong> {lab.title}</div>
-                                <div><strong>Date:</strong> {new Date(lab.date).toLocaleDateString()}</div>
-                                <div><strong>Details:</strong> {JSON.stringify(lab.details)}</div>
-                                {/* Add more structured fields as needed */}
+                                <div><strong>{t('titleLabel')}:</strong> {lab.title}</div>
+                                <div><strong>{t('dateLabel')}:</strong> {new Date(lab.date).toLocaleDateString()}</div>
+                                <div><strong>{t('detailsLabel')}:</strong> {JSON.stringify(lab.details)}</div>
                               </div>
                             ))}
                           </div>
@@ -203,13 +204,12 @@ const DoctorPatients: React.FC = () => {
                         {/* Nested imaging results */}
                         {results.imaging.length > 0 && (
                           <div className="mt-4">
-                            <strong>Radiology Results:</strong>
+                            <strong>{t('radiologyResultsLabel')}:</strong>
                             {results.imaging.map((img) => (
                               <div key={img._id} className="border rounded p-2 my-2 bg-gray-50">
-                                <div><strong>Title:</strong> {img.title}</div>
-                                <div><strong>Date:</strong> {new Date(img.date).toLocaleDateString()}</div>
-                                <div><strong>Details:</strong> {JSON.stringify(img.details)}</div>
-                                {/* Add more structured fields as needed */}
+                                <div><strong>{t('titleLabel')}:</strong> {img.title}</div>
+                                <div><strong>{t('dateLabel')}:</strong> {new Date(img.date).toLocaleDateString()}</div>
+                                <div><strong>{t('detailsLabel')}:</strong> {JSON.stringify(img.details)}</div>
                               </div>
                             ))}
                           </div>
@@ -223,13 +223,13 @@ const DoctorPatients: React.FC = () => {
               {otherRecords.map((record) => (
                 <AccordionItem key={record._id} value={record._id}>
                   <AccordionTrigger onClick={() => handleAccordionToggle(record._id)}>
-                    {record.title}
-                    <Badge className="ml-2">{record.status}</Badge>
+                    {t(record.title)}
+                    <Badge className="ml-2">{t(record.status)}</Badge>
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="p-2">
-                      <div>Date: {new Date(record.date).toLocaleDateString()}</div>
-                      <div>Details: {JSON.stringify(record.details)}</div>
+                      <div>{t('dateLabel')}: {new Date(record.date).toLocaleDateString()}</div>
+                      <div>{t('detailsLabel')}: {JSON.stringify(record.details)}</div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -242,4 +242,4 @@ const DoctorPatients: React.FC = () => {
   );
 };
 
-export default DoctorPatients; 
+export default DoctorPatients;

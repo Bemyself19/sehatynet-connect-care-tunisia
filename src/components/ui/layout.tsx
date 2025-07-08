@@ -256,12 +256,12 @@ export const Layout: React.FC<LayoutProps> = ({
               <div className="mb-8">
                 {title && (
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {title}
+                    {t(title)}
                   </h1>
                 )}
                 {subtitle && (
                   <p className="text-lg text-gray-600">
-                    {subtitle}
+                    {t(subtitle)}
                   </p>
                 )}
               </div>
@@ -273,4 +273,4 @@ export const Layout: React.FC<LayoutProps> = ({
       </div>
     </div>
   );
-}; 
+};
