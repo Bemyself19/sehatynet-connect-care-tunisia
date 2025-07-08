@@ -32,15 +32,15 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  confirmed: 'Confirmed',
-  scheduled: 'Scheduled',
-  'in-progress': 'In Progress',
-  completed: 'Completed',
-  pending: 'Pending',
-  cancelled: 'Cancelled',
-  'no-show': 'No-show',
-  available: 'Available',
-  'outside-hours': 'Outside Hours',
+  confirmed: 'confirmed',
+  scheduled: 'scheduled',
+  'in-progress': 'inProgress',
+  completed: 'completed',
+  pending: 'pending',
+  cancelled: 'cancelled',
+  'no-show': 'noShow',
+  available: 'available',
+  'outside-hours': 'outsideHours',
 };
 
 const getSlotStatus = (slotTime: Date, appointments: any[], workingHours: { start: string; end: string }) => {
@@ -200,4 +200,4 @@ const DoctorDashboard: React.FC = () => {
   );
 };
 
-export default DoctorDashboard; 
+export default DoctorDashboard;

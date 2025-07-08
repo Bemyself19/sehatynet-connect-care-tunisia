@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import api from '@/lib/api';
 import { ChartContainer } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer, Legend } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 const COLORS = ['#6366f1', '#22d3ee', '#f59e42', '#f43f5e', '#10b981', '#a78bfa'];
 
@@ -23,6 +24,7 @@ const mockStatus = [
 ];
 
 const DoctorAnalytics: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,14 +43,14 @@ const DoctorAnalytics: React.FC = () => {
   }, []);
 
   // Transform backend data for charts
-  const trends = stats?.apptTrends?.map((t: any) => ({
-    date: t._id,
-    appointments: t.count,
-    newPatients: stats?.newPatients?.find((n: any) => n._id === t._id)?.count || 0
+  const trends = stats?.apptTrends?.map((tItem: any) => ({
+    date: tItem._id,
+    appointments: tItem.count,
+    newPatients: stats?.newPatients?.find((n: any) => n._id === tItem._id)?.count || 0
   })) || [];
 
   const statusData = stats?.apptStatus?.map((s: any) => ({
-    name: s._id.charAt(0).toUpperCase() + s._id.slice(1),
+    name: t(`analytics.status.${s._id}`),
     value: s.value
   })) || [];
 
@@ -59,29 +61,29 @@ const DoctorAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-2xl font-bold mb-4">Analytics</h2>
+      <h2 className="text-2xl font-bold mb-4">{t('analyticsPage.title')}</h2>
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
-          <CardHeader><CardTitle>Total Appointments</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.totalAppointments')}</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-bold">{stats?.totalAppointments ?? '--'}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Total Patients</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.totalPatients')}</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-bold">{stats?.totalPatients ?? '--'}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Tele-Expertise Requests</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.totalTeleExpertise')}</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-bold">{stats?.totalTeleExpertise ?? '--'}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Prescriptions</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.totalPrescriptions')}</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-bold">{stats?.totalPrescriptions ?? '--'}</div></CardContent>
         </Card>
       </div>
       {/* Trends Line Chart */}
       <Card>
-        <CardHeader><CardTitle>Appointments Over Time</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{t('analyticsPage.appointmentsOverTime')}</CardTitle></CardHeader>
         <CardContent style={{ height: 300 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trends} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -89,8 +91,8 @@ const DoctorAnalytics: React.FC = () => {
               <YAxis allowDecimals={false} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="appointments" stroke="#6366f1" strokeWidth={2} name="Appointments" />
-              <Line type="monotone" dataKey="newPatients" stroke="#22d3ee" strokeWidth={2} name="New Patients" />
+              <Line type="monotone" dataKey="appointments" stroke="#6366f1" strokeWidth={2} name={t('analyticsPage.appointments')} />
+              <Line type="monotone" dataKey="newPatients" stroke="#22d3ee" strokeWidth={2} name={t('analyticsPage.newPatients')} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -98,7 +100,7 @@ const DoctorAnalytics: React.FC = () => {
       {/* Status Pie Chart & New Patients Bar Chart */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle>Appointment Status Breakdown</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.statusBreakdown')}</CardTitle></CardHeader>
           <CardContent style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -114,14 +116,14 @@ const DoctorAnalytics: React.FC = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>New Patients This Week</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('analyticsPage.newPatientsThisWeek')}</CardTitle></CardHeader>
           <CardContent style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={newPatientsData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <XAxis dataKey="date" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="newPatients" fill="#22d3ee" name="New Patients" />
+                <Bar dataKey="newPatients" fill="#22d3ee" name={t('analyticsPage.newPatients')} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -131,4 +133,4 @@ const DoctorAnalytics: React.FC = () => {
   );
 };
 
-export default DoctorAnalytics; 
+export default DoctorAnalytics;

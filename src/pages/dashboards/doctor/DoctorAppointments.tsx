@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, Video, MapPin, FileText, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
 // Helper function to convert time string (HH:mm) to minutes since midnight
 const timeToMinutes = (timeStr: string): number => {
@@ -41,18 +42,6 @@ const statusColors: Record<string, string> = {
   'outside-hours': 'bg-gray-100 text-gray-400',
 };
 
-const statusLabels: Record<string, string> = {
-  confirmed: 'Confirmed',
-  scheduled: 'Scheduled',
-  'in-progress': 'In Progress',
-  completed: 'Completed',
-  pending: 'Pending',
-  cancelled: 'Cancelled',
-  'no-show': 'No-show',
-  available: 'Available',
-  'outside-hours': 'Outside Hours',
-};
-
 const getSlotStatus = (slotTime: Date, appointments: any[], workingHours: { start: string; end: string }) => {
   const slotMinutes = slotTime.getHours() * 60 + slotTime.getMinutes();
   const workStartMinutes = timeToMinutes(workingHours.start);
@@ -75,6 +64,19 @@ const getSlotStatus = (slotTime: Date, appointments: any[], workingHours: { star
 };
 
 const DoctorAppointments: React.FC = () => {
+  const { t } = useTranslation();
+  // Move statusLabels inside the component so t is in scope
+  const statusLabels: Record<string, string> = {
+    confirmed: t('confirmed'),
+    scheduled: t('scheduled'),
+    'in-progress': t('inProgress'),
+    completed: t('completed'),
+    pending: t('pending'),
+    cancelled: t('cancelled'),
+    'no-show': t('noShow'),
+    available: t('available'),
+    'outside-hours': t('outsideHours'),
+  };
   const { appointments, isLoading } = useAppointments();
   const { user } = useUser();
   const queryClient = useQueryClient();
@@ -236,168 +238,49 @@ const DoctorAppointments: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white shadow-sm border-0">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Appointment Management</CardTitle>
-        <CardDescription>Manage your upcoming consultations and patient appointments</CardDescription>
+        <CardTitle>{t('appointmentManagement')}</CardTitle>
+        <CardDescription>{t('manageUpcomingConsultations')}</CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Working Hours Display */}
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-          <div className="text-sm text-blue-700">
-            <strong>Working Hours:</strong> {workingHours.start} - {workingHours.end} | 
-            <strong> Slot Duration:</strong> {slotDuration} minutes
-          </div>
-        </div>
-        
         {/* View Switcher */}
         <div className="flex gap-2 mb-4">
-          <button className={`px-3 py-1 rounded ${view === 'day' ? 'bg-blue-500 text-white' : 'bg-slate-100 text-gray-700'}`} onClick={() => setView('day')}>Day</button>
-          <button className={`px-3 py-1 rounded ${view === 'week' ? 'bg-blue-500 text-white' : 'bg-slate-100 text-gray-700'}`} onClick={() => setView('week')}>Week</button>
-          <button className={`px-3 py-1 rounded ${view === 'month' ? 'bg-blue-500 text-white' : 'bg-slate-100 text-gray-700'}`} onClick={() => setView('month')}>Month</button>
+          <Button variant={view === 'day' ? 'default' : 'outline'} onClick={() => setView('day')}>{t('day')}</Button>
+          <Button variant={view === 'week' ? 'default' : 'outline'} onClick={() => setView('week')}>{t('week')}</Button>
+          <Button variant={view === 'month' ? 'default' : 'outline'} onClick={() => setView('month')}>{t('month')}</Button>
         </div>
-        
-        {/* Calendar Views */}
-        {view === 'day' && (
-          <div className="overflow-y-auto mb-8" style={{ maxHeight: 500 }}>
-            <table className="min-w-full border rounded-lg bg-white">
-              <thead>
-                <tr>
-                  <th className="p-2 text-left text-xs font-semibold text-gray-500">Time</th>
-                  <th className="p-2 text-left text-xs font-semibold text-gray-500">Status</th>
-                  <th className="p-2 text-left text-xs font-semibold text-gray-500">Patient</th>
-                  <th className="p-2 text-left text-xs font-semibold text-gray-500">Type</th>
-                  <th className="p-2 text-left text-xs font-semibold text-gray-500">Details</th>
+        {/* Working Hours Display */}
+        <div className="bg-blue-50 rounded-lg p-4 mb-4">
+          <span className="font-semibold text-blue-700">{t('workingHours')}:</span> {workingHours.start} - {workingHours.end} | <span className="font-semibold text-blue-700">{t('slotDuration')}:</span> {slotDuration} {t('minutes')}
+        </div>
+        {/* Table Headers */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('time')}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status')}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('patient')}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('type')}</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('details')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {slots.map((slot, idx) => (
+                <tr key={idx}>
+                  <td className="px-4 py-2 whitespace-nowrap">{slot.time}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[slot.status]}`}>{statusLabels[slot.status]}</span>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">{slot.appointment ? `${slot.appointment.patientId.firstName} ${slot.appointment.patientId.lastName}` : '-'}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">{slot.appointment ? t(slot.appointment.type) : '-'}</td>
+                  <td className="px-4 py-2 whitespace-nowrap">-</td>
                 </tr>
-              </thead>
-              <tbody>
-                {slots.map((slot, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? 'bg-slate-50' : ''}>
-                    <td className="p-2 text-sm font-mono">{slot.time}</td>
-                    <td className="p-2">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[slot.status]}`}>{statusLabels[slot.status]}</span>
-                    </td>
-                    <td className="p-2 text-sm">
-                      {(slot.appointment && !['cancelled', 'no-show'].includes(slot.appointment.status))
-                        ? `${slot.appointment.patientId?.firstName || ''} ${slot.appointment.patientId?.lastName || ''}`
-                        : '-'}
-                    </td>
-                    <td className="p-2 text-sm">
-                      {(slot.appointment && !['cancelled', 'no-show'].includes(slot.appointment.status))
-                        ? slot.appointment.type
-                        : '-'}
-                    </td>
-                    <td className="p-2 text-sm">
-                      {(slot.appointment && !['cancelled', 'no-show'].includes(slot.appointment.status)) ? (
-                        <>
-                          <div className="text-xs text-gray-500">{slot.appointment.reason || slot.appointment.notes || ''}</div>
-                          <button
-                            className="text-blue-600 underline text-xs mt-1"
-                            onClick={() => handleOpenAppointmentDetail(slot.appointment)}
-                          >
-                            View Details
-                          </button>
-                        </>
-                      ) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        
-        {view === 'week' && (
-          <TooltipProvider>
-            <div className="overflow-x-auto mb-8" style={{ maxHeight: 500 }}>
-              <table className="min-w-full border rounded-lg bg-white">
-                <thead>
-                  <tr>
-                    <th className="p-2 text-left text-xs font-semibold text-gray-500">Time</th>
-                    {[...Array(7)].map((_, i) => (
-                      <th key={i} className="p-2 text-left text-xs font-semibold text-gray-500">{slots[i]?.date}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...Array(Math.ceil((workEndMinutes - workStartMinutes) / slotDuration))].map((_, rowIdx) => (
-                    <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-slate-50' : ''}>
-                      <td className="p-2 text-sm font-mono">{format(addMinutes(today, workStartMinutes + rowIdx * slotDuration), 'HH:mm')}</td>
-                      {slots.map((day, colIdx) => (
-                        <td key={colIdx} className="p-2">
-                          {(day.slots[rowIdx].appointment && !['cancelled', 'no-show'].includes(day.slots[rowIdx].appointment.status)) ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[day.slots[rowIdx].status]}`}>{statusLabels[day.slots[rowIdx].status]}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <div>
-                                  <div className="font-semibold">{day.slots[rowIdx].appointment.patientId?.firstName} {day.slots[rowIdx].appointment.patientId?.lastName}</div>
-                                  <div className="text-xs">{day.slots[rowIdx].appointment.type}</div>
-                                  <div className="text-xs text-gray-500">{day.slots[rowIdx].appointment.reason || day.slots[rowIdx].appointment.notes || ''}</div>
-                                  <button
-                                    className="text-blue-600 underline text-xs mt-1"
-                                    onClick={() => handleOpenAppointmentDetail(day.slots[rowIdx].appointment)}
-                                  >
-                                    View Details
-                                  </button>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[day.slots[rowIdx].status]}`}>{statusLabels[day.slots[rowIdx].status]}</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TooltipProvider>
-        )}
-        
-        {view === 'month' && (
-          <div className="overflow-x-auto mb-8">
-            <table className="min-w-full border rounded-lg bg-white">
-              <thead>
-                <tr>
-                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((wd, i) => (
-                    <th key={i} className="p-2 text-xs font-semibold text-gray-500">{wd}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {slots.map((week, wIdx) => (
-                  <tr key={wIdx}>
-                    {week.map((day, dIdx) => (
-                      <td key={dIdx} className="p-2 text-center align-top" style={{ minWidth: 60, height: 60 }}>
-                        {day ? (
-                          <div>
-                            <div className="font-semibold text-xs">{day.date}</div>
-                            {day.count > 0 ? (
-                              <button
-                                className="inline-block w-6 h-6 rounded-full bg-blue-200 text-blue-800 font-bold"
-                                onClick={() => { setView('day'); setCurrentDate(new Date(today.getFullYear(), today.getMonth(), parseInt(day.date.split('/')[0]))); }}
-                              >
-                                {day.count}
-                              </button>
-                            ) : (
-                              <span className="inline-block w-6 h-6 rounded-full bg-slate-100"></span>
-                            )}
-                            {day.count > 0 && (
-                              <div className="text-xs text-gray-500 mt-1">{day.statuses[0]}</div>
-                            )}
-                          </div>
-                        ) : null}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
         
         {/* Existing List View Below */}
         <DoctorAppointmentsList
@@ -414,7 +297,7 @@ const DoctorAppointments: React.FC = () => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Appointment Details
+                {t('appointmentDetails')}
               </DialogTitle>
             </DialogHeader>
             {selectedAppointment && (
@@ -423,20 +306,20 @@ const DoctorAppointments: React.FC = () => {
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Patient Information
+                    {t('patientInformation')}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Name:</span> {selectedAppointment.patientId.firstName} {selectedAppointment.patientId.lastName}
+                      <span className="font-medium">{t('name')}:</span> {selectedAppointment.patientId.firstName} {selectedAppointment.patientId.lastName}
                     </div>
                     <div>
-                      <span className="font-medium">Email:</span> {selectedAppointment.patientId.email}
+                      <span className="font-medium">{t('email')}:</span> {selectedAppointment.patientId.email}
                     </div>
                     <div>
-                      <span className="font-medium">Phone:</span> {selectedAppointment.patientId.phone}
+                      <span className="font-medium">{t('phone')}:</span> {selectedAppointment.patientId.phone}
                     </div>
                     <div>
-                      <span className="font-medium">CNAM ID:</span> {selectedAppointment.patientId.cnamId || 'N/A'}
+                      <span className="font-medium">{t('cnamId')}:</span> {selectedAppointment.patientId.cnamId || t('notRequested')}
                     </div>
                   </div>
                 </div>
@@ -445,36 +328,36 @@ const DoctorAppointments: React.FC = () => {
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h3 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Appointment Information
+                    {t('appointmentInformation')}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium">Date:</span> {new Date(selectedAppointment.scheduledDate).toLocaleDateString()}
+                      <span className="font-medium">{t('date')}:</span> {new Date(selectedAppointment.scheduledDate).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">Time:</span> {selectedAppointment.scheduledTime}
+                      <span className="font-medium">{t('time')}:</span> {selectedAppointment.scheduledTime}
                     </div>
                     <div>
-                      <span className="font-medium">Duration:</span> {selectedAppointment.duration} minutes
+                      <span className="font-medium">{t('duration')}:</span> {selectedAppointment.duration} {t('minutes')}
                     </div>
                     <div>
-                      <span className="font-medium">Type:</span> 
+                      <span className="font-medium">{t('type')}:</span> 
                       <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${statusColors[selectedAppointment.status]}`}>
                         {statusLabels[selectedAppointment.status]}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium">Consultation Type:</span> 
+                      <span className="font-medium">{t('consultationType')}:</span> 
                       <span className="ml-2 flex items-center gap-1">
                         {selectedAppointment.appointmentType === 'video' ? (
-                          <><Video className="h-3 w-3" /> Video Consultation</>
+                          <><Video className="h-3 w-3" /> {t('videoConsultation')}</>
                         ) : (
-                          <><MapPin className="h-3 w-3" /> In-Person</>
+                          <><MapPin className="h-3 w-3" /> {t('inPerson')}</>
                         )}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium">Fee:</span> ${selectedAppointment.consultationFee}
+                      <span className="font-medium">{t('fee')}:</span> ${selectedAppointment.consultationFee}
                     </div>
                   </div>
                 </div>
@@ -484,24 +367,24 @@ const DoctorAppointments: React.FC = () => {
                   <div className="bg-yellow-50 p-4 rounded-lg">
                     <h3 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
                       <FileText className="h-4 w-4" />
-                      Medical Information
+                      {t('medicalInformation')}
                     </h3>
                     <div className="space-y-3 text-sm">
                       {selectedAppointment.reason && (
                         <div>
-                          <span className="font-medium">Reason for Visit:</span>
+                          <span className="font-medium">{t('reasonForVisit')}:</span>
                           <p className="mt-1 text-gray-700">{selectedAppointment.reason}</p>
                         </div>
                       )}
                       {selectedAppointment.symptoms && (
                         <div>
-                          <span className="font-medium">Symptoms:</span>
+                          <span className="font-medium">{t('symptoms')}:</span>
                           <p className="mt-1 text-gray-700">{selectedAppointment.symptoms}</p>
                         </div>
                       )}
                       {selectedAppointment.notes && (
                         <div>
-                          <span className="font-medium">Notes:</span>
+                          <span className="font-medium">{t('notes')}:</span>
                           <p className="mt-1 text-gray-700">{selectedAppointment.notes}</p>
                         </div>
                       )}
@@ -513,23 +396,17 @@ const DoctorAppointments: React.FC = () => {
                 <div className="flex justify-end gap-2 pt-4 border-t">
                   {selectedAppointment.status === 'pending' && (
                     <>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          handleAppointmentStatusChange(selectedAppointment._id, 'confirmed');
-                          handleCloseAppointmentDetail();
-                        }}
-                      >
-                        Confirm Appointment
+                      <Button variant="outline" onClick={() => {
+                        handleAppointmentStatusChange(selectedAppointment._id, 'confirmed');
+                        handleCloseAppointmentDetail();
+                      }}>
+                        {t('confirmAppointment')}
                       </Button>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => {
-                          handleAppointmentStatusChange(selectedAppointment._id, 'cancelled');
-                          handleCloseAppointmentDetail();
-                        }}
-                      >
-                        Cancel Appointment
+                      <Button variant="destructive" onClick={() => {
+                        handleAppointmentStatusChange(selectedAppointment._id, 'cancelled');
+                        handleCloseAppointmentDetail();
+                      }}>
+                        {t('cancelAppointment')}
                       </Button>
                     </>
                   )}
@@ -538,17 +415,14 @@ const DoctorAppointments: React.FC = () => {
                       handleCloseAppointmentDetail();
                       handleJoinCall(selectedAppointment);
                     }}>
-                      Join Call
+                      {t('joinCall')}
                     </Button>
                   )}
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      handleCloseAppointmentDetail();
-                      handleOpenPrescriptionModal(selectedAppointment);
-                    }}
-                  >
-                    Create Prescription
+                  <Button variant="outline" onClick={() => {
+                    handleCloseAppointmentDetail();
+                    handleOpenPrescriptionModal(selectedAppointment);
+                  }}>
+                    {t('createPrescription')}
                   </Button>
                 </div>
               </div>
@@ -571,4 +445,4 @@ const DoctorAppointments: React.FC = () => {
   );
 };
 
-export default DoctorAppointments; 
+export default DoctorAppointments;

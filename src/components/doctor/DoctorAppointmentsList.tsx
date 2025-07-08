@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Check, X, Video, FilePlus } from 'lucide-react';
 import { isAfter, isEqual, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 interface DoctorAppointmentsListProps {
   appointments: Appointment[];
@@ -20,6 +21,7 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
   onJoinCall, 
   onCreatePrescription 
 }) => {
+  const { t } = useTranslation();
   const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
   const now = new Date();
   const upcomingAppointments = appointments.filter(apt => {
@@ -33,12 +35,12 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Pending Appointments</CardTitle>
-          <CardDescription>Review and confirm new appointment requests.</CardDescription>
+          <CardTitle>{t('pendingAppointments')}</CardTitle>
+          <CardDescription>{t('reviewAndConfirmRequests')}</CardDescription>
         </CardHeader>
         <CardContent>
           {pendingAppointments.length === 0 ? (
-            <p className="text-gray-500">No pending appointments.</p>
+            <p className="text-gray-500">{t('noPendingAppointments')}</p>
           ) : (
             <div className="space-y-4">
               {pendingAppointments.map(apt => (
@@ -53,15 +55,15 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
                     </div>
                      <div className="text-sm text-gray-500 flex items-center mt-1">
                       <Video className="w-4 h-4 mr-2" />
-                      {apt.appointmentType}
+                      {t(apt.appointmentType)}
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <Button size="sm" variant="outline" onClick={() => onConfirm(apt._id)}>
-                      <Check className="w-4 h-4 mr-2" /> Confirm
+                      <Check className="w-4 h-4 mr-2" /> {t('confirm')}
                     </Button>
                     <Button size="sm" variant="destructive" onClick={() => onCancel(apt._id)}>
-                       <X className="w-4 h-4 mr-2" /> Cancel
+                       <X className="w-4 h-4 mr-2" /> {t('cancel')}
                     </Button>
                   </div>
                 </div>
@@ -73,12 +75,12 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming Appointments</CardTitle>
-          <CardDescription>Your confirmed appointments for today and the future.</CardDescription>
+          <CardTitle>{t('upcomingAppointments')}</CardTitle>
+          <CardDescription>{t('confirmedAppointmentsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {upcomingAppointments.length === 0 ? (
-            <p className="text-gray-500">No upcoming appointments.</p>
+            <p className="text-gray-500">{t('noUpcomingAppointments')}</p>
           ) : (
             <div className="space-y-4">
               {upcomingAppointments.map(apt => (
@@ -93,12 +95,12 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
                     </div>
                      <div className="text-sm text-gray-500 flex items-center mt-1">
                       <Video className="w-4 h-4 mr-2" />
-                      {apt.appointmentType}
+                      {t(apt.appointmentType)}
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     {apt.appointmentType === 'video' && (
-                       <Button size="sm" onClick={() => onJoinCall(apt)}>Join Call</Button>
+                       <Button size="sm" onClick={() => onJoinCall(apt)}>{t('joinCall')}</Button>
                     )}
                     <Button 
                       size="sm" 
@@ -106,7 +108,7 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
                       onClick={() => onCreatePrescription(apt)}
                     >
                       <FilePlus className="w-4 h-4 mr-2" />
-                      Prescription
+                      {t('prescription')}
                     </Button>
                   </div>
                 </div>
