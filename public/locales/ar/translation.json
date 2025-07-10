@@ -304,7 +304,18 @@
   "testResults": "نتائج الاختبارات",
   "testCatalog": "كتالوج الاختبارات",
   "prescriptions": "الوصفات الطبية",
-  "inventory": "المخزون",
+  "inventory": {
+    "_": "المخزون",
+    "title": "المخزون",
+    "description": "إدارة وتتبع مخزون الأدوية والمستلزمات الطبية",
+    "managementTitle": "إدارة المخزون",
+    "managementDescription": "إدارة مستويات المخزون وتفاصيله",
+    "managementHeader": "نظرة عامة على المخزون",
+    "managementDetails": "ميزات إدارة المخزون التفصيلية",
+    "inStock": "في المخزون: {{count}}",
+    "lowStock": "مخزون منخفض: {{count}}",
+    "outOfStock": "نفاد المخزون: {{count}}"
+  },
   "imagingReports": "تقارير التصوير",
   "imagingStudies": "دراسات التصوير",
   "forgotPasswordSubtitle": "أدخل عنوان بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور.",
@@ -458,5 +469,19 @@
       "cancelled": "ملغى",
       "no-show": "لم يحضر"
     }
-  }
+  },
+  "inventoryDetails": {
+    "title": "المخزون",
+    "description": "إدارة مخزون الصيدلية ومستويات المخزون",
+    "managementTitle": "إدارة المخزون",
+    "managementDescription": "مراقبة مستويات المخزون وإدارة المخزون",
+    "managementHeader": "إدارة المخزون",
+    "managementDetails": "ستحتوي هذه القسم على ميزات مفصلة لإدارة المخزون.",
+    "inStock": "في المخزون: {{count}}",
+    "lowStock": "مخزون منخفض: {{count}}",
+    "outOfStock": "نفاد المخزون: {{count}}"
+  },
+  "viewManagePrescriptionRequests": "عرض وإدارة طلبات الوصفات الطبية",
+  "detailedPrescriptionManagementFeatures": "ميزات مفصلة لإدارة الوصفات الطبية",
+  "prescriptionManagement": "إدارة الوصفات الطبية"
 }
