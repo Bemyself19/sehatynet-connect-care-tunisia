@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,39 +27,63 @@ const defaultSettings = {
 };
 
 const SystemSettings: React.FC = () => {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<any>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/system-settings', {
-      headers: { 'Authorization': `Bearer ${sessionStorage.getItem('authToken')}` }
-    })
-      .then(res => res.json())
-      .then(data => setSettings({ ...defaultSettings, ...data }))
-      .catch(() => toast.error('Failed to load system settings'))
-      .finally(() => setLoading(false));
+    const fetchSettings = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching system settings...');
+        const data = await api.getSystemSettings();
+        console.log('Received system settings:', data);
+        console.log('Payments enabled from API:', data.paymentsEnabled);
+        
+        // Merge with defaults but give priority to received values
+        const mergedSettings = { ...defaultSettings, ...data };
+        console.log('Merged settings:', mergedSettings);
+        console.log('Final paymentsEnabled value:', mergedSettings.paymentsEnabled);
+        
+        setSettings(mergedSettings);
+      } catch (err) {
+        console.error('Error loading system settings:', err);
+        toast.error('Failed to load system settings');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSettings();
   }, []);
 
   const handleChange = (key: string, value: any) => {
+    console.log(`Changing setting ${key} to:`, value);
     setSettings((prev: any) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/system-settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(settings)
-      });
-      if (!res.ok) throw new Error('Failed to save');
+      // Ensure boolean values are properly typed
+      const updatedSettings = { ...settings };
+      if ('paymentsEnabled' in updatedSettings) {
+        updatedSettings.paymentsEnabled = Boolean(updatedSettings.paymentsEnabled);
+      }
+      
+      console.log('Saving settings:', updatedSettings);
+      const result = await api.updateSystemSettings(updatedSettings);
+      console.log('Settings update result:', result);
+      
+      // Verify the settings were saved by fetching them again
+      const refreshedSettings = await api.getSystemSettings();
+      console.log('Refreshed settings after save:', refreshedSettings);
+      setSettings({ ...defaultSettings, ...refreshedSettings });
+      
       toast.success('Settings saved successfully');
     } catch (err) {
+      console.error('Error saving settings:', err);
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
@@ -75,10 +100,30 @@ const SystemSettings: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
           <p className="text-gray-600">Configure system parameters and preferences</p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={saving}>
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const data = await api.getSystemSettings();
+                console.log('Refreshed settings:', data);
+                setSettings({ ...defaultSettings, ...data });
+                toast.success('Settings refreshed');
+              } catch (err) {
+                toast.error('Failed to refresh settings');
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Refresh Settings
+          </Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={saving}>
+            <Save className="h-4 w-4 mr-2" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
       </div>
 
       {/* General Settings */}
@@ -110,10 +155,19 @@ const SystemSettings: React.FC = () => {
           </div>
           <div className="flex items-center justify-between mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
             <div>
-              <h3 className="font-medium">Enable Payments</h3>
-              <p className="text-sm text-gray-500">Require payment for services. If disabled, all services are free.</p>
+              <h3 className="font-medium">{t('enablePayments') || 'Enable Payments'}</h3>
+              <p className="text-sm text-gray-500">{t('paymentDescription') || 'Require payment for services. If disabled, all services are free.'}</p>
+              <p className="text-xs text-blue-600 mt-1">
+                {settings.paymentsEnabled ? 'Payment features are currently enabled' : 'Payment features are currently disabled'}
+              </p>
             </div>
-            <Switch checked={settings.paymentsEnabled} onCheckedChange={v => handleChange('paymentsEnabled', v)} />
+            <Switch 
+              checked={Boolean(settings.paymentsEnabled)} 
+              onCheckedChange={v => {
+                console.log(`Toggling payments to: ${v}`);
+                handleChange('paymentsEnabled', Boolean(v));
+              }} 
+            />
           </div>
         </CardContent>
       </Card>

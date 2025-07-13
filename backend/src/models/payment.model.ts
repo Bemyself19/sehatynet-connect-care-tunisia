@@ -42,7 +42,7 @@ const paymentSchema = new mongoose.Schema({
     // Payment provider
     paymentProvider: { 
         type: String, 
-        enum: ['tunisie_monetique', 'paypal', 'adyen', 'stripe'],
+        enum: ['tunisie_monetique', 'paypal', 'adyen', 'stripe', 'flouci'],
         required: true 
     },
     
@@ -70,6 +70,15 @@ const paymentSchema = new mongoose.Schema({
         authorizationCode: String,
         responseCode: String,
         responseMessage: String
+    },
+    
+    // Flouci specific fields
+    flouci: {
+        paymentUrl: String,
+        paymentId: String,
+        developerTrackingId: String,
+        receiptId: String,
+        status: String
     },
     
     // International payment fields
@@ -106,4 +115,4 @@ paymentSchema.index({ patientId: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ providerTransactionId: 1 });
 
-export default mongoose.model("Payment", paymentSchema); 
+export default mongoose.model("Payment", paymentSchema);

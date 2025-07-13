@@ -14,6 +14,7 @@ import api from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { LocationSelector } from '@/components/ui/LocationSelector';
 
 const Profile: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -35,6 +36,9 @@ const Profile: React.FC = () => {
         dateOfBirth: 'dateOfBirth' in user ? user.dateOfBirth : '',
         gender: 'gender' in user ? user.gender || '' : '',
         address: 'address' in user ? user.address : '',
+        country: 'country' in user ? user.country || '' : '',
+        province: 'province' in user ? user.province || '' : '',
+        city: 'city' in user ? user.city || '' : '',
         emergencyContactName: 'emergencyContact' in user && user.emergencyContact ? user.emergencyContact.name : '',
         emergencyContactPhone: 'emergencyContact' in user && user.emergencyContact ? user.emergencyContact.phone : '',
         emergencyContactRelationship: 'emergencyContact' in user && user.emergencyContact ? user.emergencyContact.relationship : '',
@@ -264,6 +268,16 @@ const Profile: React.FC = () => {
                   </Select>
                 </div>
               </div>
+
+              <LocationSelector
+                selectedCountry={profileData?.country}
+                selectedProvince={profileData?.province}
+                selectedCity={profileData?.city}
+                onCountryChange={(countryCode) => setProfileData(prev => ({ ...prev, country: countryCode }))}
+                onProvinceChange={(provinceCode) => setProfileData(prev => ({ ...prev, province: provinceCode }))}
+                onCityChange={(cityCode) => setProfileData(prev => ({ ...prev, city: cityCode }))}
+                disabled={isLoading}
+              />
 
               <div>
                 <Label htmlFor="address">{t('address') || 'Address'}</Label>

@@ -4,6 +4,22 @@ import Appointment from "../models/appointment.model";
 import User from "../models/user.model";
 import crypto from "crypto";
 import SystemSetting from '../models/systemSetting.model';
+import axios from "axios";
+
+// Define interfaces for Flouci API responses
+interface FlouciPaymentResult {
+  payment_id: string;
+  link: string;
+  status: string;
+  receipt_id?: string;
+}
+
+interface FlouciApiResponse {
+  result: FlouciPaymentResult;
+  success: boolean;
+  error_code?: string;
+  error_message?: string;
+}
 
 // Tunisie Monétique configuration
 const TUNISIE_MONETIQUE_CONFIG = {
@@ -13,6 +29,15 @@ const TUNISIE_MONETIQUE_CONFIG = {
     apiUrl: process.env.TUNISIE_API_URL || 'https://test.tunisie-monetique.tn/api',
     returnUrl: (process.env.FRONTEND_URL || 'http://localhost:5173') + '/payment/return',
     cancelUrl: (process.env.FRONTEND_URL || 'http://localhost:5173') + '/payment/cancel'
+};
+
+// Flouci configuration
+const FLOUCI_CONFIG = {
+    appToken: process.env.FLOUCI_APP_TOKEN || '',
+    appSecret: process.env.FLOUCI_APP_SECRET || '',
+    apiUrl: process.env.FLOUCI_API_URL || 'https://developers.flouci.com/api',
+    successUrl: (process.env.FRONTEND_URL || 'http://localhost:5173') + (process.env.FLOUCI_SUCCESS_URL || '/payment/success'),
+    failUrl: (process.env.FRONTEND_URL || 'http://localhost:5173') + (process.env.FLOUCI_FAIL_URL || '/payment/failed')
 };
 
 // Create payment session
@@ -57,6 +82,8 @@ export const createPaymentSession = async (req: Request, res: Response): Promise
             paymentProvider = 'adyen'; // or 'stripe' for international
         } else if (paymentMethod === 'paypal') {
             paymentProvider = 'paypal';
+        } else if (paymentMethod === 'flouci') {
+            paymentProvider = 'flouci';
         }
         
         // Create payment record
@@ -93,6 +120,13 @@ export const createPaymentSession = async (req: Request, res: Response): Promise
             res.json({
                 paymentId: payment._id,
                 sessionData
+            });
+        } else if (paymentProvider === 'flouci') {
+            const sessionData = await createFlouciSession(payment, populatedAppointment);
+            res.json({
+                paymentId: payment._id,
+                sessionData,
+                redirectUrl: sessionData.paymentUrl
             });
         } else {
             res.status(400).json({ message: "Unsupported payment provider" });
@@ -145,6 +179,62 @@ const createAdyenSession = async (payment: any, appointment: any) => {
         clientKey: process.env.ADYEN_CLIENT_KEY || '',
         environment: process.env.NODE_ENV === 'production' ? 'live' : 'test'
     };
+};
+
+// Flouci session creation for local payments
+const createFlouciSession = async (payment: any, appointment: any) => {
+    try {
+        // Create a unique tracking ID
+        const developerTrackingId = crypto.randomBytes(16).toString('hex');
+        
+        // Prepare the request payload
+        const payload = {
+            app_token: FLOUCI_CONFIG.appToken,
+            app_secret: FLOUCI_CONFIG.appSecret,
+            amount: payment.amount,
+            accept_card: true,
+            session_timeout_secs: 1200, // 20 minutes
+            success_link: FLOUCI_CONFIG.successUrl + `?paymentId=${payment._id}`,
+            fail_link: FLOUCI_CONFIG.failUrl + `?paymentId=${payment._id}`,
+            developer_tracking_id: developerTrackingId,
+        };
+        
+        // Make API call to Flouci
+        const response = await axios.post<FlouciApiResponse>(`${FLOUCI_CONFIG.apiUrl}/generate_payment`, payload);
+        
+        if (response.status !== 200 || !response.data?.result) {
+            throw new Error('Failed to create Flouci payment session');
+        }
+        
+        const result = response.data.result;
+        
+        // Update payment with Flouci session data
+        if (!payment.flouci) {
+            payment.flouci = {
+                paymentUrl: result.link,
+                paymentId: result.payment_id,
+                developerTrackingId: developerTrackingId,
+                status: 'pending'
+            };
+        } else {
+            payment.flouci.paymentUrl = result.link;
+            payment.flouci.paymentId = result.payment_id;
+            payment.flouci.developerTrackingId = developerTrackingId;
+            payment.flouci.status = 'pending';
+        }
+        
+        await payment.save();
+        
+        // Return session data for frontend
+        return {
+            paymentUrl: result.link,
+            paymentId: result.payment_id,
+            developerTrackingId: developerTrackingId
+        };
+    } catch (error) {
+        console.error('Flouci session creation error:', error);
+        throw error;
+    }
 };
 
 // Handle Tunisie Monétique payment return
@@ -215,6 +305,107 @@ export const handleTunisieMonetiqueReturn = async (req: Request, res: Response):
     }
 };
 
+// Handle Flouci payment verification
+export const handleFlouciVerification = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { paymentId } = req.params;
+        
+        // Find payment record
+        const payment = await Payment.findById(paymentId);
+        if (!payment) {
+            res.status(404).json({ success: false, message: "Payment not found" });
+            return;
+        }
+        
+        if (payment.paymentProvider !== 'flouci') {
+            res.status(400).json({ success: false, message: "Invalid payment provider" });
+            return;
+        }
+        
+        // Initialize flouci object if it doesn't exist
+        if (!payment.flouci) {
+            res.status(400).json({ success: false, message: "Invalid payment configuration" });
+            return;
+        }
+        
+        // Verify payment status with Flouci API
+        const verifyUrl = `${FLOUCI_CONFIG.apiUrl}/verify_payment/${payment.flouci.paymentId}`;
+        
+        const verifyPayload = {
+            app_token: FLOUCI_CONFIG.appToken,
+        };
+        
+        const response = await axios.post<FlouciApiResponse>(verifyUrl, verifyPayload);
+        
+        if (response.status !== 200 || !response.data?.result) {
+            payment.status = 'failed';
+            payment.errorMessage = 'Failed to verify payment';
+            await payment.save();
+            
+            res.json({
+                success: false,
+                message: "Failed to verify payment",
+                paymentStatus: 'failed'
+            });
+            return;
+        }
+        
+        const result = response.data.result;
+        
+        // Update payment status based on Flouci response
+        const paymentStatus = result.status;
+        
+        payment.flouci.status = paymentStatus;
+        payment.providerResponse = result;
+        
+        if (paymentStatus === 'completed' || paymentStatus === 'paid') {
+            // Payment successful
+            payment.status = 'completed';
+            payment.paidAt = new Date();
+            
+            // Save receipt ID if available
+            if (result.receipt_id) {
+                payment.flouci.receiptId = result.receipt_id;
+            }
+            
+            // Update appointment status
+            await Appointment.findByIdAndUpdate(payment.appointmentId, { status: 'confirmed' });
+            
+            res.json({
+                success: true,
+                message: "Payment completed successfully",
+                paymentStatus: 'completed'
+            });
+        } else if (paymentStatus === 'unpaid' || paymentStatus === 'failed') {
+            // Payment failed
+            payment.status = 'failed';
+            payment.errorMessage = 'Payment was not completed';
+            
+            res.json({
+                success: false,
+                message: "Payment was not completed",
+                paymentStatus: 'failed'
+            });
+        } else {
+            // Payment in other status (pending, etc.)
+            res.json({
+                success: false,
+                message: "Payment is still being processed",
+                paymentStatus: paymentStatus
+            });
+        }
+        
+        await payment.save();
+        
+    } catch (error) {
+        console.error('Flouci verification error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: "An error occurred while verifying the payment" 
+        });
+    }
+};
+
 // Get payment status
 export const getPaymentStatus = async (req: Request, res: Response): Promise<void> => {
     const { paymentId } = req.params;
@@ -269,4 +460,4 @@ export const getPaymentHistory = async (req: Request, res: Response): Promise<vo
         console.error('Get payment history error:', err);
         res.status(500).json({ message: "Failed to get payment history", error: err });
     }
-}; 
+};

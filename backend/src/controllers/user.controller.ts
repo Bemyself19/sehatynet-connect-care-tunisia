@@ -28,7 +28,8 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
         const allowedUpdates = [
             'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender', 'profileImage',
             'emergencyContact', 'medicalHistory', 'allergies', 'currentMedications',
-            'specialization', 'address', 'workingHours', 'consultationFee',
+            'specialization', 'address', 'country', 'province', 'city', 'workingHours', 'consultationFee',
+            'localConsultationFee', 'internationalConsultationFee',
             'medicalInfoDismissed',
             'slotDuration'
         ];
@@ -184,6 +185,14 @@ export const getProviders = async (req: Request, res: Response): Promise<void> =
         const providers = await User.find(query)
             .select("-password")
             .sort({ firstName: 1, lastName: 1 });
+            
+        console.log("Provider fees sample:", providers.slice(0, 2).map(p => ({
+            _id: p._id,
+            name: `${p.firstName} ${p.lastName}`,
+            consultationFee: p.consultationFee,
+            localConsultationFee: p.localConsultationFee,
+            internationalConsultationFee: p.internationalConsultationFee
+        })));
 
         res.json(providers);
     } catch (err) {

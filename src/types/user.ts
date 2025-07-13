@@ -16,6 +16,9 @@ export interface Patient extends BaseUser {
   dateOfBirth: string;
   address: string;
   phone: string;
+  country?: string;
+  province?: string;
+  city?: string;
   emergencyContact?: {
     name: string;
     phone: string;
@@ -36,10 +39,15 @@ export interface Provider extends BaseUser {
   specialization?: string;
   licenseNumber?: string;
   yearsOfExperience?: number;
-  consultationFee?: number;
+  consultationFee?: number; // Legacy field, used for local fee in TND
+  localConsultationFee?: number; // Fee in TND for local patients
+  internationalConsultationFee?: number; // Fee in EUR for international patients
   experience?: string;
   address: string;
   phone: string;
+  country?: string;
+  province?: string;
+  city?: string;
   availability?: string[];
   rating?: number;
   reviewCount?: number;
@@ -71,6 +79,9 @@ export interface RegisterData extends LoginCredentials {
   licenseNumber?: string;
   specialization?: string;
   address?: string;
+  country?: string;
+  province?: string;
+  city?: string;
   cnamId?: string;
   gender?: string;
 }

@@ -40,6 +40,14 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
       available: true
     },
     {
+      id: 'flouci',
+      name: t('flouci') || 'Flouci',
+      description: t('flouciDescription') || 'Pay easily with your debit or credit card via Flouci',
+      icon: <CreditCard className="h-5 w-5" />,
+      color: 'bg-green-500',
+      available: true
+    },
+    {
       id: 'international_card',
       name: t('internationalCard') || 'International Card',
       description: t('internationalCardDescription') || 'Visa, Mastercard, American Express',
@@ -262,4 +270,4 @@ const TunisiaPaymentForm: React.FC<TunisiaPaymentFormProps> = ({
   );
 };
 
-export default TunisiaPaymentForm; 
+export default TunisiaPaymentForm;
