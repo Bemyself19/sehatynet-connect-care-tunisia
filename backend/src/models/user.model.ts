@@ -34,13 +34,18 @@ const userSchema = new mongoose.Schema({
     licenseNumber: { type: String },
     specialization: { type: String },
     address: { type: String },
+    country: { type: String },
+    province: { type: String },
+    city: { type: String },
     workingHours: {
         start: { type: String, default: '09:00' },
         end: { type: String, default: '17:00' }
     },
     rating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
-    consultationFee: { type: Number },
+    consultationFee: { type: Number }, // Legacy field
+    localConsultationFee: { type: Number }, // Fee in TND for local patients
+    internationalConsultationFee: { type: Number }, // Fee for international patients
     isActive: { type: Boolean, default: true },
     // Provider-specific: default slot duration in minutes
     slotDuration: { type: Number, default: 30 },

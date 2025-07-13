@@ -1,7 +1,19 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
-import { createMedicalRecord, getMedicalRecords } from "../controllers/medicalRecord.controller";
+import { 
+  createMedicalRecord, 
+  getMedicalRecords, 
+  getMedicalRecordById,
+  updateMedicalRecord,
+  deleteMedicalRecord,
+  getPatientMedicalHistory,
+  getDoctorNotesForPatient,
+  getPatientDashboard,
+  updateRecordPrivacy,
+  assignProviderToSection,
+  uploadLabRadiologyReport
+} from "../controllers/medicalRecord.controller";
 import { authenticateJWT } from "../middleware/auth";
 import { authorizeRoles } from "../middleware/roles";
 
@@ -18,7 +30,43 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Create medical record (for doctors creating notes, etc.)
+router.post("/", authenticateJWT, createMedicalRecord);
+
+// Get patient dashboard with stats and recent data
+router.get("/dashboard", authenticateJWT, getPatientDashboard);
+
+// Upload medical record file (for patients)
 router.post("/upload", authenticateJWT, authorizeRoles("patient"), upload.single("file"), createMedicalRecord);
+
+// Get medical records for current user
 router.get("/my", authenticateJWT, authorizeRoles("patient"), getMedicalRecords);
+
+// Get all medical records (for doctors/admins)
+router.get("/", authenticateJWT, getMedicalRecords);
+
+// Get specific medical record by ID
+router.get("/:id", authenticateJWT, getMedicalRecordById);
+
+// Update medical record
+router.put("/:id", authenticateJWT, updateMedicalRecord);
+
+// Delete medical record
+router.delete("/:id", authenticateJWT, deleteMedicalRecord);
+
+// Get patient medical history
+router.get("/patient/:patientId", authenticateJWT, getPatientMedicalHistory);
+
+// Get doctor notes for a specific patient
+router.get("/patient/:patientId/notes", authenticateJWT, getDoctorNotesForPatient);
+
+// Update record privacy
+router.patch("/:id/privacy", authenticateJWT, updateRecordPrivacy);
+
+// Assign provider to medical record
+router.post("/:id/assign-provider", authenticateJWT, assignProviderToSection);
+
+// Upload lab/radiology reports
+router.post("/:id/upload-report", authenticateJWT, upload.single("file"), uploadLabRadiologyReport);
 
 export default router;

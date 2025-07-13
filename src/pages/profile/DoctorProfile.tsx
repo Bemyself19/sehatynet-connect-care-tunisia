@@ -7,13 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Heart, User, Mail, Phone, MapPin, Calendar, Save, AlertTriangle, Shield, Activity } from 'lucide-react';
+import { Heart, User, Mail, Phone, MapPin, Calendar, Save, AlertTriangle, Shield, Activity, CreditCard } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import api from '@/lib/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useProvider } from '@/hooks/useProvider';
 import { useAuth } from '@/hooks/useAuth';
+import { LocationSelector } from '@/components/ui/LocationSelector';
 
 const DoctorProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,9 +47,16 @@ const DoctorProfile: React.FC = () => {
         email: provider.email || '',
         phone: provider.phone || '',
         address: provider.address || '',
+        country: provider.country || '',
+        province: provider.province || '',
+        city: provider.city || '',
         specialization: provider.specialization || '',
         licenseNumber: provider.licenseNumber || '',
         cnamId: provider.cnamId || '',
+        // Keep legacy field for backwards compatibility
+        consultationFee: provider.consultationFee || '',
+        localConsultationFee: provider.localConsultationFee || provider.consultationFee || '',
+        internationalConsultationFee: provider.internationalConsultationFee || '',
         workingHours: {
           start: provider.workingHours?.start || '09:00',
           end: provider.workingHours?.end || '17:00',
@@ -224,6 +232,16 @@ const DoctorProfile: React.FC = () => {
                 />
               </div>
 
+              <LocationSelector
+                selectedCountry={profileData?.country}
+                selectedProvince={profileData?.province}
+                selectedCity={profileData?.city}
+                onCountryChange={(countryCode) => setProfileData(prev => ({ ...prev, country: countryCode }))}
+                onProvinceChange={(provinceCode) => setProfileData(prev => ({ ...prev, province: provinceCode }))}
+                onCityChange={(cityCode) => setProfileData(prev => ({ ...prev, city: cityCode }))}
+                disabled={isSaving}
+              />
+
               <div>
                 <Label htmlFor="address" className="flex items-center space-x-1">
                   <MapPin className="h-4 w-4 text-gray-600" />
@@ -295,6 +313,58 @@ const DoctorProfile: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <Label className="flex items-center space-x-1 mb-2">
+                  <CreditCard className="h-4 w-4 text-gray-600" />
+                  <span>{t('consultationFees') || 'Consultation Fees'}</span>
+                </Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="localConsultationFee">{t('localConsultationFee') || 'Local Fee (TND)'}</Label>
+                    <Input
+                      id="localConsultationFee"
+                      name="localConsultationFee"
+                      type="number"
+                      value={profileData.localConsultationFee}
+                      onChange={handleChange}
+                      placeholder={t('enterLocalConsultationFee') || 'Enter local fee in TND'}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('localConsultationFeeDescription') || 'Fee for local patients (in Tunisian Dinars)'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="internationalConsultationFee">{t('internationalConsultationFee') || 'International Fee'}</Label>
+                    <Input
+                      id="internationalConsultationFee"
+                      name="internationalConsultationFee"
+                      type="number"
+                      value={profileData.internationalConsultationFee}
+                      onChange={handleChange}
+                      placeholder={t('enterInternationalConsultationFee') || 'Enter international fee'}
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('internationalConsultationFeeDescription') || 'Fee for international patients (in USD)'}
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  {t('consultationFeeDescription') || 'These fees will be displayed to patients when they search for doctors (only if payments are enabled in system settings).'}
+                </p>
+                
+                {/* Hidden field to maintain backwards compatibility */}
+                <input 
+                  type="hidden" 
+                  name="consultationFee" 
+                  value={profileData.localConsultationFee} 
+                />
+              </div>
+
               {/* Working Hours */}
               <div>
                 <Label className="flex items-center space-x-1">
@@ -355,4 +425,4 @@ const DoctorProfile: React.FC = () => {
   );
 };
 
-export default DoctorProfile; 
+export default DoctorProfile;

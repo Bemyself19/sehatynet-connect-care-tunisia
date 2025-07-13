@@ -45,22 +45,75 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message.toString());
+            console.log('📩 WebSocket message received:', data);
 
-            if (data.type === 'join-room') {
-                const { appointmentId, peerId } = data;
+            // Handle both formats of join messages (join-room or JOIN_CONSULTATION)
+            if (data.type === 'join-room' || data.type === 'JOIN_CONSULTATION') {
+                // Extract peerId from either format
+                const appointmentId = data.appointmentId;
+                const peerId = data.peerId;
+                const userId = data.userId;
+                const userRole = data.userRole;
+
+                console.log(`🚪 User joining room ${appointmentId}:`, { peerId, userId, userRole });
+
                 if (!rooms.has(appointmentId)) {
                     rooms.set(appointmentId, new Set());
                 }
                 rooms.get(appointmentId)?.add(ws);
                 (ws as any).appointmentId = appointmentId;
                 (ws as any).peerId = peerId;
+                (ws as any).userId = userId;
+                (ws as any).userRole = userRole;
 
                 // Notify others in the room
                 rooms.get(appointmentId)?.forEach(client => {
                     if (client !== ws && client.readyState === WebSocket.OPEN) {
-                        client.send(JSON.stringify({ type: 'user-connected', peerId }));
+                        client.send(JSON.stringify({ 
+                            type: 'PEER_JOINED', 
+                            peerId,
+                            userId,
+                            userRole
+                        }));
                     }
                 });
+                
+                // Acknowledge join
+                ws.send(JSON.stringify({
+                    type: 'JOIN_CONFIRMED',
+                    appointmentId,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+            // Handle GET_PEERS request
+            else if (data.type === 'GET_PEERS') {
+                const appointmentId = data.appointmentId;
+                console.log(`📋 Peer list requested for room ${appointmentId}`);
+                
+                if (rooms.has(appointmentId)) {
+                    const peers = Array.from(rooms.get(appointmentId) || [])
+                        .map(client => ({
+                            peerId: (client as any).peerId,
+                            userId: (client as any).userId,
+                            userRole: (client as any).userRole
+                        }))
+                        .filter(peer => peer.peerId && peer.peerId !== (ws as any).peerId); // Filter out self
+                    
+                    console.log(`📋 Sending peer list for room ${appointmentId}:`, peers);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'PEER_LIST',
+                        peers,
+                        appointmentId
+                    }));
+                }
+            }
+            // Handle PING
+            else if (data.type === 'PING') {
+                ws.send(JSON.stringify({
+                    type: 'PONG',
+                    timestamp: new Date().toISOString()
+                }));
             }
         } catch (error) {
             console.error('WebSocket message error:', error);
@@ -77,18 +130,23 @@ wss.on('connection', (ws) => {
             // Notify others in the room
             rooms.get(appointmentId)?.forEach(client => {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'user-disconnected', peerId }));
+                    client.send(JSON.stringify({ 
+                        type: 'PEER_LEFT', 
+                        peerId,
+                        appointmentId
+                    }));
                 }
             });
 
             if (rooms.get(appointmentId)?.size === 0) {
                 rooms.delete(appointmentId);
+                console.log(`🧹 Room ${appointmentId} deleted (empty)`);
             }
         }
     });
 
     ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        console.error('⚠️ WebSocket error:', error);
     });
 });
 

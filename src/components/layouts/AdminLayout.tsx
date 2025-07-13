@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { DashboardLayout } from '@/components/ui/dashboard-layout';
+import { Layout } from '@/components/ui/layout';
 import { BarChart3, Users, Settings, FileText, User, Shield } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { useTranslation } from 'react-i18next';
@@ -19,12 +19,11 @@ const AdminLayout = () => {
   ];
 
   return (
-    <DashboardLayout
-      user={user}
+    <Layout
       sidebarItems={sidebarItems}
     >
       <Outlet />
-    </DashboardLayout>
+    </Layout>
   );
 };
 

@@ -10,6 +10,7 @@ import { Provider } from '@/types/user';
 import api from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useUser } from '@/hooks/useUser';
 
 interface DoctorSelectionModalProps {
   isOpen: boolean;
@@ -28,6 +29,9 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'bot', message: string}>>([]);
   const [userInput, setUserInput] = useState('');
+  const [paymentsEnabled, setPaymentsEnabled] = useState(true);
+  const { user } = useUser();
+  const [isInternationalPatient, setIsInternationalPatient] = useState(false);
 
   const [doctors, setDoctors] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +55,54 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
       fetchDoctors();
     }
   }, [isOpen]);
+
+  // Fetch system settings to check if payments are enabled
+  useEffect(() => {
+    const fetchPaymentSettings = async () => {
+      try {
+        const settings = await api.getSystemSettings();
+        console.log('System settings received:', settings);
+        
+        // Check if paymentsEnabled is specifically set to true
+        const enabled = settings && settings.paymentsEnabled === true;
+        console.log('Setting paymentsEnabled to:', enabled);
+        setPaymentsEnabled(enabled);
+        
+        // Log the state of the settings for debugging
+        if (enabled) {
+          console.log('Payment features are ENABLED in doctor selection');
+        } else {
+          console.log('Payment features are DISABLED in doctor selection');
+        }
+      } catch (err) {
+        console.error('Failed to fetch system settings:', err);
+        setPaymentsEnabled(false); // Default to disabled if there's an error
+      }
+    };
+    
+    if (isOpen) {
+      fetchPaymentSettings();
+    } else {
+      // Initialize with payments disabled by default until settings are fetched
+      setPaymentsEnabled(false);
+    }
+  }, [isOpen]);
+
+  // Determine if patient is international (outside Tunisia)
+  useEffect(() => {
+    if (user && user.role === 'patient') {
+      // Use type assertion to access country property
+      const patientUser = user as { country?: string };
+      const patientCountry = patientUser.country || '';
+      
+      // Check if patient is international (not from Tunisia)
+      // Looking for 'tunisia' in various forms (lowercase, with country code, etc.)
+      const isInternational = patientCountry !== '' && 
+        !['tunisia', 'tn', 'تونس'].includes(patientCountry.toLowerCase());
+      
+      setIsInternationalPatient(isInternational);
+    }
+  }, [user]);
 
   const specialties = [...new Set(doctors.map(d => d.specialization).filter(Boolean))].sort() as string[];
 
@@ -86,6 +138,58 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
     newMessages.push({ role: 'bot', message: botResponse });
     setChatMessages(newMessages);
     setUserInput('');
+  };
+
+  // Helper function to get the appropriate fee and currency for a doctor
+  const getDoctorFeeDisplay = (doctor: Provider) => {
+    // If payments are disabled, don't display fees
+    if (!paymentsEnabled) {
+      console.log(`Fee display skipped for doctor ${doctor._id} - payments disabled`);
+      return '';
+    }
+    
+    let fee: number | undefined;
+    let currency: string;
+    
+    // For international patients, use international fee in EUR
+    if (isInternationalPatient) {
+      // First try international fee
+      if (doctor.internationalConsultationFee !== undefined && doctor.internationalConsultationFee !== null) {
+        fee = Number(doctor.internationalConsultationFee);
+        currency = t('internationalCurrency') || 'EUR';
+        console.log(`International fee found for doctor ${doctor._id}: ${fee} ${currency}`);
+      } else {
+        console.log(`No international fee set for doctor ${doctor._id}`);
+      }
+    } 
+    // For local patients, use local fee in TND
+    else {
+      // Try local fee first, then fall back to legacy consultationFee
+      if (doctor.localConsultationFee !== undefined && doctor.localConsultationFee !== null) {
+        fee = Number(doctor.localConsultationFee);
+        console.log(`Local fee found for doctor ${doctor._id}: ${fee} TND`);
+      } else if (doctor.consultationFee !== undefined && doctor.consultationFee !== null) {
+        fee = Number(doctor.consultationFee);
+        console.log(`Legacy fee found for doctor ${doctor._id}: ${fee} TND`);
+      } else {
+        console.log(`No fee set for doctor ${doctor._id}`);
+      }
+      currency = t('currency') || 'TND';
+    }
+    
+    // If we have a valid fee (not undefined, not NaN, not zero, not empty string), display it with currency
+    if (fee !== undefined && !isNaN(fee) && fee > 0) {
+      const feeDisplay = `${t('consultationFee')}: ${fee} ${currency}`;
+      console.log(`Displaying fee for doctor ${doctor._id}: "${feeDisplay}"`);
+      return feeDisplay;
+    }
+    
+    // If no appropriate fee was found, use the "not set" message or return empty
+    const result = isInternationalPatient ? "" : (t('feeNotSet') || 'Fee not set');
+    if (result) {
+      console.log(`Displaying "fee not set" for doctor ${doctor._id}`);
+    }
+    return result;
   };
 
   return (
@@ -160,9 +264,17 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                             ) : t('generalPractitioner')}</CardDescription>
                           </CardHeader>
                           <CardContent>
-                            <p className="text-sm text-gray-600">{doctor.specialization ? t(
-                              doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
-                            ) : t('generalPractitioner')}</p>
+                            <div className="flex justify-between items-center">
+                              <p className="text-sm text-gray-600">{doctor.specialization ? t(
+                                doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
+                              ) : t('generalPractitioner')}</p>
+                              {/* Fee display - only shown when payments are enabled */}
+                              {paymentsEnabled && getDoctorFeeDisplay(doctor) && (
+                                <p className="text-sm font-semibold text-blue-600" data-testid={`fee-${doctor._id}`}>
+                                  {getDoctorFeeDisplay(doctor)}
+                                </p>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -223,7 +335,12 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                             <p className="text-sm text-gray-600">{doctor.specialization ? t(
                               doctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
                             ) : ''}</p>
-                            <p className="text-sm text-gray-500">${doctor.consultationFee || 'N/A'}</p>
+                            {/* Fee display - only shown when payments are enabled */}
+                            {paymentsEnabled && getDoctorFeeDisplay(doctor) && (
+                              <p className="text-sm text-gray-500" data-testid={`chatbot-fee-${doctor._id}`}>
+                                {getDoctorFeeDisplay(doctor)}
+                              </p>
+                            )}
                           </div>
                           <Button size="sm" onClick={() => onSelectDoctor(doctor)}>Select</Button>
                         </div>

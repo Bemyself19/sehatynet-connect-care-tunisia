@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { User, Mail, Phone, MapPin, BadgePercent, CreditCard, Stethoscope, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Badge } from '@/components/ui/badge';
+import { LocationSelector } from '@/components/ui/LocationSelector';
 
 const RadiologyProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +46,9 @@ const RadiologyProfile: React.FC = () => {
         email: provider.email || '',
         phone: provider.phone || '',
         address: provider.address || '',
+        country: provider.country || '',
+        province: provider.province || '',
+        city: provider.city || '',
         specialization: provider.specialization || '',
         licenseNumber: provider.licenseNumber || '',
         cnamId: provider.cnamId || '',
@@ -217,6 +221,16 @@ const RadiologyProfile: React.FC = () => {
                 </div>
               </div>
 
+              <LocationSelector
+                selectedCountry={profileData?.country}
+                selectedProvince={profileData?.province}
+                selectedCity={profileData?.city}
+                onCountryChange={(countryCode) => setProfileData(prev => ({ ...prev, country: countryCode }))}
+                onProvinceChange={(provinceCode) => setProfileData(prev => ({ ...prev, province: provinceCode }))}
+                onCityChange={(cityCode) => setProfileData(prev => ({ ...prev, city: cityCode }))}
+                disabled={isSaving}
+              />
+
               <div>
                 <Label htmlFor="address" className="flex items-center space-x-1">
                   <MapPin className="h-4 w-4 text-gray-600" />
@@ -227,6 +241,7 @@ const RadiologyProfile: React.FC = () => {
                   name="address"
                   value={profileData?.address || ''}
                   onChange={handleChange}
+                  placeholder={t('enterAddress') || 'Enter your address'}
                   className="border-gray-300 focus:border-teal-500 focus:ring-teal-500"
                 />
               </div>

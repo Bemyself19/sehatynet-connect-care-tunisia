@@ -33,6 +33,8 @@ import DoctorPatients from '@/pages/dashboards/doctor/DoctorPatients';
 import DoctorTeleExpertise from '@/pages/dashboards/doctor/DoctorTeleExpertise';
 import DoctorAnalytics from '@/pages/dashboards/doctor/DoctorAnalytics';
 import DoctorProfile from '@/pages/profile/DoctorProfile';
+import PaymentReturn from './pages/payment/PaymentReturn';
+import FlouciPaymentReturn from './pages/payment/FlouciPaymentReturn';
 
 // Import new layout components
 import PharmacyLayout from './components/layouts/PharmacyLayout';
@@ -173,6 +175,11 @@ const App = () => {
             <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
             <Route path="/medical-records/:id" element={<ProtectedRoute element={<MedicalRecordDetail />} />} />
             <Route path="/appointments/create-service-request" element={<ProtectedRoute element={<CreateServiceRequest />} />} />
+            
+            {/* Payment Routes */}
+            <Route path="/payment/return" element={<ProtectedRoute element={<PaymentReturn />} />} />
+            <Route path="/payment/success" element={<ProtectedRoute element={<FlouciPaymentReturn />} />} />
+            <Route path="/payment/failed" element={<ProtectedRoute element={<FlouciPaymentReturn />} />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

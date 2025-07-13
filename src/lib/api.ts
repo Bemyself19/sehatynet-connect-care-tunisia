@@ -583,6 +583,54 @@ class ApiClient {
   async getImmunizationSchedule(patientId: string): Promise<ImmunizationSchedule> {
     return this.request<ImmunizationSchedule>(`/immunizations/patient/${patientId}/schedule`);
   }
+
+  // System Settings
+  async getSystemSettings(): Promise<any> {
+    try {
+      console.log('API Client: Requesting system settings from /system-settings/public');
+      const response = await this.request<any>('/system-settings/public');
+      console.log('API Client: Raw system settings response:', response);
+      
+      if (!response) {
+        console.log('API Client: No response received, defaulting to paymentsEnabled: false');
+        return { paymentsEnabled: false };
+      }
+      
+      // Log if paymentsEnabled specifically exists in the response
+      if ('paymentsEnabled' in response) {
+        console.log(`API Client: Found paymentsEnabled in response: ${response.paymentsEnabled}`);
+      } else {
+        console.log('API Client: paymentsEnabled not found in response');
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('API Client: Error fetching system settings:', error);
+      return { paymentsEnabled: false }; // Default to disabled on error
+    }
+  }
+
+  async updateSystemSettings(settings: Record<string, any>): Promise<any> {
+    console.log('API Client: Sending updateSystemSettings with data:', settings);
+    
+    // Ensure paymentsEnabled is explicitly boolean
+    if ('paymentsEnabled' in settings) {
+      settings.paymentsEnabled = Boolean(settings.paymentsEnabled);
+      console.log('API Client: Normalized paymentsEnabled to:', settings.paymentsEnabled);
+    }
+    
+    try {
+      const response = await this.request<any>('/system-settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings)
+      });
+      console.log('API Client: Update system settings response:', response);
+      return response;
+    } catch (error) {
+      console.error('API Client: Error in updateSystemSettings:', error);
+      throw error;
+    }
+  }
 }
 
 const api = new ApiClient(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api');

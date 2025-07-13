@@ -11,6 +11,7 @@ import { Heart, User, Stethoscope } from 'lucide-react';
 import { RegisterData } from '@/types/user';
 import api from '@/lib/api';
 import { BrandLogo } from '@/components/ui/logo';
+import { LocationSelector } from '@/components/ui/LocationSelector';
 
 const Register: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -27,6 +28,9 @@ const Register: React.FC = () => {
     licenseNumber: '',
     specialization: '',
     address: '',
+    country: '',
+    province: '',
+    city: '',
     cnamId: '',
     gender: '',
   });
@@ -226,6 +230,17 @@ const Register: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <LocationSelector
+                    selectedCountry={formData.country}
+                    selectedProvince={formData.province}
+                    selectedCity={formData.city}
+                    onCountryChange={(countryCode) => handleInputChange('country', countryCode)}
+                    onProvinceChange={(provinceCode) => handleInputChange('province', provinceCode)}
+                    onCityChange={(cityCode) => handleInputChange('city', cityCode)}
+                    required={true}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="address">{t('address') || 'Address'}</Label>
