@@ -7,7 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Separator } from '@/components/ui/separator';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -18,14 +17,11 @@ interface Notification {
   type: string;
   title: string;
   message: string;
-  translationData?: Record<string, any>;
   priority: 'urgent' | 'high' | 'medium' | 'low';
   isRead: boolean;
   actionUrl?: string;
-  relatedEntity?: {
-    type: string;
-    id: string;
-  };
+  relatedEntityId?: string;
+  relatedEntityType?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,47 +40,15 @@ interface NotificationStats {
 const NotificationBell: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Helper function to translate notification title
-  const getTranslatedTitle = (notification: Notification): string => {
-    // If it's a translation key, translate it
-    if (notification.title && !notification.title.includes(' ')) {
-      return t(notification.title) || notification.title;
-    }
-    // Otherwise, return as is (fallback for existing notifications)
-    return notification.title;
-  };
-
-  // Helper function to translate notification message
-  const getTranslatedMessage = (notification: Notification): string => {
-    // If it's a translation key and we have translation data, use interpolation
-    if (notification.message && !notification.message.includes(' ') && notification.translationData) {
-      const translated = t(notification.message, notification.translationData as any);
-      return typeof translated === 'string' ? translated : notification.message;
-    }
-    // Otherwise, return as is (fallback for existing notifications)
-    return notification.message;
-  };
-
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      
-      // Check if user is authenticated
-      const token = sessionStorage.getItem('authToken');
-      if (!token) {
-        console.log('No auth token found, skipping notification fetch');
-        setNotifications([]);
-        setStats(null);
-        return;
-      }
-
       const [notificationsData, statsData] = await Promise.all([
         api.getUnreadNotifications(),
         api.getNotificationStats()
@@ -96,10 +60,7 @@ const NotificationBell: React.FC = () => {
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setNotifications([]); // Set empty array on error
-      // Don't show toast error if it's just an auth issue
-      if (error instanceof Error && !error.message.includes('401') && !error.message.includes('Unauthorized')) {
-        toast.error('Failed to fetch notifications');
-      }
+      toast.error('Failed to fetch notifications');
     } finally {
       setIsLoading(false);
     }
@@ -136,33 +97,20 @@ const NotificationBell: React.FC = () => {
     
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
-    } else if (notification.relatedEntity?.type && notification.relatedEntity?.id) {
-      // Navigate based on entity type and notification type
-      switch (notification.relatedEntity.type) {
+    } else if (notification.relatedEntityType && notification.relatedEntityId) {
+      // Navigate based on entity type
+      switch (notification.relatedEntityType) {
         case 'appointment':
-          // Invalidate appointments query to ensure fresh data
-          await queryClient.invalidateQueries({ queryKey: ['appointments'] });
-          
-          // Navigate to appropriate appointments page based on notification type
-          if (notification.type === 'appointment_pending') {
-            // Doctor notification - go to doctor appointments page
-            navigate(`/dashboard/doctor/appointments`);
-          } else if (notification.type === 'appointment_confirmed') {
-            // Patient notification - go to patient appointments page
-            navigate(`/dashboard/patient/appointments`);
-          } else {
-            // Default to appointments page based on current user context
-            navigate(`/dashboard/doctor/appointments`);
-          }
+          navigate(`/appointments/${notification.relatedEntityId}`);
           break;
         case 'prescription':
-          navigate(`/prescriptions/${notification.relatedEntity.id}`);
+          navigate(`/prescriptions/${notification.relatedEntityId}`);
           break;
         case 'medicalRecord':
-          navigate(`/medical-records/${notification.relatedEntity.id}`);
+          navigate(`/medical-records/${notification.relatedEntityId}`);
           break;
         case 'labResult':
-          navigate(`/lab-results/${notification.relatedEntity.id}`);
+          navigate(`/lab-results/${notification.relatedEntityId}`);
           break;
         default:
           break;
@@ -178,7 +126,6 @@ const NotificationBell: React.FC = () => {
       case 'appointment_reminder':
       case 'appointment_confirmed':
       case 'appointment_cancelled':
-      case 'appointment_pending':
         return <Calendar className="h-4 w-4" />;
       case 'prescription_ready':
       case 'prescription_updated':
@@ -271,7 +218,7 @@ const NotificationBell: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {getTranslatedTitle(notification)}
+                          {notification.title}
                         </p>
                         <Button
                           variant="ghost"
@@ -286,7 +233,7 @@ const NotificationBell: React.FC = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {getTranslatedMessage(notification)}
+                        {notification.message}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
