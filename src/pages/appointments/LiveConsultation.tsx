@@ -60,6 +60,20 @@ const LiveConsultation: React.FC = () => {
   const [status, setStatus] = useState('Initializing...');
   const [isMicMuted, setMicMuted] = useState(false);
   const [isCameraOff, setCameraOff] = useState(false);
+
+  // Status translation helper
+  const getTranslatedStatus = (statusKey: string) => {
+    const statusMap: { [key: string]: string } = {
+      'Initializing...': t('initializing'),
+      'Camera and microphone ready': t('cameraAndMicrophoneReady'),
+      'Media access denied': t('mediaAccessDenied'),
+      'Waiting for other participant...': t('waitingForOtherParticipant'),
+      'Connected': t('connected'),
+      'Disconnected from server': t('disconnectedFromServer'),
+      'Connection closed': t('connectionClosed')
+    };
+    return statusMap[statusKey] || statusKey;
+  };
   const [isPrescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [isNoteModalOpen, setNoteModalOpen] = useState(false);
   const [note, setNote] = useState('');
@@ -381,13 +395,17 @@ const LiveConsultation: React.FC = () => {
                 <ArrowLeft className="h-4 w-4" />
                 <span>{t('back')}</span>
               </Button>
-              <Link to="/" className="flex items-center group">
-                <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg group-hover:scale-105 transition-transform">
-                  <Heart className="h-6 w-6 text-white" />
+              <Link to="/" className="flex items-center space-x-3 group">
+                <div className="relative">
+                  <Heart className="h-8 w-8 text-blue-600 group-hover:scale-110 transition-transform" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-3">
-                  SehatyNet+
-                </span>
+                <div>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    SehatyNet+
+                  </span>
+                  <div className="text-xs text-gray-500 -mt-1">Telehealth Platform</div>
+                </div>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -396,7 +414,7 @@ const LiveConsultation: React.FC = () => {
                 <span className="text-sm text-gray-600">{t('appointmentId')}: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{appointmentId}</span></span>
               </div>
               <Button variant="destructive" onClick={endCall} className="bg-red-600 hover:bg-red-700">
-                <PhoneOff className="h-4 w-4 mr-2" /> End Call
+                <PhoneOff className="h-4 w-4 mr-2" /> {t('endCall')}
               </Button>
             </div>
           </div>
@@ -436,7 +454,7 @@ const LiveConsultation: React.FC = () => {
                     ) : (
                       <div className="text-center text-white">
                         <VideoOff className="h-16 w-16 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm opacity-75">Camera not available</p>
+                        <p className="text-sm opacity-75">{t('cameraNotAvailable')}</p>
                       </div>
                     )}
                     {isCameraOff && (
@@ -453,7 +471,7 @@ const LiveConsultation: React.FC = () => {
                   <CardTitle className="flex items-center space-x-2 text-sm">
                     <Users className="h-4 w-4 text-green-600" />
                     <span>{remoteVideoTitle}</span>
-                    {status === 'Connected' && <Badge className="bg-green-100 text-green-800 text-xs">Live</Badge>}
+                    {status === 'Connected' && <Badge className="bg-green-100 text-green-800 text-xs">{t('live')}</Badge>}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -474,7 +492,7 @@ const LiveConsultation: React.FC = () => {
                     ) : (
                       <div className="text-center text-white">
                         <Video className="h-16 w-16 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm opacity-75">Waiting for connection...</p>
+                        <p className="text-sm opacity-75">{t('waitingForConnection')}</p>
                       </div>
                     )}
                   </div>
@@ -518,15 +536,15 @@ const LiveConsultation: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {isPatient ? appointment.patientId.firstName?.charAt(0) : appointment.providerId.firstName?.charAt(0)}
+                        {isPatient ? appointment.providerId.firstName?.charAt(0) : appointment.patientId.firstName?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium text-gray-900">
-                        {isPatient ? patientName : doctorName}
+                        {isPatient ? doctorName : patientName}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {isPatient ? t('patient') : t('healthcareProvider')}
+                        {isPatient ? t('healthcareProvider') : t('patient')}
                       </p>
                     </div>
                   </div>
@@ -581,7 +599,7 @@ const LiveConsultation: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">{t('status')}</span>
                       <Badge className={status === 'Connected' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                        {status}
+                        {getTranslatedStatus(status)}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
