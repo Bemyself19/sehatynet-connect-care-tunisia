@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { LoginCredentials, User } from '@/types/user';
 import { useUser } from '@/hooks/useUser';
@@ -9,6 +10,7 @@ export const useAuth = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { refetchAfterLogin } = useUser();
+  const { t } = useTranslation();
 
   const { mutate: login, isPending: isLoggingIn } = useMutation({
     mutationFn: (credentials: LoginCredentials) => api.login(credentials),
@@ -23,7 +25,7 @@ export const useAuth = () => {
       // This key MUST match the key used in the useUser hook.
       queryClient.setQueryData(['userProfile'], data.user);
       
-      toast.success('Login successful! Welcome back.');
+      toast.success(t('loginSuccessful'));
       
       // 4. Refetch the latest user profile from /users/me before navigating
       await refetchAfterLogin();
@@ -31,7 +33,7 @@ export const useAuth = () => {
       navigate(dashboardPath);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Login failed. Please check your credentials.');
+      toast.error(error.message || t('loginFailed'));
     },
   });
 
@@ -44,7 +46,7 @@ export const useAuth = () => {
 
     // 3. Redirect to the main login selection screen.
     navigate('/auth/login-selection');
-    toast.info("You have been logged out.");
+    toast.info(t('loggedOut'));
   };
 
   return { login, isLoggingIn, logout };
