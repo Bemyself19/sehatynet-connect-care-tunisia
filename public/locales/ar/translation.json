@@ -405,10 +405,20 @@
   "record_plural": "سجلات",
   "joinCall": "انضم إلى المكالمة",
   "reschedule": "إعادة الجدولة",
-  "confirmed": "مؤكد",
-  "scheduled": "مجدول",
-  "cancelled": "ملغى",
-  "noShow": "لم يحضر",
-  "available": "متاح",
-  "outsideHours": "خارج أوقات العمل"
+  "appointmentManagement": {
+    "title": "إدارة المواعيد",
+    "description": "إدارة الاستشارات القادمة ومواعيد المرضى",
+    "workingHours": "ساعات العمل",
+    "slotDuration": "مدة الفترة",
+    "viewDay": "يوم",
+    "viewWeek": "أسبوع",
+    "viewMonth": "شهر"
+  },
+  "pendingAppointments": "المواعيد المعلقة",
+  "reviewAndConfirmRequests": "راجع واؤكد طلبات المواعيد",
+  "noPendingAppointments": "لا توجد مواعيد معلقة",
+  "confirmedAppointmentsDesc": "قائمة المواعيد المؤكدة القادمة",
+  "noUpcomingAppointments": "لا توجد مواعيد قادمة",
+  "confirm": "تأكيد",
+  "prescription": "وصفة طبية"
 }
