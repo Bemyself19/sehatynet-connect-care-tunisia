@@ -554,5 +554,17 @@
   "missingPaymentParameters": "Missing payment parameters",
   "verifyingPayment": "Verifying Payment",
   "pleaseWaitWhileVerifyingPayment": "Please wait while we verify your payment",
-  "appointmentConfirmedEmailSent": "Your appointment has been confirmed and a confirmation email has been sent"
+  "appointmentConfirmedEmailSent": "Your appointment has been confirmed and a confirmation email has been sent",
+  "notifications": "Notifications",
+  "markAllRead": "Mark all read",
+  "loadingNotifications": "Loading notifications...",
+  "noNewNotifications": "No new notifications",
+  "notificationsWillAppearHere": "Notifications will appear here",
+  "viewAllNotifications": "View all notifications",
+  "appointmentApproved": "Appointment approved and patient notified",
+  "pendingApproval": "Pending Approval",
+  "newAppointmentRequest": "New Appointment Request",
+  "appointmentConfirmed": "Appointment Confirmed",
+  "appointmentRequestMessage": "{{patientName}} has requested an appointment for {{date}}",
+  "appointmentConfirmedMessage": "Your appointment with Dr. {{doctorName}} has been confirmed for {{date}}"
 }

@@ -15,7 +15,7 @@ export const useAppointments = () => {
     queryKey: ['appointments', user?._id],
     queryFn: () => api.getAppointments(),
     enabled: !!user, // Only run the query if the user is loaded
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds - refresh more frequently for real-time updates
   });
 
   return { appointments, isLoading, isError, error };

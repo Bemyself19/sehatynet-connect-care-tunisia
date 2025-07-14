@@ -69,10 +69,25 @@ export const createPaymentSession = async (req: Request, res: Response): Promise
         const paymentsSetting = await SystemSetting.findOne({ key: 'paymentsEnabled' });
         const paymentsEnabled = paymentsSetting ? Boolean(paymentsSetting.value) : true;
         if (!paymentsEnabled) {
-            // Mark appointment as confirmed/paid, skip payment
-            appointment.status = 'confirmed';
+            // Mark appointment as pending doctor approval, skip payment
+            appointment.status = 'pending';
             await appointment.save();
-            res.json({ paymentRequired: false, message: 'Payments are disabled. Appointment confirmed for free.' });
+            
+            // Create notification for doctor to review appointment
+            const Notification = require('../models/notification.model').default;
+            await Notification.create({
+                userId: populatedAppointment.providerId._id,
+                type: 'appointment_pending',
+                title: 'New Appointment Request',
+                message: `${populatedAppointment.patientId.firstName} ${populatedAppointment.patientId.lastName} has booked an appointment for ${new Date(appointment.scheduledDate).toLocaleDateString()}`,
+                priority: 'medium',
+                relatedEntity: {
+                    type: 'appointment',
+                    id: appointment._id
+                }
+            });
+            
+            res.json({ paymentRequired: false, message: 'Payments are disabled. Appointment submitted for doctor approval.' });
             return;
         }
         
@@ -283,8 +298,27 @@ export const handleTunisieMonetiqueReturn = async (req: Request, res: Response):
         if (payment.status === 'completed') {
             payment.paidAt = new Date();
             
-            // Update appointment status
-            await Appointment.findByIdAndUpdate(payment.appointmentId, { status: 'confirmed' });
+            // Update appointment status to pending doctor approval
+            const appointment = await Appointment.findByIdAndUpdate(payment.appointmentId, { status: 'pending' }, { new: true })
+                .populate('patientId', 'firstName lastName')
+                .populate('providerId', '_id');
+            
+            // Create notification for doctor to review paid appointment
+            if (appointment) {
+                const Notification = require('../models/notification.model').default;
+                const populatedAppointment = appointment as any;
+                await Notification.create({
+                    userId: populatedAppointment.providerId._id,
+                    type: 'appointment_pending',
+                    title: 'New Paid Appointment Request',
+                    message: `${populatedAppointment.patientId.firstName} ${populatedAppointment.patientId.lastName} has booked and paid for an appointment on ${new Date(appointment.scheduledDate).toLocaleDateString()}`,
+                    priority: 'medium',
+                    relatedEntity: {
+                        type: 'appointment',
+                        id: appointment._id
+                    }
+                });
+            }
         } else {
             payment.errorCode = responseCode;
             payment.errorMessage = responseMessage;
@@ -368,8 +402,27 @@ export const handleFlouciVerification = async (req: Request, res: Response): Pro
                 payment.flouci.receiptId = result.receipt_id;
             }
             
-            // Update appointment status
-            await Appointment.findByIdAndUpdate(payment.appointmentId, { status: 'confirmed' });
+            // Update appointment status to pending doctor approval
+            const appointment = await Appointment.findByIdAndUpdate(payment.appointmentId, { status: 'pending' }, { new: true })
+                .populate('patientId', 'firstName lastName')
+                .populate('providerId', '_id');
+            
+            // Create notification for doctor to review paid appointment
+            if (appointment) {
+                const Notification = require('../models/notification.model').default;
+                const populatedAppointment = appointment as any;
+                await Notification.create({
+                    userId: populatedAppointment.providerId._id,
+                    type: 'appointment_pending',
+                    title: 'New Paid Appointment Request',
+                    message: `${populatedAppointment.patientId.firstName} ${populatedAppointment.patientId.lastName} has booked and paid for an appointment on ${new Date(appointment.scheduledDate).toLocaleDateString()}`,
+                    priority: 'medium',
+                    relatedEntity: {
+                        type: 'appointment',
+                        id: appointment._id
+                    }
+                });
+            }
             
             res.json({
                 success: true,

@@ -21,6 +21,7 @@ import {
   BarChart3,
   Shield
 } from 'lucide-react';
+import NotificationBell from '@/components/ui/NotificationBell';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/hooks/useUser';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -134,10 +135,7 @@ export const Layout: React.FC<LayoutProps> = ({
             {/* User Menu */}
             <div className="flex items-center space-x-4">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
+              <NotificationBell />
 
               {/* User Profile */}
               <div className="flex items-center space-x-3">
