@@ -435,5 +435,9 @@
   "confirmedAppointmentsDesc": "قائمة المواعيد المؤكدة القادمة",
   "noUpcomingAppointments": "لا توجد مواعيد قادمة",
   "confirm": "تأكيد",
-  "prescription": "وصفة طبية"
+  "prescription": "وصفة طبية",
+  "consultationFee": "رسوم الاستشارة",
+  "currency": "TND",
+  "internationalCurrency": "EUR",
+  "feeNotSet": "لم يتم تحديد الرسوم"
 }

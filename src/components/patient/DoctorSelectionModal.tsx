@@ -60,7 +60,7 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   useEffect(() => {
     const fetchPaymentSettings = async () => {
       try {
-        const settings = await api.getSystemSettings();
+        const settings = await api.getPublicSystemSettings();
         console.log('System settings received:', settings);
         
         // Check if paymentsEnabled is specifically set to true
