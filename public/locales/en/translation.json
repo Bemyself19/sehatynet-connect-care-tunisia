@@ -179,6 +179,14 @@
   "medicationsPlaceholder": "List medications separated by commas (e.g. aspirin, insulin)",
   "conditionsQuestion": "Do you have any chronic medical conditions or past major illnesses?",
   "conditionsPlaceholder": "List conditions separated by commas (e.g. diabetes, asthma, hypertension)",
+  "medicalRecordsAccess": "Medical Records Access",
+  "medicalRecordsAccessDescription": "Allow other doctors to view your medical records and notes during consultations. When disabled, only the doctors you directly consult with can see your records.",
+  "accessGranted": "Access granted to other doctors",
+  "accessRestricted": "Access restricted to treating doctors only",
+  "consentUpdated": "Consent Updated",
+  "consentGrantedMessage": "Other doctors can now view your medical records during consultations",
+  "consentRevokedMessage": "Your medical records are now private to your treating doctors only",
+  "consentUpdateFailed": "Failed to update consent settings. Please try again.",
   "skipForNow": "Skip for now",
   "saveContinue": "Save & Continue",
   "next": "Next",
@@ -560,11 +568,5 @@
   "loadingNotifications": "Loading notifications...",
   "noNewNotifications": "No new notifications",
   "notificationsWillAppearHere": "Notifications will appear here",
-  "viewAllNotifications": "View all notifications",
-  "appointmentApproved": "Appointment approved and patient notified",
-  "pendingApproval": "Pending Approval",
-  "newAppointmentRequest": "New Appointment Request",
-  "appointmentConfirmed": "Appointment Confirmed",
-  "appointmentRequestMessage": "{{patientName}} has requested an appointment for {{date}}",
-  "appointmentConfirmedMessage": "Your appointment with Dr. {{doctorName}} has been confirmed for {{date}}"
+  "viewAllNotifications": "View all notifications"
 }

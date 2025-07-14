@@ -225,3 +225,70 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
   await user.save();
   res.json({ message: "Password has been reset. You can now log in." });
 };
+
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+    const userId = (req as any).user.id;
+    const { 
+        email, 
+        firstName, 
+        lastName, 
+        phone, 
+        dateOfBirth, 
+        address 
+    } = req.body;
+
+    try {
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { 
+                email, 
+                firstName, 
+                lastName, 
+                phone, 
+                dateOfBirth, 
+                address 
+            },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+
+        res.json(user);
+    } catch (err) {
+        console.error('Update profile error:', err);
+        res.status(500).json({ message: "Failed to update profile", error: err });
+    }
+};
+
+export const updateMedicalRecordConsent = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user.id;
+        const userRole = (req as any).user.role;
+        const { allowOtherDoctorsAccess } = req.body;
+
+        // Only patients can update this setting
+        if (userRole !== 'patient') {
+            res.status(403).json({ message: "Only patients can update consent settings" });
+            return;
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { allowOtherDoctorsAccess: Boolean(allowOtherDoctorsAccess) },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+
+        res.json(user);
+    } catch (err) {
+        console.error('Update consent error:', err);
+        res.status(500).json({ message: "Failed to update consent settings", error: err });
+    }
+};

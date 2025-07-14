@@ -103,6 +103,38 @@ const LiveConsultation: React.FC = () => {
     if (appointmentId) fetchData();
   }, [appointmentId]);
 
+  // Fetch patient notes and medical records when appointment is loaded
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      if (!appointment || !currentUser || currentUser._id !== appointment.providerId._id) return;
+      
+      try {
+        setNotesLoading(true);
+        setRecordsLoading(true);
+        setNotesError(null);
+        setRecordsError(null);
+
+        // Fetch only records from the current doctor (filtered by doctorId)
+        const [notesData, recordsData] = await Promise.all([
+          api.getDoctorNotes(appointment.patientId._id, currentUser._id),
+          api.getDoctorOnlyMedicalRecords(appointment.patientId._id, currentUser._id)
+        ]);
+
+        setDoctorNotes(notesData);
+        setMedicalRecords(recordsData);
+      } catch (error) {
+        console.error('Error fetching patient data:', error);
+        setNotesError('Failed to load patient notes');
+        setRecordsError('Failed to load medical records');
+      } finally {
+        setNotesLoading(false);
+        setRecordsLoading(false);
+      }
+    };
+
+    fetchPatientData();
+  }, [appointment, currentUser]);
+
   // PeerJS/WebRTC setup
   useEffect(() => {
     if (!appointment || !currentUser) return;
@@ -315,7 +347,7 @@ const LiveConsultation: React.FC = () => {
       setNote('');
       setNoteModalOpen(false);
       // Reload notes
-      const notes = await api.getDoctorNotes(appointment.patientId._id);
+      const notes = await api.getDoctorNotes(appointment.patientId._id, currentUser._id);
       setDoctorNotes(notes);
     } catch (error) {
       toast.error('Failed to save note');

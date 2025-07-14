@@ -32,6 +32,7 @@ export interface Patient extends BaseUser {
   allergies?: string[];
   currentMedications?: string[];
   medicalInfoDismissed?: boolean;
+  allowOtherDoctorsAccess?: boolean;
 }
 
 export interface Provider extends BaseUser {
@@ -59,7 +60,7 @@ export interface Provider extends BaseUser {
   };
 }
 
-export type User = Patient | Provider | BaseUser & { medicalInfoDismissed?: boolean, slotDuration?: number };
+export type User = Patient | Provider | BaseUser & { medicalInfoDismissed?: boolean, allowOtherDoctorsAccess?: boolean, slotDuration?: number };
 
 export interface LoginForm {
   email: string;
