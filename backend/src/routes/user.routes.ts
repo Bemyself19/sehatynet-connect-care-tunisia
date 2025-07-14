@@ -12,6 +12,7 @@ import {
     testUsers,
     getProvidersByType
 } from "../controllers/user.controller";
+import { updateMedicalRecordConsent } from "../controllers/auth.controller";
 import { authenticateJWT } from "../middleware/auth";
 import { authorizeRoles } from "../middleware/roles";
 import User from "../models/user.model";
@@ -38,6 +39,7 @@ router.delete("/dev/clear-all", async (req, res) => {
 // Profile routes for the authenticated user. Using /me is a robust, stateless pattern.
 router.get("/me", authenticateJWT, getProfile);
 router.put("/me", authenticateJWT, updateProfile);
+router.put("/me/consent", authenticateJWT, updateMedicalRecordConsent);
 
 // Admin-only routes for user management
 router.get("/", authenticateJWT, authorizeRoles('admin'), getAllUsers);

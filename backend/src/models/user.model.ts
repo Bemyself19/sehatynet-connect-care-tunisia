@@ -29,6 +29,8 @@ const userSchema = new mongoose.Schema({
     currentMedications: [{ type: String, default: [] }],
     // New field to track if patient dismissed the Q&A modal
     medicalInfoDismissed: { type: Boolean, default: false },
+    // Field to allow other doctors to view patient's medical records
+    allowOtherDoctorsAccess: { type: Boolean, default: false },
     
     // Provider-specific fields
     licenseNumber: { type: String },

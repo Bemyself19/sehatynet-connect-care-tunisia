@@ -296,6 +296,7 @@ export const getPatientMedicalHistory = async (req: Request, res: Response): Pro
         const { patientId } = req.params;
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
+        const { doctorId } = req.query; // Optional filter for specific doctor
         
         // Check if user has access to this patient's records
         if (userRole === 'patient' && patientId !== userId) {
@@ -303,7 +304,25 @@ export const getPatientMedicalHistory = async (req: Request, res: Response): Pro
             return;
         }
 
-        const medicalRecords = await MedicalRecord.find({ patientId })
+        let query: any = { patientId };
+
+        // If a doctor is requesting records for a patient they don't own
+        if (userRole === 'doctor' && patientId !== userId) {
+            const User = require('../models/user.model').default;
+            const patient = await User.findById(patientId);
+            
+            if (!patient || !patient.allowOtherDoctorsAccess) {
+                // If patient hasn't given consent, only show records from this doctor
+                query.providerId = userId;
+            }
+        }
+
+        // If doctorId is specified, filter by that doctor
+        if (doctorId) {
+            query.providerId = doctorId;
+        }
+
+        const medicalRecords = await MedicalRecord.find(query)
             .populate('providerId', 'firstName lastName specialization')
             .sort({ date: -1, createdAt: -1 });
 
@@ -470,19 +489,42 @@ export const updateRecordPrivacy = async (req: Request, res: Response): Promise<
 export const getDoctorNotesForPatient = async (req: Request, res: Response): Promise<void> => {
     try {
         const { patientId } = req.params;
-        // Only allow access for doctors or the provider themselves
+        const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
+        const { doctorId } = req.query; // Optional filter for specific doctor
+        
+        // Only allow access for doctors or the provider themselves
         if (userRole !== 'doctor' && userRole !== 'admin') {
             res.status(403).json({ message: 'Access denied' });
             return;
         }
-        const notes = await MedicalRecord.find({
+
+        let query: any = {
             patientId,
             privacyLevel: 'doctor_only',
             type: 'consultation'
-        })
-        .populate('providerId', 'firstName lastName specialization')
-        .sort({ date: -1, createdAt: -1 });
+        };
+
+        // If a doctor is requesting notes for a patient
+        if (userRole === 'doctor') {
+            const User = require('../models/user.model').default;
+            const patient = await User.findById(patientId);
+            
+            if (!patient || !patient.allowOtherDoctorsAccess) {
+                // If patient hasn't given consent, only show notes from this doctor
+                query.providerId = userId;
+            }
+        }
+
+        // If doctorId is specified, filter by that doctor
+        if (doctorId) {
+            query.providerId = doctorId;
+        }
+
+        const notes = await MedicalRecord.find(query)
+            .populate('providerId', 'firstName lastName specialization')
+            .sort({ date: -1, createdAt: -1 });
+        
         res.json(notes);
     } catch (err) {
         console.error('Get doctor notes error:', err);

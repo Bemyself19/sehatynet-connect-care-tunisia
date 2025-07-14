@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LocationSelector } from '@/components/ui/LocationSelector';
+import { Switch } from '@/components/ui/switch';
 
 const Profile: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -24,6 +25,7 @@ const Profile: React.FC = () => {
 
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [consentLoading, setConsentLoading] = useState(false);
 
   // Initialize form with user data
   React.useEffect(() => {
@@ -49,6 +51,7 @@ const Profile: React.FC = () => {
         specialization: 'specialization' in user ? user.specialization || '' : '',
         licenseNumber: 'licenseNumber' in user ? user.licenseNumber || '' : '',
         role: user.role || '',
+        allowOtherDoctorsAccess: 'allowOtherDoctorsAccess' in user ? user.allowOtherDoctorsAccess || false : false,
       });
     }
   }, [user]);
@@ -85,6 +88,7 @@ const Profile: React.FC = () => {
       delete submitData.emergencyContactName;
       delete submitData.emergencyContactPhone;
       delete submitData.emergencyContactRelationship;
+      delete submitData.allowOtherDoctorsAccess; // Handle consent separately
       // If all fields are filled, reset medicalInfoDismissed to false
       if (
         submitData.medicalHistory.length > 0 &&
@@ -98,15 +102,37 @@ const Profile: React.FC = () => {
       toast.success(t('profileUpdated') || 'Profile Updated', {
         description: t('profileSavedSuccessfully') || 'Your profile has been saved successfully',
       });
-      setTimeout(() => {
-        navigate('/dashboard/patient');
-      }, 1500);
     } catch (error) {
+      console.error('Profile update error:', error);
       toast.error(t('updateFailed') || 'Update Failed', {
-        description: t('unableToUpdateProfile') || 'Unable to update profile. Please try again.',
+        description: t('profileUpdateFailed') || 'Failed to update profile. Please try again.',
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConsentToggle = async (checked: boolean) => {
+    setConsentLoading(true);
+    try {
+      await api.updateMedicalRecordConsent(checked);
+      await refetch();
+      setProfileData((prev: any) => ({
+        ...prev,
+        allowOtherDoctorsAccess: checked
+      }));
+      toast.success(t('consentUpdated') || 'Consent Updated', {
+        description: checked 
+          ? (t('consentGrantedMessage') || 'Other doctors can now view your medical records during consultations')
+          : (t('consentRevokedMessage') || 'Your medical records are now private to your treating doctors only')
+      });
+    } catch (error) {
+      console.error('Consent update error:', error);
+      toast.error(t('updateFailed') || 'Update Failed', {
+        description: t('consentUpdateFailed') || 'Failed to update consent settings. Please try again.',
+      });
+    } finally {
+      setConsentLoading(false);
     }
   };
 
@@ -385,6 +411,37 @@ const Profile: React.FC = () => {
                     placeholder={t('conditionsPlaceholder') || 'List conditions separated by commas (e.g. diabetes, asthma, hypertension)'}
                     rows={2}
                   />
+                </div>
+
+                {/* Medical Records Privacy Consent */}
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start justify-between space-x-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Shield className="h-5 w-5 text-blue-600" />
+                        <Label className="font-semibold text-blue-900">
+                          {t('medicalRecordsAccess') || 'Medical Records Access'}
+                        </Label>
+                      </div>
+                      <p className="text-sm text-blue-700 mb-3">
+                        {t('medicalRecordsAccessDescription') || 'Allow other doctors to view your medical records and notes during consultations. When disabled, only the doctors you directly consult with can see your records.'}
+                      </p>
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          id="allowOtherDoctorsAccess"
+                          checked={profileData?.allowOtherDoctorsAccess || false}
+                          onCheckedChange={handleConsentToggle}
+                          disabled={consentLoading}
+                        />
+                        <Label htmlFor="allowOtherDoctorsAccess" className="text-sm font-medium text-blue-900">
+                          {profileData?.allowOtherDoctorsAccess 
+                            ? (t('accessGranted') || 'Access granted to other doctors')
+                            : (t('accessRestricted') || 'Access restricted to treating doctors only')
+                          }
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

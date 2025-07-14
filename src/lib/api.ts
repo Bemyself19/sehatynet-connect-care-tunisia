@@ -143,12 +143,6 @@ class ApiClient {
     });
   }
 
-  async approveAppointment(id: string): Promise<Appointment> {
-    return this.request<Appointment>(`/appointments/${id}/approve`, {
-      method: 'PUT',
-    });
-  }
-
   async cancelAppointment(id: string): Promise<{ message: string }> {
     return this.request<{ message: string }>(`/appointments/${id}`, {
       method: 'DELETE',
@@ -329,8 +323,21 @@ class ApiClient {
     return this.updateProfile({ medicalInfoDismissed: dismissed });
   }
 
-  async getDoctorNotes(patientId: string): Promise<MedicalRecord[]> {
-    return this.request<MedicalRecord[]>(`/medical-records/patient/${patientId}/notes`);
+  async getDoctorNotes(patientId: string, doctorId?: string): Promise<MedicalRecord[]> {
+    const queryParam = doctorId ? `?doctorId=${doctorId}` : '';
+    return this.request<MedicalRecord[]>(`/medical-records/patient/${patientId}/notes${queryParam}`);
+  }
+
+  async getDoctorOnlyMedicalRecords(patientId: string, doctorId?: string): Promise<MedicalRecord[]> {
+    const queryParam = doctorId ? `?doctorId=${doctorId}` : '';
+    return this.request<MedicalRecord[]>(`/medical-records/patient/${patientId}${queryParam}`);
+  }
+
+  async updateMedicalRecordConsent(allowOtherDoctorsAccess: boolean): Promise<User> {
+    return this.request<User>('/users/me/consent', {
+      method: 'PUT',
+      body: JSON.stringify({ allowOtherDoctorsAccess }),
+    });
   }
 
   async getProvidersByType(type: string): Promise<User[]> {
@@ -611,7 +618,7 @@ class ApiClient {
   }
 
   async markAllNotificationsAsRead(): Promise<void> {
-    return this.request<void>('/notifications/read-all', {
+    return this.request<void>('/notifications/mark-all-read', {
       method: 'PUT',
     });
   }
