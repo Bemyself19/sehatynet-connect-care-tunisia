@@ -558,6 +558,12 @@
   "noRecordFound": "No record found.",
   "tags": "Tags",
   "details": "Details",
+  "pendingAppointments": "Pending Appointments",
+  "reviewAndConfirmRequests": "Review and confirm appointment requests",
+  "noPendingAppointments": "No pending appointments",
+  "confirmedAppointmentsDesc": "List of confirmed upcoming appointments",
+  "noUpcomingAppointments": "No upcoming appointments",
+  "confirm": "Confirm",
   "backToLiveConsultation": "Back to Live Consultation",
   "missingPaymentParameters": "Missing payment parameters",
   "verifyingPayment": "Verifying Payment",
@@ -568,5 +574,14 @@
   "loadingNotifications": "Loading notifications...",
   "noNewNotifications": "No new notifications",
   "notificationsWillAppearHere": "Notifications will appear here",
-  "viewAllNotifications": "View all notifications"
+  "viewAllNotifications": "View all notifications",
+  "appointmentManagement": {
+    "title": "Appointment Management",
+    "description": "Manage your upcoming consultations and patient appointments",
+    "workingHours": "Working Hours",
+    "slotDuration": "Slot Duration",
+    "viewDay": "Day",
+    "viewWeek": "Week",
+    "viewMonth": "Month"
+  }
 }
