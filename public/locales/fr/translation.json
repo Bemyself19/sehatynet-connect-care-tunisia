@@ -739,5 +739,17 @@
   "availableStudies": "Études Disponibles",
   "activeProcedures": "Procédures Actives",
   "modalities": "Modalités",
-  "addStudy": "Ajouter une Étude"
+  "addStudy": "Ajouter une Étude",
+  "notifications": "Notifications",
+  "markAllRead": "Tout marquer comme lu",
+  "loadingNotifications": "Chargement des notifications...",
+  "noNewNotifications": "Aucune nouvelle notification",
+  "notificationsWillAppearHere": "Les notifications apparaîtront ici",
+  "viewAllNotifications": "Voir toutes les notifications",
+  "appointmentApproved": "Rendez-vous approuvé et patient notifié",
+  "pendingApproval": "En attente d'approbation",
+  "newAppointmentRequest": "Nouvelle Demande de Rendez-vous",
+  "appointmentConfirmed": "Rendez-vous Confirmé",
+  "appointmentRequestMessage": "{{patientName}} a demandé un rendez-vous pour le {{date}}",
+  "appointmentConfirmedMessage": "Votre rendez-vous avec Dr. {{doctorName}} a été confirmé pour le {{date}}"
 }

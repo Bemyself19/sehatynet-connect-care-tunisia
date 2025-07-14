@@ -21,6 +21,7 @@ import labResultRoutes from './routes/labResult.routes';
 import medicationRoutes from './routes/medication.routes';
 import allergyRoutes from './routes/allergy.routes';
 import immunizationRoutes from './routes/immunization.routes';
+import notificationRoutes from './routes/notification.routes';
 
 dotenv.config();
 const app = express();
@@ -185,6 +186,7 @@ app.use('/api/lab-results', labResultRoutes);
 app.use('/api/medications', medicationRoutes);
 app.use('/api/allergies', allergyRoutes);
 app.use('/api/immunizations', immunizationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

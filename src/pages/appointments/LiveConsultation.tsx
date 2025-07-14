@@ -203,85 +203,29 @@ const LiveConsultation: React.FC = () => {
       ws = new WebSocket(WS_URL);
       wsRef.current = ws;
       ws.onopen = () => {
-        console.log('WebSocket connected, joining consultation...');
-        ws.send(JSON.stringify({ 
-          type: 'JOIN_CONSULTATION', 
-          appointmentId, 
-          peerId,
-          userId: currentUser._id,
-          userRole: currentUser.role
-        }));
-        
-        // Request list of existing peers after joining
-        setTimeout(() => {
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'GET_PEERS', appointmentId }));
-          }
-        }, 1000);
+        ws.send(JSON.stringify({ type: 'JOIN_CONSULTATION', appointmentId, peerId }));
       };
-      
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        
         if (data.type === 'PEER_JOINED' && data.peerId !== peerId) {
-          console.log('New peer joined:', data.peerId);
           setRemotePeerId(data.peerId);
-          // Initiate call - let the first user (alphabetically by peerId) initiate to avoid conflicts
-          if (peerId < data.peerId) {
-            console.log('Initiating call to:', data.peerId);
+          if (currentUser.role === 'patient') {
             callInstance = peerInstance.call(data.peerId, localStream);
             callInstance.on('stream', (remoteStream: MediaStream) => {
-              console.log('Received remote stream from outgoing call');
               setRemoteStream(remoteStream);
               if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
               setStatus('Connected');
             });
-            callInstance.on('error', (err: any) => {
-              console.error('Call error:', err);
-            });
-          }
-        } else if (data.type === 'PEER_LIST' && data.peers && data.peers.length > 0) {
-          console.log('Received peer list:', data.peers);
-          // Connect to the first available peer
-          const availablePeer = data.peers[0];
-          if (availablePeer && availablePeer.peerId !== peerId) {
-            console.log('Connecting to existing peer:', availablePeer.peerId);
-            setRemotePeerId(availablePeer.peerId);
-            // Initiate call to existing peer
-            callInstance = peerInstance.call(availablePeer.peerId, localStream);
-            callInstance.on('stream', (remoteStream: MediaStream) => {
-              console.log('Received remote stream from peer list call');
-              setRemoteStream(remoteStream);
-              if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-              setStatus('Connected');
-            });
-            callInstance.on('error', (err: any) => {
-              console.error('Peer list call error:', err);
-            });
-          }
-        } else if (data.type === 'PEER_LEFT') {
-          console.log('Peer left:', data.peerId);
-          if (data.peerId === remotePeerId) {
-            setRemoteStream(null);
-            setRemotePeerId('');
-            setStatus('Waiting for other participant...');
           }
         }
       };
       // Handle incoming calls
       peerInstance.on('call', (call: any) => {
-        console.log('Receiving incoming call from:', call.peer);
         call.answer(localStream);
         call.on('stream', (remoteStream: MediaStream) => {
-          console.log('Received remote stream from incoming call');
           setRemoteStream(remoteStream);
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
           setStatus('Connected');
-          setRemotePeerId(call.peer);
-        });
-        call.on('error', (err: any) => {
-          console.error('Incoming call error:', err);
         });
       });
     };

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Appointment from "../models/appointment.model";
 import User from "../models/user.model";
+import Notification from "../models/notification.model";
 
 export const createAppointment = async (req: Request, res: Response): Promise<void> => {
     const { 
@@ -58,7 +59,8 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
             symptoms,
             notes,
             appointmentType: appointmentType || 'in-person',
-            reason
+            reason,
+            status: 'pending' // New appointments start as pending doctor approval
         });
 
         await appointment.save();
@@ -66,8 +68,26 @@ export const createAppointment = async (req: Request, res: Response): Promise<vo
         // Debug log for saved appointment
         console.log('[CREATE_APPOINTMENT] Saved appointment:', appointment);
 
-        // Populate provider details for response
+        // Populate patient and provider details for notification
+        await appointment.populate('patientId', 'firstName lastName');
         await appointment.populate('providerId', 'firstName lastName specialization');
+
+        // Create notification for doctor to review new appointment
+        await Notification.create({
+            userId: providerId,
+            type: 'appointment_pending',
+            title: 'newAppointmentRequest',
+            message: 'appointmentRequestMessage',
+            translationData: {
+                patientName: `${(appointment.patientId as any).firstName} ${(appointment.patientId as any).lastName}`,
+                date: new Date(scheduledDate).toLocaleDateString()
+            },
+            priority: 'medium',
+            relatedEntity: {
+                type: 'appointment',
+                id: appointment._id
+            }
+        });
 
         res.status(201).json({
             message: "Appointment created successfully",
@@ -309,4 +329,55 @@ export const getAvailableSlotsForMonth = async (req: Request, res: Response): Pr
         console.error('Get available slots for month error:', err);
         res.status(500).json({ message: "Failed to get available slots for month", error: err });
     }
-}; 
+};
+
+export const approveAppointment = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.id;
+        
+        const appointment = await Appointment.findById(id)
+            .populate('patientId', 'firstName lastName')
+            .populate('providerId', '_id');
+        
+        if (!appointment) {
+            res.status(404).json({ message: "Appointment not found" });
+            return;
+        }
+
+        // Check if user is the provider for this appointment
+        if (appointment.providerId._id.toString() !== userId) {
+            res.status(403).json({ message: "Access denied" });
+            return;
+        }
+
+        // Update appointment status to confirmed
+        appointment.status = 'confirmed';
+        await appointment.save();
+
+        // Create notification for patient that appointment is confirmed
+        await Notification.create({
+            userId: appointment.patientId._id,
+            type: 'appointment_confirmed',
+            title: 'appointmentConfirmed',
+            message: 'appointmentConfirmedMessage',
+            translationData: {
+                doctorName: `${(appointment.providerId as any).firstName} ${(appointment.providerId as any).lastName}`,
+                date: new Date(appointment.scheduledDate).toLocaleDateString()
+            },
+            priority: 'high',
+            relatedEntity: {
+                type: 'appointment',
+                id: appointment._id
+            }
+        });
+
+        res.json({
+            message: "Appointment approved successfully",
+            appointment
+        });
+    } catch (err) {
+        console.error('Approve appointment error:', err);
+        res.status(500).json({ message: "Failed to approve appointment", error: err });
+    }
+};

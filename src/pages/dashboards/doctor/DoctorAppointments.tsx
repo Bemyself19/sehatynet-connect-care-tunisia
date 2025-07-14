@@ -194,8 +194,15 @@ const DoctorAppointments: React.FC = () => {
 
   const handleAppointmentStatusChange = async (id: string, status: 'confirmed' | 'cancelled') => {
     try {
-      await api.updateAppointment(id, { status });
-      toast.success(`Appointment ${status}`);
+      if (status === 'confirmed') {
+        // Use the approve endpoint for confirming pending appointments
+        await api.approveAppointment(id);
+        toast.success(t('appointmentApproved'));
+      } else {
+        // Use regular update for cancellation
+        await api.updateAppointment(id, { status });
+        toast.success(`Appointment ${status}`);
+      }
       await queryClient.invalidateQueries({ queryKey: ['appointments', user?._id] });
       handleCloseAppointmentDetail();
     } catch (error) {

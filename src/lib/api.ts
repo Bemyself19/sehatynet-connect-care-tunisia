@@ -143,6 +143,12 @@ class ApiClient {
     });
   }
 
+  async approveAppointment(id: string): Promise<Appointment> {
+    return this.request<Appointment>(`/appointments/${id}/approve`, {
+      method: 'PUT',
+    });
+  }
+
   async cancelAppointment(id: string): Promise<{ message: string }> {
     return this.request<{ message: string }>(`/appointments/${id}`, {
       method: 'DELETE',
@@ -584,52 +590,55 @@ class ApiClient {
     return this.request<ImmunizationSchedule>(`/immunizations/patient/${patientId}/schedule`);
   }
 
-  // System Settings
-  async getSystemSettings(): Promise<any> {
-    try {
-      console.log('API Client: Requesting system settings from /system-settings/public');
-      const response = await this.request<any>('/system-settings/public');
-      console.log('API Client: Raw system settings response:', response);
-      
-      if (!response) {
-        console.log('API Client: No response received, defaulting to paymentsEnabled: false');
-        return { paymentsEnabled: false };
-      }
-      
-      // Log if paymentsEnabled specifically exists in the response
-      if ('paymentsEnabled' in response) {
-        console.log(`API Client: Found paymentsEnabled in response: ${response.paymentsEnabled}`);
-      } else {
-        console.log('API Client: paymentsEnabled not found in response');
-      }
-      
-      return response;
-    } catch (error) {
-      console.error('API Client: Error fetching system settings:', error);
-      return { paymentsEnabled: false }; // Default to disabled on error
-    }
+  // Notification API methods
+  async getNotifications(params?: { unread?: boolean; limit?: number; page?: number }): Promise<any> {
+    const queryString = params ? `?${new URLSearchParams(params as Record<string, string>).toString()}` : '';
+    return this.request<any>(`/notifications${queryString}`);
   }
 
-  async updateSystemSettings(settings: Record<string, any>): Promise<any> {
-    console.log('API Client: Sending updateSystemSettings with data:', settings);
-    
-    // Ensure paymentsEnabled is explicitly boolean
-    if ('paymentsEnabled' in settings) {
-      settings.paymentsEnabled = Boolean(settings.paymentsEnabled);
-      console.log('API Client: Normalized paymentsEnabled to:', settings.paymentsEnabled);
-    }
-    
-    try {
-      const response = await this.request<any>('/system-settings', {
-        method: 'PUT',
-        body: JSON.stringify(settings)
-      });
-      console.log('API Client: Update system settings response:', response);
-      return response;
-    } catch (error) {
-      console.error('API Client: Error in updateSystemSettings:', error);
-      throw error;
-    }
+  async getUnreadNotifications(): Promise<any[]> {
+    return this.request<any[]>('/notifications/unread');
+  }
+
+  async getNotificationStats(): Promise<any> {
+    return this.request<any>('/notifications/stats');
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    return this.request<void>(`/notifications/${notificationId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<void> {
+    return this.request<void>('/notifications/read-all', {
+      method: 'PUT',
+    });
+  }
+
+  async deleteNotification(notificationId: string): Promise<void> {
+    return this.request<void>(`/notifications/${notificationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createNotification(data: any): Promise<any> {
+    return this.request<any>('/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // System Settings API methods
+  async getSystemSettings(): Promise<any> {
+    return this.request<any>('/system-settings');
+  }
+
+  async updateSystemSettings(data: any): Promise<any> {
+    return this.request<any>('/system-settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 }
 

@@ -417,5 +417,17 @@
   "pleaseWaitWhileVerifyingPayment": "الرجاء الانتظار أثناء التحقق من الدفع",
   "appointmentConfirmedEmailSent": "تم تأكيد موعدك وتم إرسال بريد إلكتروني للتأكيد",
   "errorOccurredDuringPaymentProcessing": "حدث خطأ أثناء معالجة الدفع",
-  "missingPaymentParameters": "معلمات الدفع مفقودة"
+  "missingPaymentParameters": "معلمات الدفع مفقودة",
+  "notifications": "الإشعارات",
+  "markAllRead": "تحديد الكل كمقروء",
+  "loadingNotifications": "جارٍ تحميل الإشعارات...",
+  "noNewNotifications": "لا توجد إشعارات جديدة",
+  "notificationsWillAppearHere": "ستظهر الإشعارات هنا",
+  "viewAllNotifications": "عرض جميع الإشعارات",
+  "appointmentApproved": "تم الموافقة على الموعد وإشعار المريض",
+  "pendingApproval": "في انتظار الموافقة",
+  "newAppointmentRequest": "طلب موعد جديد",
+  "appointmentConfirmed": "تم تأكيد الموعد",
+  "appointmentRequestMessage": "{{patientName}} طلب موعداً لتاريخ {{date}}",
+  "appointmentConfirmedMessage": "تم تأكيد موعدك مع د. {{doctorName}} لتاريخ {{date}}"
 }
