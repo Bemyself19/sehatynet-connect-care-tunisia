@@ -641,6 +641,10 @@ class ApiClient {
     return this.request<any>('/system-settings');
   }
 
+  async getPublicSystemSettings(): Promise<any> {
+    return this.request<any>('/system-settings/public');
+  }
+
   async updateSystemSettings(data: any): Promise<any> {
     return this.request<any>('/system-settings', {
       method: 'PUT',

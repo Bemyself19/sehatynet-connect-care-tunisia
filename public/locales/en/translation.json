@@ -597,5 +597,18 @@
     "viewDay": "Day",
     "viewWeek": "Week",
     "viewMonth": "Month"
-  }
+  },
+  "consultationFee": "Consultation Fee",
+  "currency": "TND",
+  "internationalCurrency": "EUR",
+  "feeNotSet": "Fee not set",
+  "generalpractitioner": "General Practitioner",
+  "generalPractitioner": "General Practitioner",
+  "cardiologist": "Cardiologist",
+  "dermatologist": "Dermatologist",
+  "orthopedist": "Orthopedist",
+  "neurologist": "Neurologist",
+  "pediatrician": "Pediatrician",
+  "gynecologist": "Gynecologist",
+  "psychiatrist": "Psychiatrist"
 }

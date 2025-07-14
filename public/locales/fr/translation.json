@@ -773,5 +773,9 @@
   "loadingNotifications": "Chargement des notifications...",
   "noNewNotifications": "Aucune nouvelle notification",
   "notificationsWillAppearHere": "Les notifications apparaîtront ici",
-  "viewAllNotifications": "Voir toutes les notifications"
+  "viewAllNotifications": "Voir toutes les notifications",
+  "consultationFee": "Frais de Consultation",
+  "currency": "TND",
+  "internationalCurrency": "EUR",
+  "feeNotSet": "Frais non définis"
 }
