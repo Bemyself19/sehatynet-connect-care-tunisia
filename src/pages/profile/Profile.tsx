@@ -52,6 +52,7 @@ const Profile: React.FC = () => {
         medicalHistory: 'medicalHistory' in user && user.medicalHistory ? user.medicalHistory.join(', ') : '',
         allergies: 'allergies' in user && user.allergies ? user.allergies.join(', ') : '',
         currentMedications: 'currentMedications' in user && user.currentMedications ? user.currentMedications.join(', ') : '',
+        nationalId: user.nationalId || '',
         cnamId: user.cnamId || '',
         specialization: 'specialization' in user ? user.specialization || '' : '',
         licenseNumber: 'licenseNumber' in user ? user.licenseNumber || '' : '',
@@ -270,6 +271,34 @@ const Profile: React.FC = () => {
                     value={profileData.phone}
                     onChange={handleChange}
                     placeholder={t('enterPhone') || 'Enter your phone number'}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="nationalId">{t('nationalId') || 'National ID'}</Label>
+                  <Input
+                    id="nationalId"
+                    name="nationalId"
+                    value={profileData.nationalId}
+                    onChange={handleChange}
+                    placeholder={t('enterNationalId') || 'Enter your National ID'}
+                    pattern="[0-9]{8}"
+                    maxLength={8}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('nationalIdHelp') || 'Tunisian National ID Card (8 digits only)'}
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="cnamId">{t('cnamId') || 'CNAM ID'}</Label>
+                  <Input
+                    id="cnamId"
+                    name="cnamId"
+                    value={profileData.cnamId}
+                    onChange={handleChange}
+                    placeholder={t('enterCnamId') || 'Enter your CNAM ID'}
                   />
                 </div>
               </div>

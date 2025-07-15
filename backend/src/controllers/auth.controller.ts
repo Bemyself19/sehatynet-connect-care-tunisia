@@ -8,6 +8,7 @@ import nodemailer from "nodemailer";
 export const register = async (req: Request, res: Response): Promise<void> => {
     const { 
         email, 
+        nationalId,
         password, 
         firstName, 
         lastName, 
@@ -25,16 +26,27 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     } = req.body;
 
     try {
-        const existing = await User.findOne({ email });
-        if (existing) {
+        // Check if email already exists
+        const existingByEmail = await User.findOne({ email });
+        if (existingByEmail) {
             res.status(400).json({ message: "Email already exists" });
             return;
+        }
+
+        // Check if nationalId already exists (if provided)
+        if (nationalId) {
+            const existingByNationalId = await User.findOne({ nationalId });
+            if (existingByNationalId) {
+                res.status(400).json({ message: "National ID already exists" });
+                return;
+            }
         }
 
         const hashed = await bcrypt.hash(password, 10);
         
         const userData: any = {
             email,
+            nationalId,
             password: hashed,
             firstName,
             lastName,
@@ -87,21 +99,29 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-    const { email, password, role } = req.body;
+    const { email, nationalId, password, role } = req.body;
     try {
-        const userByEmail = await User.findOne({ email });
+        let user;
+        
+        // Find user by email or nationalId
+        if (email) {
+            user = await User.findOne({ email });
+        } else if (nationalId) {
+            user = await User.findOne({ nationalId });
+        } else {
+            res.status(400).json({ message: "Email or National ID is required" });
+            return;
+        }
 
-        if (!userByEmail) {
+        if (!user) {
             res.status(404).json({ message: "User not found" });
             return;
         }
 
-        if (userByEmail.role !== role) {
-             res.status(403).json({ message: `You are trying to log in as a ${role}, but your account is a ${userByEmail.role}. Please log in with the correct account type.` });
+        if (user.role !== role) {
+             res.status(403).json({ message: `You are trying to log in as a ${role}, but your account is a ${user.role}. Please log in with the correct account type.` });
             return;
         }
-
-        const user = userByEmail;
 
         if (!user.isActive) {
             res.status(403).json({ message: "Account is not active. Please contact support." });
