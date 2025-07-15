@@ -39,6 +39,12 @@ function generateTimeSlots(start = '09:00', end = '17:00', slotDuration = 30) {
 
 const BookAppointment: React.FC = () => {
   const { t, i18n } = useTranslation();
+  
+  // Helper function to get translated specialty name
+  const getTranslatedSpecialtyName = (specialtyName: string) => {
+    return t(`specialties.${specialtyName}`) || specialtyName;
+  };
+  
   const [formData, setFormData] = useState<Partial<CreateAppointmentData>>({
     providerId: '',
     type: 'consultation',
@@ -224,9 +230,7 @@ const BookAppointment: React.FC = () => {
                                 Dr. {selectedDoctor.firstName} {selectedDoctor.lastName}
                               </h3>
                               <p className="text-sm text-gray-600">
-                                {selectedDoctor.specialization ? t(
-                                  selectedDoctor.specialization.replace(/ /g, '').replace(/([A-Z])/g, (m) => m.toLowerCase())
-                                ) : t('generalPractitioner')}
+                                {selectedDoctor.specialization ? getTranslatedSpecialtyName(selectedDoctor.specialization) : t('generalPractitioner')}
                               </p>
                               <div className="flex items-center space-x-4 mt-1">
                                 <Badge variant="outline" className="text-xs">

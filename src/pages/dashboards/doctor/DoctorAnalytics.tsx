@@ -50,7 +50,7 @@ const DoctorAnalytics: React.FC = () => {
   })) || [];
 
   const statusData = stats?.apptStatus?.map((s: any) => ({
-    name: t(`analytics.status.${s._id}`),
+    name: t(`analyticsPage.status.${s._id}`),
     value: s.value
   })) || [];
 
