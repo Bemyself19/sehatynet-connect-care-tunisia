@@ -133,11 +133,22 @@ const Index = () => {
             
             <div className="relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img 
-                  src="https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1050&q=80"
-                  alt="Doctor taking a video call with a patient"
+                <video 
+                  src="/consultation-video.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full h-96 object-cover"
-                />
+                  aria-label="Doctor and patient having an online consultation"
+                >
+                  {/* Fallback for browsers that don't support video */}
+                  <img 
+                    src="https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1050&q=80"
+                    alt="Doctor taking a video call with a patient"
+                    className="w-full h-96 object-cover"
+                  />
+                </video>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
             </div>
@@ -159,29 +170,29 @@ const Index = () => {
           
           <div className="relative max-w-4xl mx-auto">
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              {/* Placeholder for video - replace with actual video URL */}
-              <div className="aspect-video bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Video className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                  <p className="text-lg font-medium mb-2">
-                    {t('sampleVideoTitle') || 'Sample Video: Healthcare in Action'}
-                  </p>
-                  <p className="text-sm opacity-80">
-                    {t('replaceWithActualVideo') || 'Replace with actual looping video of doctors, labs, pharmacists, radiologists, and patients'}
-                  </p>
-                  <p className="text-xs opacity-60 mt-4">
-                    {t('videoPlaceholder') || 'Video will show: Doctor consultations, lab procedures, pharmacy interactions, radiology scans, patient care'}
-                  </p>
+              {/* Main consultation video */}
+              <video 
+                src="/consultation-video.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full aspect-video object-cover"
+                aria-label="Healthcare professionals and patients using SehatyNet+ platform"
+              >
+                {/* Fallback placeholder */}
+                <div className="aspect-video bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <Video className="h-16 w-16 mx-auto mb-4 opacity-80" />
+                    <p className="text-lg font-medium mb-2">
+                      {t('sampleVideoTitle') || 'Sample Video: Healthcare in Action'}
+                    </p>
+                    <p className="text-sm opacity-80">
+                      {t('replaceWithActualVideo') || 'Video showing doctor and patient consultation'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              
-              {/* Video overlay with play button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button size="lg" className="bg-white/90 hover:bg-white text-gray-900 px-8 py-3 rounded-full shadow-lg">
-                  <Play className="h-6 w-6 mr-2" />
-                  {t('playVideo') || 'Play Video'}
-                </Button>
-              </div>
+              </video>
             </div>
           </div>
         </div>
