@@ -16,7 +16,9 @@ import { BrandLogo } from '@/components/ui/logo';
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginForm>({
     email: '',
-    password: ''
+    nationalId: '',
+    password: '',
+    loginType: 'email'
   });
   const [searchParams] = useSearchParams();
   const userTypeFromUrl = searchParams.get('type') || 'patient';
@@ -40,6 +42,19 @@ const Login: React.FC = () => {
     }));
   };
 
+  const handleLoginTypeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      loginType: value as 'email' | 'nationalId',
+      email: '',
+      nationalId: ''
+    }));
+  };
+
+  const validateNationalId = (nationalId: string): boolean => {
+    return /^\d{8}$/.test(nationalId);
+  };
+
   const handleRoleChange = (value: string) => {
     setSelectedRole(value as UserRole);
   };
@@ -52,6 +67,23 @@ const Login: React.FC = () => {
       return;
     }
 
+    // Validate National ID if using National ID login
+    if (formData.loginType === 'nationalId' && formData.nationalId && !validateNationalId(formData.nationalId)) {
+      toast.error(t('invalidNationalId') || 'National ID must be exactly 8 digits.');
+      return;
+    }
+
+    // Ensure we have either email or nationalId
+    if (formData.loginType === 'email' && !formData.email) {
+      toast.error(t('emailRequired') || 'Email is required.');
+      return;
+    }
+
+    if (formData.loginType === 'nationalId' && !formData.nationalId) {
+      toast.error(t('nationalIdRequired') || 'National ID is required.');
+      return;
+    }
+
     const roleToSubmit = userTypeFromUrl === 'provider' ? selectedRole : (userTypeFromUrl as UserRole);
 
     if (!roleToSubmit) {
@@ -59,7 +91,14 @@ const Login: React.FC = () => {
        return;
     }
     
-    login({ ...formData, role: roleToSubmit });
+    // Prepare login data based on login type
+    const loginData = {
+      password: formData.password,
+      role: roleToSubmit,
+      ...(formData.loginType === 'email' ? { email: formData.email } : { nationalId: formData.nationalId })
+    };
+    
+    login(loginData);
   };
 
   const getTitle = () => {
@@ -99,18 +138,51 @@ const Login: React.FC = () => {
           </div>
         )}
         <div>
-          <Label htmlFor="email">{t('email') || 'Email'}</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="mt-1"
-          />
+          <Label htmlFor="loginType">{t('loginWith') || 'Login with'}</Label>
+          <Select value={formData.loginType} onValueChange={handleLoginTypeChange}>
+            <SelectTrigger className="w-full mt-1">
+              <SelectValue placeholder={t('selectLoginMethod') || 'Select login method'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="email">{t('email') || 'Email'}</SelectItem>
+              <SelectItem value="nationalId">{t('nationalId') || 'National ID (Tunisians only)'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+        {formData.loginType === 'email' ? (
+          <div>
+            <Label htmlFor="email">{t('email') || 'Email'}</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="mt-1"
+            />
+          </div>
+        ) : (
+          <div>
+            <Label htmlFor="nationalId">{t('nationalId') || 'National ID'}</Label>
+            <Input
+              id="nationalId"
+              name="nationalId"
+              type="text"
+              placeholder={t('enterNationalId') || 'Enter 8-digit National ID'}
+              pattern="[0-9]{8}"
+              maxLength={8}
+              required
+              value={formData.nationalId}
+              onChange={handleChange}
+              className="mt-1"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {t('nationalIdHelp') || 'Tunisian National ID Card (8 digits only)'}
+            </p>
+          </div>
+        )}
         <div>
           <Label htmlFor="password">{t('password') || 'Password'}</Label>
           <Input

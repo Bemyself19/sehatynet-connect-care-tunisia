@@ -19,6 +19,7 @@ const Register: React.FC = () => {
   
   const [formData, setFormData] = useState<RegisterData>({
     email: '',
+    nationalId: '',
     password: '',
     firstName: '',
     lastName: '',
@@ -35,6 +36,8 @@ const Register: React.FC = () => {
     gender: '',
   });
 
+  const [loginType, setLoginType] = useState<'email' | 'nationalId'>('email');
+
   const [isLoading, setIsLoading] = useState(false);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -43,13 +46,54 @@ const Register: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleLoginTypeChange = (value: string) => {
+    setLoginType(value as 'email' | 'nationalId');
+    // Clear the other field when switching
+    if (value === 'email') {
+      setFormData(prev => ({ ...prev, nationalId: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, email: '' }));
+    }
+  };
+
+  const validateNationalId = (nationalId: string): boolean => {
+    return /^\d{8}$/.test(nationalId);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      // Validate National ID if using National ID registration
+      if (loginType === 'nationalId' && formData.nationalId && !validateNationalId(formData.nationalId)) {
+        toast.error(t('invalidNationalId') || 'National ID must be exactly 8 digits.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Ensure we have either email or nationalId
+      if (loginType === 'email' && !formData.email) {
+        toast.error(t('emailRequired') || 'Email is required.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (loginType === 'nationalId' && !formData.nationalId) {
+        toast.error(t('nationalIdRequired') || 'National ID is required.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Prepare registration data
+      const registrationData = {
+        ...formData,
+        // Ensure we have email for registration (use a dummy email if nationalId is used)
+        email: loginType === 'email' ? formData.email : `${formData.nationalId}@nationalid.tn`
+      };
+
       // Call the real backend API
-      await api.register(formData);
+      await api.register(registrationData);
 
       toast.success('Registration Successful', {
         description: 'Your account has been created. Please log in to continue.',
@@ -126,16 +170,47 @@ const Register: React.FC = () => {
               </div>
             </div>
             <div>
-              <Label htmlFor="email">{t('email') || 'Email'}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder={t('enterEmail') || 'Enter Email'}
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-              />
+              <Label htmlFor="registrationType">{t('registerWith') || 'Register with'}</Label>
+              <Select value={loginType} onValueChange={handleLoginTypeChange}>
+                <SelectTrigger id="registrationType">
+                  <SelectValue placeholder={t('selectRegistrationMethod') || 'Select registration method'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">{t('email') || 'Email'}</SelectItem>
+                  <SelectItem value="nationalId">{t('nationalId') || 'National ID (Tunisians only)'}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {loginType === 'email' ? (
+              <div>
+                <Label htmlFor="email">{t('email') || 'Email'}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder={t('enterEmail') || 'Enter Email'}
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="nationalId">{t('nationalId') || 'National ID'}</Label>
+                <Input
+                  id="nationalId"
+                  type="text"
+                  placeholder={t('enterNationalId') || 'Enter 8-digit National ID'}
+                  pattern="[0-9]{8}"
+                  maxLength={8}
+                  value={formData.nationalId}
+                  onChange={(e) => handleInputChange('nationalId', e.target.value)}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {t('nationalIdHelp') || 'Tunisian National ID Card (8 digits only)'}
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="password">{t('password') || 'Password'}</Label>
               <Input

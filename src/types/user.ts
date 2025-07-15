@@ -3,6 +3,7 @@ export type UserRole = 'patient' | 'doctor' | 'pharmacy' | 'lab' | 'radiologist'
 export interface BaseUser {
   _id: string;
   email: string;
+  nationalId?: string; // Tunisian National ID (8 digits)
   firstName: string;
   lastName: string;
   role: UserRole;
@@ -63,8 +64,10 @@ export interface Provider extends BaseUser {
 export type User = Patient | Provider | BaseUser & { medicalInfoDismissed?: boolean, allowOtherDoctorsAccess?: boolean, slotDuration?: number };
 
 export interface LoginForm {
-  email: string;
+  email?: string;
+  nationalId?: string;
   password: string;
+  loginType?: 'email' | 'nationalId';
 }
 
 export interface LoginCredentials extends LoginForm {
@@ -75,6 +78,7 @@ export interface RegisterData extends LoginCredentials {
   firstName: string;
   lastName: string;
   role: UserRole;
+  nationalId?: string; // Tunisian National ID (8 digits)
   phone?: string;
   dateOfBirth?: string;
   licenseNumber?: string;
