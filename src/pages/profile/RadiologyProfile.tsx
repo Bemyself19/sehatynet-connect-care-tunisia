@@ -21,6 +21,12 @@ const RadiologyProfile: React.FC = () => {
   const navigate = useNavigate();
   const { user, refetch } = useUser();
   const { t, i18n } = useTranslation();
+  
+  // Helper function to get translated specialty name
+  const getTranslatedSpecialtyName = (specialtyName: string) => {
+    return t(`specialties.${specialtyName}`) || specialtyName;
+  };
+  
   const [profileData, setProfileData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
@@ -125,7 +131,7 @@ const RadiologyProfile: React.FC = () => {
             </Badge>
             {profileData?.specialization && (
               <Badge variant="outline">
-                {profileData.specialization}
+                {getTranslatedSpecialtyName(profileData.specialization)}
               </Badge>
             )}
           </div>

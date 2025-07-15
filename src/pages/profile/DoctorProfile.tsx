@@ -24,7 +24,12 @@ const DoctorProfile: React.FC = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
-  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [specialties, setSpecialties] = useState<any[]>([]);
+
+  // Helper function to get translated specialty name
+  const getTranslatedSpecialtyName = (specialtyName: string) => {
+    return t(`specialties.${specialtyName}`) || specialtyName;
+  };
 
   // Use current user's ID for "My Profile" view, fallback to URL param for admin views
   const profileId = user?._id || id;
@@ -67,7 +72,7 @@ const DoctorProfile: React.FC = () => {
 
   useEffect(() => {
     api.getSpecialties().then((data) => {
-      setSpecialties(data.map((s: any) => s.name));
+      setSpecialties(data);
     });
   }, []);
 
@@ -158,7 +163,7 @@ const DoctorProfile: React.FC = () => {
             </Badge>
             {profileData.specialization && (
               <Badge variant="outline">
-                {profileData.specialization}
+                {getTranslatedSpecialtyName(profileData.specialization)}
               </Badge>
             )}
           </div>
@@ -282,8 +287,8 @@ const DoctorProfile: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {specialties.map((specialty) => (
-                      <SelectItem key={specialty} value={specialty}>
-                        {specialty}
+                      <SelectItem key={specialty.name} value={specialty.name}>
+                        {getTranslatedSpecialtyName(specialty.name)}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -23,6 +23,11 @@ const Profile: React.FC = () => {
   const { user, isLoading: isUserLoading, error: userError, refetch } = useUser();
   const { logout } = useAuth();
 
+  // Helper function to get translated specialty name
+  const getTranslatedSpecialtyName = (specialtyName: string) => {
+    return t(`specialties.${specialtyName}`) || specialtyName;
+  };
+
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
@@ -184,7 +189,7 @@ const Profile: React.FC = () => {
             </Badge>
             {profileData.specialization && (
               <Badge variant="outline">
-                {profileData.specialization}
+                {getTranslatedSpecialtyName(profileData.specialization)}
               </Badge>
             )}
           </div>
