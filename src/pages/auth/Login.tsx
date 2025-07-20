@@ -250,13 +250,15 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        <GoogleSignIn
-          role={getGoogleSignInRole()}
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
-          mode="signin"
-          disabled={isLoggingIn}
-        />
+        {userTypeFromUrl === 'patient' && (
+          <GoogleSignIn
+            role={getGoogleSignInRole()}
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            mode="signin"
+            disabled={isLoggingIn}
+          />
+        )}
 
         <div className="text-center">
           <span className="text-sm text-gray-600">

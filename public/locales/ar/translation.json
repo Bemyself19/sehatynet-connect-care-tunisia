@@ -71,6 +71,8 @@
   "backToLiveConsultation": "العودة للاستشارة المباشرة",
   "patientDashboard": "لوحة تحكم المريض",
   "dashboardSubtitle": "إدارة رحلتك الصحية",
+  "duplicateNationalId": "رقم الهوية الوطنية مكرر",
+  "duplicateNationalIdDescription": "رقم بطاقة الهوية الوطنية هذا مستخدم بالفعل من قبل حساب آخر.",
   "bookAppointment": "حجز موعد",
   "scheduleConsultation": "جدولة استشارة جديدة",
   "appointments": "المواعيد",

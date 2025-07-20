@@ -30,6 +30,8 @@
   "comprehensiveDescription": "Écosystème de santé complet avec médecins, pharmacies, laboratoires et centres d'imagerie.",
   "patientDashboard": "Tableau de Bord Patient",
   "dashboardSubtitle": "Gérez votre parcours de santé",
+  "duplicateNationalId": "CIN déjà utilisée",
+  "duplicateNationalIdDescription": "Ce numéro de carte d'identité nationale est déjà utilisé par un autre compte.",
   "bookAppointment": "Prendre Rendez-vous",
   "scheduleConsultation": "Planifier une nouvelle consultation",
   "appointments": "Rendez-vous",

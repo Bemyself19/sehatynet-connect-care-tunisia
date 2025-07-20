@@ -108,11 +108,18 @@ const Profile: React.FC = () => {
       toast.success(t('profileUpdated') || 'Profile Updated', {
         description: t('profileSavedSuccessfully') || 'Your profile has been saved successfully',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Profile update error:', error);
-      toast.error(t('updateFailed') || 'Update Failed', {
-        description: t('profileUpdateFailed') || 'Failed to update profile. Please try again.',
-      });
+      const errorMsg = error?.message || '';
+      if (errorMsg.includes('National ID is already in use')) {
+        toast.error(t('duplicateNationalId') || 'Duplicate National ID', {
+          description: t('duplicateNationalIdDescription') || 'This National ID is already in use by another account.',
+        });
+      } else {
+        toast.error(t('updateFailed') || 'Update Failed', {
+          description: t('profileUpdateFailed') || 'Failed to update profile. Please try again.',
+        });
+      }
     } finally {
       setIsLoading(false);
     }

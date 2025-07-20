@@ -361,13 +361,15 @@ const Register: React.FC = () => {
               </div>
             </div>
 
-            <GoogleSignIn
-              role={getGoogleSignInRole()}
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              mode="signup"
-              disabled={isLoading}
-            />
+            {userType === 'patient' && (
+              <GoogleSignIn
+                role={getGoogleSignInRole()}
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                mode="signup"
+                disabled={isLoading}
+              />
+            )}
             
             <div className="text-center mt-4">
               <span className="text-sm text-gray-600">

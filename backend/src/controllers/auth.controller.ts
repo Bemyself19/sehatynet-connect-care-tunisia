@@ -329,6 +329,11 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const googleAuth = async (req: Request, res: Response): Promise<void> => {
     const { credential, role } = req.body;
     
+    // Disallow Google SSO for provider roles
+    if (["doctor", "pharmacy", "lab", "radiologist"].includes(role)) {
+        res.status(400).json({ message: "Google Sign-In is not supported for provider roles. Please register using email and password and provide all required information." });
+        return;
+    }
     try {
         // Verify the Google token
         const ticket = await client.verifyIdToken({

@@ -58,6 +58,8 @@
   "comprehensiveDescription": "Complete healthcare ecosystem with doctors, pharmacies, labs, and imaging centers.",
   "patientDashboard": "Patient Dashboard",
   "dashboardSubtitle": "Manage your health journey",
+  "duplicateNationalId": "Duplicate National ID",
+  "duplicateNationalIdDescription": "This National ID is already in use by another account.",
   "bookAppointment": "Book Appointment",
   "scheduleConsultation": "Schedule a new consultation",
   "appointments": "Appointments",

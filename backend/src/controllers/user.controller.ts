@@ -47,7 +47,8 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
             'localConsultationFee', 'internationalConsultationFee',
             'medicalInfoDismissed',
             'slotDuration',
-            'allowOtherDoctorsAccess'
+            'allowOtherDoctorsAccess',
+            'nationalId', 'cnamId'
         ];
         
         const filteredUpdates: any = {};
@@ -57,11 +58,22 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
             }
         });
 
-        const updated = await User.findByIdAndUpdate(
-            loggedInUserId, 
-            filteredUpdates, 
-            { new: true }
-        ).select("-password");
+        let updated;
+        try {
+            updated = await User.findByIdAndUpdate(
+                loggedInUserId, 
+                filteredUpdates, 
+                { new: true }
+            ).select("-password");
+        } catch (dbErr: any) {
+            console.error('MongoDB update error:', dbErr);
+            if (dbErr.code === 11000 && dbErr.keyPattern && dbErr.keyPattern.nationalId) {
+                res.status(400).json({ message: "This National ID is already in use by another account.", error: dbErr });
+            } else {
+                res.status(500).json({ message: "Profile update failed (DB error)", error: dbErr });
+            }
+            return;
+        }
 
         if (!updated) {
             res.status(404).json({ message: "User not found" });
@@ -72,9 +84,11 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
             message: "Profile updated successfully",
             user: updated
         });
+        return;
     } catch (err) {
-        console.error('Update profile error:', err);
-        res.status(500).json({ message: "Profile update failed", error: err });
+        console.error('Update profile error:', err, 'Request body:', req.body);
+        res.status(500).json({ message: "Profile update failed (server error)", error: err, requestBody: req.body });
+        return;
     }
 };
 
