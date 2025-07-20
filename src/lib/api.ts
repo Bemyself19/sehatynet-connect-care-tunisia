@@ -9,6 +9,14 @@ import { Allergy, CreateAllergyData, UpdateAllergyData } from '@/types/allergy';
 import { Immunization, CreateImmunizationData, UpdateImmunizationData, AddDoseData, ImmunizationSchedule } from '@/types/immunization';
 
 class ApiClient {
+  // ...existing code...
+
+  // Account Deletion
+  async deleteOwnAccount(): Promise<void> {
+    return this.request<void>(`/users/me`, {
+      method: 'DELETE',
+    });
+  }
   private baseURL: string;
 
   constructor(baseURL: string) {

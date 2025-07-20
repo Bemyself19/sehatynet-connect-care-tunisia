@@ -37,9 +37,12 @@ router.delete("/dev/clear-all", async (req, res) => {
 });
 
 // Profile routes for the authenticated user. Using /me is a robust, stateless pattern.
+
+// Profile routes for the authenticated user. Using /me is a robust, stateless pattern.
 router.get("/me", authenticateJWT, getProfile);
 router.put("/me", authenticateJWT, updateProfile);
 router.put("/me/consent", authenticateJWT, updateMedicalRecordConsent);
+router.delete("/me", authenticateJWT, require("../controllers/user.controller").deleteOwnAccount);
 
 // Admin-only routes for user management
 router.get("/", authenticateJWT, authorizeRoles('admin'), getAllUsers);

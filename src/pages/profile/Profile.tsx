@@ -530,8 +530,8 @@ const Profile: React.FC = () => {
             </Card>
           )}
 
-          {/* Save Button */}
-          <div className="flex justify-end space-x-4">
+          {/* Save & Delete Buttons */}
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
             <Link to="/dashboard/patient">
               <Button variant="outline" type="button">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -541,6 +541,26 @@ const Profile: React.FC = () => {
             <Button type="submit" disabled={isLoading} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               <Save className="h-4 w-4 mr-2" />
               {isLoading ? t('saving') || 'Saving...' : t('saveChanges') || 'Save Changes'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="border border-red-600 text-red-600 hover:bg-red-50"
+              onClick={async () => {
+                if (window.confirm(t('deleteAccountConfirm') || 'Are you sure you want to delete your account? This action cannot be undone.')) {
+                  try {
+                    await api.deleteOwnAccount();
+                    toast.success(t('accountDeleted') || 'Account deleted successfully.');
+                    logout();
+                    navigate('/');
+                  } catch (err) {
+                    toast.error(t('deleteAccountError') || 'Failed to delete account. Please try again.');
+                  }
+                }
+              }}
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              {t('deleteAccount') || 'Delete Account'}
             </Button>
           </div>
         </form>

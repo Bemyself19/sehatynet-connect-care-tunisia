@@ -1,3 +1,18 @@
+// Delete own account (authenticated user)
+export const deleteOwnAccount = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user.id;
+        const user = await User.findByIdAndDelete(userId);
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        res.json({ message: "Account deleted successfully" });
+    } catch (err) {
+        console.error('Delete own account error:', err);
+        res.status(500).json({ message: "Failed to delete account", error: err });
+    }
+};
 import { Request, Response } from "express";
 import User from "../models/user.model";
 import Appointment from '../models/appointment.model';

@@ -37,6 +37,7 @@ This will:
 - `POST /api/medical-records` - Create medical record
 - `GET /api/medical-records/:id` - Get specific record
 
+
 ### Prescriptions
 - `GET /api/prescriptions` - List prescriptions
 - `POST /api/prescriptions` - Create prescription
@@ -97,11 +98,14 @@ For support and questions, please contact the development team.
 ## HTTPS Handling
 SehatyNet backend no longer manages HTTPS/TLS directly. All HTTPS traffic should be terminated at a reverse proxy (e.g., Nginx, Caddy, or a cloud load balancer). The Express app listens on HTTP (e.g., port 3000 or 8000) and should not be exposed directly to the public internet.
 
+
 ## Environment Variables
 - `HTTPS_ENABLED`: (boolean) If true, backend will attempt to use HTTPS (not recommended; use a proxy instead). Default: `false`.
 - `SSL_CERT_PATH`, `SSL_KEY_PATH`: Paths to certificate and key files (used only if HTTPS_ENABLED is true).
+- `MONGO_URI`: MongoDB connection string. For local MongoDB, use `mongodb://localhost:27017/sehatynet`.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: Google OAuth credentials (from Google Cloud Console).
 
-These are provided for flexibility but are not recommended for production. Use a reverse proxy for TLS termination.
+These are provided for flexibility but are not recommended for production. Use a reverse proxy for TLS termination. Ensure `.env` is filled with real values for Google OAuth and MongoDB.
 
 ## Nginx Reverse Proxy Example
 ```

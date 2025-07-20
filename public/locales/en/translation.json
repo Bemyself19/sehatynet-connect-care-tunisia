@@ -711,5 +711,10 @@
   "doctorNotesTab": "Doctor Notes",
   "doctorNotesTabDesc": "Notes you have written for this patient. Visible only to you and other doctors if consent is granted.",
   "medicalRecordsTab": "Medical Records",
-  "medicalRecordsTabDesc": "All medical records for this patient, including prescriptions and lab results."
+  "medicalRecordsTabDesc": "All medical records for this patient, including prescriptions and lab results.",
+
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirm": "Are you sure you want to delete your account? This action cannot be undone.",
+  "accountDeleted": "Account deleted successfully.",
+  "deleteAccountError": "Failed to delete account. Please try again."
 }

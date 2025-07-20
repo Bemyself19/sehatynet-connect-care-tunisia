@@ -1,4 +1,8 @@
 {
+  "deleteAccount": "Supprimer le compte",
+  "deleteAccountConfirm": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+  "accountDeleted": "Compte supprimé avec succès.",
+  "deleteAccountError": "Échec de la suppression du compte. Veuillez réessayer.",
   "login": "Connexion",
   "register": "S'inscrire",
   "loginWith": "Se connecter avec",
