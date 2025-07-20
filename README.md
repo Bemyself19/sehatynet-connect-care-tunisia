@@ -64,35 +64,61 @@ For security, `.env`, `.env.local`, and `backend/.env` are all git-ignored by de
 - **Backend API**: https://localhost:5000
 - **Health Check**: https://localhost:5000/health
 
+
 ## 📋 Prerequisites
 
-- Node.js 16+ 
-- npm 8+
+- **Ubuntu 22.04+ (or other modern Linux distribution)** – recommended for both development and deployment
+- Node.js 18+ (16+ may work, but 18+ is recommended)
+- npm 9+ (8+ may work, but 9+ is recommended)
 - MongoDB (local or cloud)
+
 
 ## ⚙️ Environment Setup
 
-1. Create a backend environment file:
-        proxy_pass http://localhost:5173/;
+All commands and scripts assume a bash shell (Linux/Ubuntu). If you are on Windows, use WSL2 or a Linux VM for best compatibility.
+
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd sehatynet-connect-care-tunisia
+   ```
+
+2. **Install dependencies**
+   - For the frontend:
+     ```bash
+     npm install
+     ```
+   - For the backend:
+     ```bash
+     cd backend
+     npm install
+     cd ..
+     ```
+
+3. **Environment Variables**
+   - Copy `.env.example` to `.env` in both the root and `backend/` folders and fill in the required values.
+   - **Never commit `.env` files to git.**
+
+4. **Start MongoDB**
+   - On Ubuntu, you can use:
+     ```bash
+     sudo systemctl start mongod
+     ```
+   - Or use Docker:
+     ```bash
+     docker run -d -p 27017:27017 --name sehaty-mongo mongo:6
+     ```
+
+5. **Start the backend server**
+   ```bash
    cd backend
-   touch .env
-   # Then open backend/.env and add your configuration (see below)
-   ```
-   Example `backend/.env`:
-   ```
-   MONGODB_URI=mongodb://localhost:27017/sehaty
-   JWT_SECRET=your-secret-key
-   PORT=5000
-   ...
+   npm run dev
    ```
 
-2. For the frontend, create a `.env.local` in the project root (preferred for local development):
-
-
-   VITE_API_BASE_URL=https://localhost:5000/api
-   VITE_GOOGLE_CLIENT_ID=your_google_client_id
+6. **Start the frontend**
+   ```bash
+   npm run dev
    ```
-   `.env.local` takes priority over `.env` for Vite/React. Do not commit this file to git.
 
 **Never commit `.env`, `.env.local`, or any file with secrets to git.**
 
