@@ -26,26 +26,32 @@ npm install
 cd ..
 
 # Build backend
-cd backend
-npm run build
-cd ..
-
-# Start both servers
-npm run start
 ```
-
-## 🛠️ Development
-
-### Available Scripts
-
-**Frontend (Root directory):**
-- `npm run dev` - Start frontend development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-
-**Backend (backend/ directory):**
+sehatynet-connect-care-tunisia/
+├── src/                # Frontend React application
+│   ├── components/     # Reusable UI components
+│   ├── pages/          # Application pages
+│   ├── hooks/          # Custom React hooks
+│   └── lib/            # Utilities and API client
+├── backend/            # Node.js/Express API
+│   ├── src/
+│   │   ├── controllers/ # Request handlers
+│   │   ├── models/      # MongoDB schemas
+│   │   ├── routes/      # API routes
+│   │   └── middleware/  # Authentication & validation
+│   └── uploads/         # File uploads
+├── public/             # Static assets
+└── ...                 # Other project files
+```
 - `npm run dev` - Start backend with auto-reload
 - `npm run build` - Build TypeScript to JavaScript
+
+## .env File Tracking
+For security, `.env`, `.env.local`, and `backend/.env` are all git-ignored by default. Always create these files manually and never commit secrets to git.
+
+**Frontend:** Use `.env.local` in the project root for local development (Vite will prioritize this over `.env`).
+
+**Backend:** Create `backend/.env` manually and keep it out of version control.
 - `npm start` - Start production server
 
 **Concurrent (Root directory):**
@@ -54,7 +60,7 @@ npm run start
 
 ## 🌐 Access Points
 
-- **Frontend Application**: https://localhost:5173
+- **Frontend Application**: https://localhost:5173 (served over HTTPS)
 - **Backend API**: https://localhost:5000
 - **Health Check**: https://localhost:5000/health
 
@@ -66,18 +72,29 @@ npm run start
 
 ## ⚙️ Environment Setup
 
-1. Copy the example environment file:
-   ```bash
+1. Create a backend environment file:
+        proxy_pass http://localhost:5173/;
    cd backend
-   copy env.example .env
+   touch .env
+   # Then open backend/.env and add your configuration (see below)
    ```
-
-2. Update `backend/.env` with your MongoDB connection string:
+   Example `backend/.env`:
    ```
    MONGODB_URI=mongodb://localhost:27017/sehaty
    JWT_SECRET=your-secret-key
    PORT=5000
+   ...
    ```
+
+2. For the frontend, create a `.env.local` in the project root (preferred for local development):
+
+
+   VITE_API_BASE_URL=https://localhost:5000/api
+   VITE_GOOGLE_CLIENT_ID=your_google_client_id
+   ```
+   `.env.local` takes priority over `.env` for Vite/React. Do not commit this file to git.
+
+**Never commit `.env`, `.env.local`, or any file with secrets to git.**
 
 ## 🏗️ Project Structure
 
