@@ -10,6 +10,7 @@ import { Provider } from '@/types/user';
 import api from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useUser } from '@/hooks/useUser';
 
 interface DoctorSelectionModalProps {
   isOpen: boolean;
@@ -23,15 +24,49 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
   onSelectDoctor
 }) => {
   const { t } = useTranslation();
+  const { user } = useUser(); // Get current patient information
   const [selectionMode, setSelectionMode] = useState<'browse' | 'chatbot'>('browse');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'bot', message: string}>>([]);
   const [userInput, setUserInput] = useState('');
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   
   // Helper function to get translated specialty name
   const getTranslatedSpecialtyName = (specialtyName: string) => {
     return t(`specialties.${specialtyName}`) || specialtyName;
+  };
+
+  // Helper function to get the consultation fee display based on patient country
+  const getConsultationFeeDisplay = (doctor: Provider) => {
+    if (!paymentsEnabled) {
+      return null; // Don't show fees if payments are disabled
+    }
+    
+    // Use the new fee fields if available, otherwise fall back to old field
+    const localFee = doctor.localConsultationFee;
+    const intlFee = doctor.internationalConsultationFee;
+    const fallbackFee = doctor.consultationFee;
+    
+    // Check if current user is Tunisian based on country code
+    const isPatientTunisian = (user as any)?.country === 'TN';
+    
+    if (localFee && intlFee) {
+      // Show appropriate currency based on patient's country
+      if (isPatientTunisian) {
+        return `${localFee} TND`; // Show only local currency for Tunisian patients
+      } else {
+        return `${intlFee} EUR`; // Show only international currency for non-Tunisian patients
+      }
+    } else if (localFee) {
+      return `${localFee} TND`;
+    } else if (fallbackFee) {
+      // If only legacy fee is available, assume it's in TND for Tunisian patients, EUR for international
+      const currency = isPatientTunisian ? 'TND' : 'EUR';
+      return `${fallbackFee} ${currency}`;
+    } else {
+      return t('feeNotSet') || 'Fee not set';
+    }
   };
 
   const [doctors, setDoctors] = useState<Provider[]>([]);
@@ -53,7 +88,21 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
           setIsLoading(false);
         }
       };
+      
+      const fetchPaymentSettings = async () => {
+        try {
+          // Use public endpoint to get system settings
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api'}/system-settings/public`);
+          const settings = await response.json();
+          setPaymentsEnabled(settings.paymentsEnabled || false);
+        } catch (err) {
+          console.error('Failed to fetch payment settings:', err);
+          setPaymentsEnabled(false); // Default to false if fetch fails
+        }
+      };
+      
       fetchDoctors();
+      fetchPaymentSettings();
     }
   }, [isOpen]);
 
@@ -164,6 +213,11 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                           </CardHeader>
                           <CardContent>
                             <p className="text-sm text-gray-600">{doctor.specialization ? getTranslatedSpecialtyName(doctor.specialization) : t('generalPractitioner')}</p>
+                            {paymentsEnabled && (
+                              <p className="text-sm text-blue-600 font-medium mt-2">
+                                {getConsultationFeeDisplay(doctor)}
+                              </p>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -222,7 +276,11 @@ const DoctorSelectionModal: React.FC<DoctorSelectionModalProps> = ({
                           <div className="flex-1">
                             <h3 className="font-semibold">{`${doctor.firstName} ${doctor.lastName}`}</h3>
                             <p className="text-sm text-gray-600">{doctor.specialization ? getTranslatedSpecialtyName(doctor.specialization) : ''}</p>
-                            <p className="text-sm text-gray-500">${doctor.consultationFee || 'N/A'}</p>
+                            {paymentsEnabled && (
+                              <p className="text-sm text-blue-600 font-medium">
+                                {getConsultationFeeDisplay(doctor)}
+                              </p>
+                            )}
                           </div>
                           <Button size="sm" onClick={() => onSelectDoctor(doctor)}>Select</Button>
                         </div>

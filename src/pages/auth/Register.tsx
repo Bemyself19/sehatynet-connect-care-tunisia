@@ -12,6 +12,7 @@ import { RegisterData } from '@/types/user';
 import api from '@/lib/api';
 import { BrandLogo } from '@/components/ui/logo';
 import { LocationSelector } from '@/components/ui/LocationSelector';
+import GoogleSignIn from '@/components/auth/GoogleSignIn';
 
 const Register: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -102,13 +103,29 @@ const Register: React.FC = () => {
       // Redirect to the login page, preserving the user type
       navigate(`/auth/login?type=${userType}`);
 
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Registration Failed', {
-        description: 'Unable to create account. Please try again.',
+        description: error.message || 'An error occurred during registration. Please try again.',
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = (result: { token: string; user: any; message: string }) => {
+    sessionStorage.setItem('authToken', result.token);
+    toast.success(result.message);
+    // Navigate to the appropriate dashboard based on user role
+    const dashboardPath = `/dashboard/${result.user.role}`;
+    navigate(dashboardPath);
+  };
+
+  const handleGoogleError = (error: string) => {
+    toast.error(error);
+  };
+
+  const getGoogleSignInRole = () => {
+    return userType as any; // Return the actual userType directly
   };
 
   const specializations = [
@@ -332,6 +349,26 @@ const Register: React.FC = () => {
             <Button type="submit" className="w-full mt-4" disabled={isLoading}>
               {isLoading ? (t('registering') || 'Registering...') : (t('register') || 'Register')}
             </Button>
+            
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground">
+                  {t('orContinueWith') || 'Or continue with'}
+                </span>
+              </div>
+            </div>
+
+            <GoogleSignIn
+              role={getGoogleSignInRole()}
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              mode="signup"
+              disabled={isLoading}
+            />
+            
             <div className="text-center mt-4">
               <span className="text-sm text-gray-600">
                 {t('alreadyHaveAccount') || 'Already have an account?'}{' '}

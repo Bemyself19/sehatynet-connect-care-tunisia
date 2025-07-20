@@ -19,29 +19,55 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+
     const url = `${this.baseURL}${endpoint}`;
     const token = sessionStorage.getItem('authToken');
+    console.log('[API] sessionStorage authToken:', token);
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json', // Ensure JSON content type
+    // Always set Authorization header if token exists
+    let baseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
       'Pragma': 'no-cache',
       'Expires': '0',
-      ...options.headers,
     };
-
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      baseHeaders['Authorization'] = `Bearer ${token}`;
+      console.log('[API] Authorization header set:', baseHeaders['Authorization']);
+    } else {
+      console.warn('[API] No authToken found in sessionStorage when making request to', endpoint);
     }
+    if (options.headers && !(options.headers instanceof Headers) && typeof options.headers === 'object' && !Array.isArray(options.headers)) {
+      baseHeaders = { ...baseHeaders, ...options.headers };
+    }
+    const headers: HeadersInit = baseHeaders;
+
+    // Debug: log headers before fetch
+    console.log('API request headers:', headers);
 
     const config: RequestInit = {
       ...options,
       headers,
     };
 
+    // Debug: log config before fetch
+    console.log('API request config:', config);
+
     try {
       const response = await fetch(url, config);
-      
+
+      // Only require Authorization header for protected endpoints
+      const publicEndpoints = [
+        '/auth/login',
+        '/auth/register',
+        '/auth/google-auth',
+        '/auth/admin-login'
+      ];
+      const isPublic = publicEndpoints.some(pub => endpoint.startsWith(pub));
+      if (!isPublic && !headers['Authorization']) {
+        throw new Error('Authorization header missing! Token at request time: ' + token);
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
@@ -74,6 +100,13 @@ class ApiClient {
 
   async adminLogin(data: { email: string; password: string; adminCode: string }) {
     return this.request('/auth/admin-login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async googleAuth(data: { credential: string; role: string }): Promise<{ token: string; user: User; message: string }> {
+    return this.request<{ token: string; user: User; message: string }>('/auth/google-auth', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -641,10 +674,6 @@ class ApiClient {
     return this.request<any>('/system-settings');
   }
 
-  async getPublicSystemSettings(): Promise<any> {
-    return this.request<any>('/system-settings/public');
-  }
-
   async updateSystemSettings(data: any): Promise<any> {
     return this.request<any>('/system-settings', {
       method: 'PUT',
@@ -653,5 +682,5 @@ class ApiClient {
   }
 }
 
-const api = new ApiClient(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api');
+const api = new ApiClient(import.meta.env.VITE_API_BASE_URL || 'https://localhost:5000/api');
 export default api;

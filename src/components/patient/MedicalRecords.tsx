@@ -115,7 +115,7 @@ const MedicalRecords: React.FC = () => {
   };
 
   const handleDownload = async (item: ViewableRecord) => {
-    const isPrescription = !('type' in item);
+    const isPrescription = item.type === 'prescription';
     if (isPrescription) {
       try {
         const response = await fetch(`/api/prescriptions/${item._id}/pdf`, {
@@ -772,9 +772,14 @@ const MedicalRecords: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={selectedItem && 'title' in selectedItem ? selectedItem.title : 'Prescription Details'}
+        title={(() => {
+          if (selectedItem && selectedItem.type === 'doctor_note') {
+            return t('doctorNote') || 'Note du médecin';
+          }
+          return selectedItem && 'title' in selectedItem ? selectedItem.title : 'Prescription Details';
+        })()}
       >
-        {selectedItem && !('type' in selectedItem) ? (
+        {selectedItem && selectedItem.type === 'prescription' ? (
           // Prescription view with tabs
           <Tabs defaultValue="prescription" className="w-full">
             <TabsList className="w-full flex flex-wrap gap-2 overflow-x-auto whitespace-nowrap bg-muted p-1 rounded-md mb-4">
@@ -867,42 +872,63 @@ const MedicalRecords: React.FC = () => {
                   <div><strong className="font-semibold">Type:</strong> {(selectedItem as any).type.replace('_', ' ')}</div>
                 </div>
                 <div className="mt-4">
-                  <h4 className="font-semibold text-base mb-2">Details</h4>
+                  <h4 className="font-semibold text-base mb-2">{t('details') || 'Détails'}</h4>
                   <div className="p-3 bg-gray-50 rounded-lg border text-sm space-y-2">
-                    {Object.entries((selectedItem as any).details).map(([key, value]) => (
-                      <div key={key} className="flex flex-col mb-2">
-                        <strong className="capitalize font-medium text-gray-700 mb-1">{key.replace(/_/g, ' ')}:</strong>
-                        {Array.isArray(value) ? (
-                          value.length === 0 ? (
-                            <span className="text-gray-500">None</span>
-                          ) : (
-                            <ul className="list-disc list-inside ml-4">
-                              {value.map((item: any, idx: number) => (
-                                typeof item === 'object' && item !== null ? (
-                                  <li key={idx}>
-                                    <ul className="list-none ml-0">
-                                      {Object.entries(item).map(([k, v]) => (
-                                        <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
-                                      ))}
-                                    </ul>
-                                  </li>
-                                ) : (
-                                  <li key={idx}>{String(item)}</li>
-                                )
+                    {(() => {
+                      const details = (selectedItem as any).details;
+                      if (details && typeof details === 'object' && 'note' in details) {
+                        return (
+                          <div>
+                            <strong className="font-medium text-gray-700 mb-1">{t('doctorNote') || 'Note du médecin'}:</strong> {details.note}
+                            {details.privacy && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {t('private')}
+                                {details.privacy === 'doctor-only' ? ` (${t('doctorOnly', 'Médecin uniquement')})` : ''}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      // fallback to generic rendering for other types, but avoid showing JSON for doctor's note
+                      if (details && typeof details === 'object' && Object.keys(details).length === 2 && 'note' in details && 'privacy' in details) {
+                        // Already rendered above, don't render again
+                        return null;
+                      }
+                      return Object.entries(details || {}).map(([key, value]) => (
+                        <div key={key} className="flex flex-col mb-2">
+                          <strong className="capitalize font-medium text-gray-700 mb-1">{key.replace(/_/g, ' ')}:</strong>
+                          {Array.isArray(value) ? (
+                            value.length === 0 ? (
+                              <span className="text-gray-500">None</span>
+                            ) : (
+                              <ul className="list-disc list-inside ml-4">
+                                {value.map((item: any, idx: number) => (
+                                  typeof item === 'object' && item !== null ? (
+                                    <li key={idx}>
+                                      <ul className="list-none ml-0">
+                                        {Object.entries(item).map(([k, v]) => (
+                                          <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
+                                        ))}
+                                      </ul>
+                                    </li>
+                                  ) : (
+                                    <li key={idx}>{String(item)}</li>
+                                  )
+                                ))}
+                              </ul>
+                            )
+                          ) : typeof value === 'object' && value !== null ? (
+                            <ul className="list-none ml-0">
+                              {Object.entries(value).map(([k, v]) => (
+                                <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
                               ))}
                             </ul>
-                          )
-                        ) : typeof value === 'object' && value !== null ? (
-                          <ul className="list-none ml-0">
-                            {Object.entries(value).map(([k, v]) => (
-                              <li key={k}><span className="font-semibold text-gray-600">{k.replace(/_/g, ' ')}:</span> {String(v)}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span className="text-gray-900">{String(value)}</span>
-                        )}
-                      </div>
-                    ))}
+                          ) : (
+                            <span className="text-gray-900">{String(value)}</span>
+                          )}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 </div>
                 {(selectedItem as any).fileUrl && (

@@ -86,11 +86,50 @@ export const getImmunizations = async (req: Request, res: Response): Promise<voi
             query.patientId = userId;
         } else if (['doctor', 'lab'].includes(userRole)) {
             if (patientId) {
-                query.patientId = patientId;
+                // For doctors: verify they have consulted with this patient
+                if (userRole === 'doctor') {
+                    const Appointment = require('../models/appointment.model').default;
+                    
+                    const hasConsultedPatient = await Appointment.exists({ 
+                        providerId: userId, 
+                        patientId: patientId 
+                    });
+                    
+                    if (!hasConsultedPatient) {
+                        res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                        return;
+                    }
+                    
+                    // Check patient consent for accessing immunization records from other providers
+                    const User = require('../models/user.model').default;
+                    const patient = await User.findById(patientId).select('allowOtherDoctorsAccess');
+                    
+                    if (!patient) {
+                        res.status(404).json({ message: "Patient not found" });
+                        return;
+                    }
+                    
+                    // If patient hasn't given consent, only show immunizations this doctor recorded
+                    if (!patient.allowOtherDoctorsAccess) {
+                        query = {
+                            patientId: patientId,
+                            providerId: userId
+                        };
+                    } else {
+                        // Patient has given consent, show all immunizations for this patient
+                        query.patientId = patientId;
+                    }
+                } else {
+                    // For lab and other providers
+                    query.patientId = patientId;
+                }
             } else {
                 // Providers can see all immunizations for patients they care for
                 query.status = { $ne: 'not_applicable' };
             }
+        } else {
+            res.status(403).json({ message: "Access denied" });
+            return;
         }
 
         // Filter by status

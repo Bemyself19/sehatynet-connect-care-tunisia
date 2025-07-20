@@ -4,6 +4,7 @@ import { User } from '@/types/user';
 
 export const useUser = () => {
   const queryClient = useQueryClient();
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('authToken') : null;
   const {
     data: user,
     isLoading,
@@ -15,6 +16,7 @@ export const useUser = () => {
     queryFn: () => api.getProfile(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Retry once on failure
+    enabled: !!token,
   });
 
   // Helper to force refetch after login

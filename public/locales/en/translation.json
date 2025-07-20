@@ -11,6 +11,9 @@
   "invalidNationalId": "National ID must be exactly 8 digits",
   "nationalIdRequired": "National ID is required",
   "emailRequired": "Email is required",
+  "continueWithGoogle": "Continue with Google",
+  "signUpWithGoogle": "Sign up with Google",
+  "orContinueWith": "Or continue with",
   "heroTitle": "Healthcare at Your Fingertips",
   "heroSubtitle": "Connect with doctors, pharmacies, labs, and radiologists across Tunisia and beyond. Secure, multilingual telehealth platform.",
   "tunisianHealthcareExcellence": "Tunisian Healthcare Excellence",
@@ -215,6 +218,10 @@
   "chatbotDermatologyResponse": "For skin-related issues, I recommend seeing a Dermatologist:",
   "appointmentBookedSuccessfully": "Appointment Booked Successfully",
   "appointmentPendingConfirmation": "Your appointment is pending confirmation from the doctor.",
+  "newAppointmentRequest": "New Appointment Request",
+  "appointmentRequestMessage": "{{patientName}} has requested an appointment for {{date}}",
+  "appointmentConfirmed": "Appointment Confirmed",
+  "appointmentConfirmedMessage": "Your appointment with Dr. {{doctorName}} on {{date}} has been confirmed",
   "bookingFailed": "Booking Failed",
   "unableToBookAppointment": "Unable to book appointment. Please try again.",
   
@@ -445,6 +452,8 @@
   "paymentCreationError": "Error creating payment",
   "pleaseTryAgain": "Please try again",
   "paymentProcessedSuccessfully": "Payment processed successfully",
+  "enablePayments": "Enable Payments",
+  "paymentDescription": "Require payment for services. If disabled, all services are free.",
   "paymentCompletedSuccessfully": "Payment completed successfully",
   "paymentFailed": "Payment failed",
   "paymentVerificationError": "Error verifying payment",
@@ -516,6 +525,8 @@
   "couldNotReschedule": "Could not reschedule the appointment.",
   "appointmentCancelled": "Appointment Cancelled",
   "appointmentCancelledSuccess": "Your appointment has been successfully cancelled.",
+  "appointmentCancelledByDoctor": "Dr. {{doctorName}} has cancelled your appointment scheduled for {{date}}.",
+  "appointmentCancelledByPatient": "{{patientName}} has cancelled their appointment scheduled for {{date}}.",
   "couldNotCancelAppointment": "Could not cancel the appointment.",
   "loadingAppointments": "Loading appointments...",
   "failedToLoadAppointments": "Failed to load appointments. Please try again later.",
@@ -686,5 +697,19 @@
       "cancelled": "Cancelled",
       "no-show": "No-show"
     }
-  }
+  },
+  "needHelp": "Need Help?",
+  "contactSupport": "Contact Support",
+  "availableTimeSlotsFor": "Available Time Slots for",
+  "noAvailableSlots": "No Available Slots",
+  "reason": "Reason",
+  "generalpractitioner": "General Practitioner",
+  "licensed": "Licensed",
+  "change": "Change",
+  "booking": "Booking"
+  ,
+  "doctorNotesTab": "Doctor Notes",
+  "doctorNotesTabDesc": "Notes you have written for this patient. Visible only to you and other doctors if consent is granted.",
+  "medicalRecordsTab": "Medical Records",
+  "medicalRecordsTabDesc": "All medical records for this patient, including prescriptions and lab results."
 }

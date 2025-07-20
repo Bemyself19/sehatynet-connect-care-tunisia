@@ -3,6 +3,7 @@ export type NotificationType =
   | 'appointment_confirmed'
   | 'appointment_rescheduled'
   | 'appointment_cancelled'
+  | 'appointment_pending'
   | 'prescription_ready'
   | 'lab_results_available'
   | 'medical_record_added'
@@ -21,8 +22,10 @@ export interface Notification {
   priority: NotificationPriority;
   isRead: boolean;
   actionUrl?: string; // URL to navigate to when clicked
-  relatedEntityId?: string; // ID of related appointment, prescription, etc.
-  relatedEntityType?: 'appointment' | 'prescription' | 'labResult' | 'medicalRecord' | 'payment';
+  relatedEntity?: {
+    type: 'appointment' | 'prescription' | 'labResult' | 'medicalRecord' | 'payment';
+    id: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -34,8 +37,10 @@ export interface CreateNotificationData {
   message: string;
   priority: NotificationPriority;
   actionUrl?: string;
-  relatedEntityId?: string;
-  relatedEntityType?: 'appointment' | 'prescription' | 'labResult' | 'medicalRecord' | 'payment';
+  relatedEntity?: {
+    type: 'appointment' | 'prescription' | 'labResult' | 'medicalRecord' | 'payment';
+    id: string;
+  };
 }
 
 export interface NotificationStats {

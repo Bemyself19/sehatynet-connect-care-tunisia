@@ -31,7 +31,8 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
             'specialization', 'address', 'country', 'province', 'city', 'workingHours', 'consultationFee',
             'localConsultationFee', 'internationalConsultationFee',
             'medicalInfoDismissed',
-            'slotDuration'
+            'slotDuration',
+            'allowOtherDoctorsAccess'
         ];
         
         const filteredUpdates: any = {};
@@ -204,6 +205,8 @@ export const getProviders = async (req: Request, res: Response): Promise<void> =
 export const getPatients = async (req: Request, res: Response): Promise<void> => {
     try {
         const { search, isVerified } = req.query;
+        const userRole = (req as any).user.role;
+        const userId = (req as any).user.id;
         
         let query: any = { role: 'patient' };
         
@@ -219,9 +222,33 @@ export const getPatients = async (req: Request, res: Response): Promise<void> =>
             query.isVerified = isVerified === 'true';
         }
 
-        const patients = await User.find(query)
-            .select("-password")
-            .sort({ firstName: 1, lastName: 1 });
+        let patients;
+
+        // If the requesting user is a doctor, only return patients they have consulted with
+        if (userRole === 'doctor') {
+            const Appointment = require('../models/appointment.model').default;
+            
+            // Get distinct patient IDs from appointments where this doctor is the provider
+            const appointmentPatientIds = await Appointment.distinct('patientId', { 
+                providerId: userId 
+            });
+            
+            // Add patient ID filter to the query
+            query._id = { $in: appointmentPatientIds };
+            
+            patients = await User.find(query)
+                .select("-password")
+                .sort({ firstName: 1, lastName: 1 });
+        } else if (userRole === 'admin') {
+            // Admins can see all patients
+            patients = await User.find(query)
+                .select("-password")
+                .sort({ firstName: 1, lastName: 1 });
+        } else {
+            // Other roles should not have access to patient lists
+            res.status(403).json({ message: "Access denied" });
+            return;
+        }
 
         res.json(patients);
     } catch (err) {

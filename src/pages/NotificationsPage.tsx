@@ -22,10 +22,12 @@ import api from '@/lib/api';
 import { Notification, NotificationStats } from '@/types/notification';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useUser } from '@/hooks/useUser';
 
 const NotificationsPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('unread');
@@ -130,6 +132,29 @@ const NotificationsPage: React.FC = () => {
 
       if (notification.actionUrl) {
         navigate(notification.actionUrl);
+      } else if (notification.relatedEntity?.type) {
+        // Navigate based on entity type and user role
+        switch (notification.relatedEntity.type) {
+          case 'appointment':
+            // Navigate to appropriate appointments page based on user role
+            if (user?.role === 'doctor') {
+              navigate('/dashboard/doctor/appointments');
+            } else if (user?.role === 'patient') {
+              navigate('/dashboard/patient/appointments');
+            }
+            break;
+          case 'prescription':
+            navigate(`/prescriptions/${notification.relatedEntity.id}`);
+            break;
+          case 'medicalRecord':
+            navigate(`/medical-records/${notification.relatedEntity.id}`);
+            break;
+          case 'labResult':
+            navigate(`/lab-results/${notification.relatedEntity.id}`);
+            break;
+          default:
+            break;
+        }
       }
     } catch (error) {
       console.error('Error handling notification click:', error);
@@ -383,7 +408,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <h3 className={`text-sm font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
-                      {notification.title}
+                      {t(notification.title, notification.title)}
                     </h3>
                     {!notification.isRead && (
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
@@ -395,7 +420,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                     )}
                   </div>
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                    {notification.message}
+                    {t(notification.message, notification.message)}
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="h-3 w-3 mr-1" />

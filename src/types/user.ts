@@ -4,6 +4,8 @@ export interface BaseUser {
   _id: string;
   email: string;
   nationalId?: string; // Tunisian National ID (8 digits)
+  googleId?: string; // Google SSO ID
+  authProvider?: 'local' | 'google'; // Authentication provider
   firstName: string;
   lastName: string;
   role: UserRole;

@@ -32,7 +32,16 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   className = ''
 }) => {
   const { t, i18n } = useTranslation();
-  const currentLanguage = i18n.language as 'en' | 'fr' | 'ar';
+  // Fallback to 'en', 'fr', or 'ar' if i18n.language is not available in the data
+  const getBestLanguage = (obj: { [key: string]: string }) => {
+    if (!obj) return '';
+    if (obj[i18n.language]) return obj[i18n.language];
+    if (obj['en']) return obj['en'];
+    if (obj['fr']) return obj['fr'];
+    if (obj['ar']) return obj['ar'];
+    // fallback to any available value
+    return Object.values(obj)[0] || '';
+  };
   
   const countriesList = getCountries();
   
@@ -164,7 +173,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
             <SelectValue placeholder={t('selectCountry')}>
               {selectedCountry ? (
                 <>
-                  {countries.find(c => c.code === selectedCountry)?.name[currentLanguage] || selectedCountry}
+                  {getBestLanguage(countries.find(c => c.code === selectedCountry)?.name) || selectedCountry}
                 </>
               ) : null}
             </SelectValue>
@@ -193,7 +202,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               {filteredCountries.length > 0 ? (
                 filteredCountries.map((country) => (
                   <SelectItem key={country.code} value={country.code}>
-                    {country.name[currentLanguage]}
+                    {getBestLanguage(country.name)}
                   </SelectItem>
                 ))
               ) : (
@@ -220,7 +229,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
             <SelectValue placeholder={t('selectProvince')}>
               {selectedProvince ? (
                 <>
-                  {provinces.find(p => p.code === selectedProvince)?.name[currentLanguage] || selectedProvince}
+                  {getBestLanguage(provinces.find(p => p.code === selectedProvince)?.name) || selectedProvince}
                 </>
               ) : null}
             </SelectValue>
@@ -249,7 +258,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               {filteredProvinces.length > 0 ? (
                 filteredProvinces.map((province) => (
                   <SelectItem key={province.code} value={province.code}>
-                    {province.name[currentLanguage]}
+                    {getBestLanguage(province.name)}
                   </SelectItem>
                 ))
               ) : (
@@ -276,7 +285,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
             <SelectValue placeholder={t('selectCity')}>
               {selectedCity ? (
                 <>
-                  {cities.find(c => c.code === selectedCity)?.name[currentLanguage] || selectedCity}
+                  {getBestLanguage(cities.find(c => c.code === selectedCity)?.name) || selectedCity}
                 </>
               ) : null}
             </SelectValue>
@@ -305,7 +314,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
               {filteredCities.length > 0 ? (
                 filteredCities.map((city) => (
                   <SelectItem key={city.code} value={city.code}>
-                    {city.name[currentLanguage]}
+                    {getBestLanguage(city.name)}
                   </SelectItem>
                 ))
               ) : (

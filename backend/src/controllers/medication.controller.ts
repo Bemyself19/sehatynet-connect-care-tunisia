@@ -90,11 +90,50 @@ export const getMedicationHistory = async (req: Request, res: Response): Promise
             query.patientId = userId;
         } else if (['doctor', 'pharmacy'].includes(userRole)) {
             if (patientId) {
-                query.patientId = patientId;
+                // For doctors: verify they have consulted with this patient
+                if (userRole === 'doctor') {
+                    const Appointment = require('../models/appointment.model').default;
+                    
+                    const hasConsultedPatient = await Appointment.exists({ 
+                        providerId: userId, 
+                        patientId: patientId 
+                    });
+                    
+                    if (!hasConsultedPatient) {
+                        res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                        return;
+                    }
+                    
+                    // Check patient consent for accessing other doctors' medication records
+                    const User = require('../models/user.model').default;
+                    const patient = await User.findById(patientId).select('allowOtherDoctorsAccess');
+                    
+                    if (!patient) {
+                        res.status(404).json({ message: "Patient not found" });
+                        return;
+                    }
+                    
+                    // If patient hasn't given consent, only show medications this doctor prescribed
+                    if (!patient.allowOtherDoctorsAccess) {
+                        query = {
+                            patientId: patientId,
+                            providerId: userId
+                        };
+                    } else {
+                        // Patient has given consent, show all medications for this patient
+                        query.patientId = patientId;
+                    }
+                } else {
+                    // For pharmacy and other providers
+                    query.patientId = patientId;
+                }
             } else {
                 // Providers can see all medications they prescribed
                 query.providerId = userId;
             }
+        } else {
+            res.status(403).json({ message: "Access denied" });
+            return;
         }
 
         // Filter by status

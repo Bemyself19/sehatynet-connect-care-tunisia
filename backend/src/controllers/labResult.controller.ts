@@ -80,6 +80,21 @@ export const getLabResults = async (req: Request, res: Response): Promise<void> 
             query.patientId = userId;
         } else if (['doctor', 'lab'].includes(userRole)) {
             if (patientId) {
+                // For doctors: verify they have consulted with this patient
+                if (userRole === 'doctor') {
+                    const Appointment = require('../models/appointment.model').default;
+                    
+                    const hasConsultedPatient = await Appointment.exists({ 
+                        providerId: userId, 
+                        patientId: patientId 
+                    });
+                    
+                    if (!hasConsultedPatient) {
+                        res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                        return;
+                    }
+                }
+                
                 query.patientId = patientId;
             } else {
                 // Providers can see all lab results they created or are assigned to
@@ -88,6 +103,9 @@ export const getLabResults = async (req: Request, res: Response): Promise<void> 
                     { 'tests.status': 'critical' } // Critical results visible to all providers
                 ];
             }
+        } else {
+            res.status(403).json({ message: "Access denied" });
+            return;
         }
 
         const labResults = await LabResult.find(query)

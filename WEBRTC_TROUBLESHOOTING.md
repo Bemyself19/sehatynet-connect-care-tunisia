@@ -105,7 +105,7 @@ console.log("getUserMedia Support:", !!navigator.mediaDevices?.getUserMedia);
 
 ### Network Diagnostics
 
-- Check if you can access the peer server directly: http://localhost:9000/peerjs/peerjs/info
+- Check if you can access the peer server directly: http://localhost:9000/peerjs/peerjs/info (Peer server runs on HTTP, but frontend/backend use HTTPS)
 - Verify STUN servers are accessible: stun:stun.l.google.com:19302
 - Check for restrictive firewalls or proxies
 

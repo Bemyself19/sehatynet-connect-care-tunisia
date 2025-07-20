@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +39,8 @@ export function PrescriptionModal({
   patientName,
   onPrescriptionCreated
 }: PrescriptionModalProps) {
+  const { t } = useTranslation();
+
   const [medications, setMedications] = useState<Medication[]>([
     { name: '', dosage: '', frequency: '', duration: '', instructions: '' }
   ]);
@@ -57,11 +60,9 @@ export function PrescriptionModal({
       notes: string;
     }) => api.createPrescription(prescriptionData),
     onSuccess: (data) => {
-      toast.success('Prescription created successfully');
-      
+      toast.success(t('prescriptionCreated', 'Prescription created successfully'));
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
       queryClient.invalidateQueries({ queryKey: ['medical-records'] });
-
       if (onPrescriptionCreated) {
         onPrescriptionCreated(data);
       }
@@ -69,7 +70,7 @@ export function PrescriptionModal({
     },
     onError: (error: any) => {
       console.error('Error creating prescription:', error);
-      toast.error(error.message || 'Failed to create prescription');
+      toast.error(error.message || t('failedToCreatePrescription', 'Failed to create prescription'));
     },
   });
 
@@ -144,57 +145,57 @@ export function PrescriptionModal({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Prescription</DialogTitle>
+          <DialogTitle>{t('createPrescription', 'Create Prescription')}</DialogTitle>
           <DialogDescription>
-            Create a prescription for {patientName}
+            {t('createPrescriptionFor', { name: patientName, defaultValue: `Create a prescription for ${patientName}` })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Medications</CardTitle>
+              <CardTitle className="text-lg">{t('medications', 'Medications')}</CardTitle>
               <CardDescription>
-                Add medications to the prescription
+                {t('addMedicationsToPrescription', 'Add medications to the prescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {medications.map((medication, index) => (
                 <div key={index} className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
                   <div className="space-y-2">
-                    <Label htmlFor={`med-name-${index}`}>Medication Name *</Label>
+                    <Label htmlFor={`med-name-${index}`}>{t('medicationName', 'Medication Name')} *</Label>
                     <Input
                       id={`med-name-${index}`}
                       value={medication.name}
                       onChange={(e) => updateMedication(index, 'name', e.target.value)}
-                      placeholder="e.g., Amoxicillin"
+                      placeholder={t('medicationNamePlaceholder', 'e.g., Amoxicillin')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`med-dosage-${index}`}>Dosage *</Label>
+                    <Label htmlFor={`med-dosage-${index}`}>{t('dosage', 'Dosage')} *</Label>
                     <Input
                       id={`med-dosage-${index}`}
                       value={medication.dosage}
                       onChange={(e) => updateMedication(index, 'dosage', e.target.value)}
-                      placeholder="e.g., 500mg"
+                      placeholder={t('dosagePlaceholder', 'e.g., 500mg')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`med-frequency-${index}`}>Frequency *</Label>
+                    <Label htmlFor={`med-frequency-${index}`}>{t('frequency', 'Frequency')} *</Label>
                     <Input
                       id={`med-frequency-${index}`}
                       value={medication.frequency}
                       onChange={(e) => updateMedication(index, 'frequency', e.target.value)}
-                      placeholder="e.g., Twice daily"
+                      placeholder={t('frequencyPlaceholder', 'e.g., Twice daily')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`med-duration-${index}`}>Duration *</Label>
+                    <Label htmlFor={`med-duration-${index}`}>{t('duration', 'Duration')} *</Label>
                     <Input
                       id={`med-duration-${index}`}
                       value={medication.duration}
                       onChange={(e) => updateMedication(index, 'duration', e.target.value)}
-                      placeholder="e.g., 7 days"
+                      placeholder={t('durationPlaceholder', 'e.g., 7 days')}
                     />
                   </div>
                   {medications.length > 1 && (
@@ -206,7 +207,7 @@ export function PrescriptionModal({
                       className="col-span-2 w-fit"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Remove
+                      {t('remove', 'Remove')}
                     </Button>
                   )}
                 </div>
@@ -218,37 +219,37 @@ export function PrescriptionModal({
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Medication
+                {t('addMedication', 'Add Medication')}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Lab Tests</CardTitle>
+              <CardTitle className="text-lg">{t('labTests', 'Lab Tests')}</CardTitle>
               <CardDescription>
-                Add lab tests to the prescription
+                {t('addLabTestsToPrescription', 'Add lab tests to the prescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {labTests.map((test, index) => (
                 <div key={index} className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
                   <div className="space-y-2">
-                    <Label htmlFor={`lab-test-name-${index}`}>Test Name *</Label>
+                    <Label htmlFor={`lab-test-name-${index}`}>{t('testName', 'Test Name')} *</Label>
                     <Input
                       id={`lab-test-name-${index}`}
                       value={test.testName}
                       onChange={(e) => updateLabTest(index, 'testName', e.target.value)}
-                      placeholder="e.g., CBC, Blood Glucose"
+                      placeholder={t('testNamePlaceholder', 'e.g., CBC, Blood Glucose')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`lab-test-notes-${index}`}>Notes</Label>
+                    <Label htmlFor={`lab-test-notes-${index}`}>{t('notes', 'Notes')}</Label>
                     <Input
                       id={`lab-test-notes-${index}`}
                       value={test.notes}
                       onChange={(e) => updateLabTest(index, 'notes', e.target.value)}
-                      placeholder="Special instructions, if any"
+                      placeholder={t('labNotesPlaceholder', 'Special instructions, if any')}
                     />
                   </div>
                   <Button
@@ -259,7 +260,7 @@ export function PrescriptionModal({
                     className="col-span-2 w-fit"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Remove
+                    {t('remove', 'Remove')}
                   </Button>
                 </div>
               ))}
@@ -270,37 +271,37 @@ export function PrescriptionModal({
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Lab Test
+                {t('addLabTest', 'Add Lab Test')}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Radiology</CardTitle>
+              <CardTitle className="text-lg">{t('radiology', 'Radiology')}</CardTitle>
               <CardDescription>
-                Add radiology exams to the prescription
+                {t('addRadiologyToPrescription', 'Add radiology exams to the prescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {radiology.map((exam, index) => (
                 <div key={index} className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
                   <div className="space-y-2">
-                    <Label htmlFor={`radiology-exam-name-${index}`}>Exam Name *</Label>
+                    <Label htmlFor={`radiology-exam-name-${index}`}>{t('examName', 'Exam Name')} *</Label>
                     <Input
                       id={`radiology-exam-name-${index}`}
                       value={exam.examName}
                       onChange={(e) => updateRadiology(index, 'examName', e.target.value)}
-                      placeholder="e.g., Chest X-ray, MRI Brain"
+                      placeholder={t('examNamePlaceholder', 'e.g., Chest X-ray, MRI Brain')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`radiology-notes-${index}`}>Notes</Label>
+                    <Label htmlFor={`radiology-notes-${index}`}>{t('notes', 'Notes')}</Label>
                     <Input
                       id={`radiology-notes-${index}`}
                       value={exam.notes}
                       onChange={(e) => updateRadiology(index, 'notes', e.target.value)}
-                      placeholder="Special instructions, if any"
+                      placeholder={t('radiologyNotesPlaceholder', 'Special instructions, if any')}
                     />
                   </div>
                   <Button
@@ -311,7 +312,7 @@ export function PrescriptionModal({
                     className="col-span-2 w-fit"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Remove
+                    {t('remove', 'Remove')}
                   </Button>
                 </div>
               ))}
@@ -322,23 +323,23 @@ export function PrescriptionModal({
                 className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Radiology Exam
+                {t('addRadiologyExam', 'Add Radiology Exam')}
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Additional Notes</CardTitle>
+              <CardTitle className="text-lg">{t('additionalNotes', 'Additional Notes')}</CardTitle>
               <CardDescription>
-                Add any additional instructions or notes
+                {t('addAdditionalNotes', 'Add any additional instructions or notes')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Enter any additional instructions, side effects to watch for, or other notes..."
+                placeholder={t('additionalNotesPlaceholder', 'Enter any additional instructions, side effects to watch for, or other notes...')}
                 rows={4}
               />
             </CardContent>
@@ -347,7 +348,7 @@ export function PrescriptionModal({
 
         <DialogFooter className="mt-6">
           <Button type="button" onClick={handleSubmit} disabled={isPending || loading} className="w-full">
-            {isPending || loading ? 'Saving...' : 'Save Prescription'}
+            {isPending || loading ? t('saving', 'Saving...') : t('savePrescription', 'Save Prescription')}
           </Button>
         </DialogFooter>
       </DialogContent>

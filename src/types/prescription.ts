@@ -32,6 +32,10 @@ export interface Prescription {
   qrCode: string;
   createdAt: string;
   updatedAt: string;
+  type: 'prescription';
+  title: string;
+  date: string;
+  details: any;
 }
 
 export interface CreatePrescriptionData {

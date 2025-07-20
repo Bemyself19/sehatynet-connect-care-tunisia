@@ -189,6 +189,69 @@ export const updateAppointment = async (req: Request, res: Response): Promise<vo
         ).populate('patientId', 'firstName lastName email phone role cnamId')
          .populate('providerId', 'firstName lastName specialization role');
 
+        // Create notifications for status changes
+        if (filteredUpdates.status && appointment.status !== filteredUpdates.status) {
+            const isDoctor = userId === appointment.providerId.toString();
+            const isPatient = userId === appointment.patientId.toString();
+            
+            // Determine who should receive the notification
+            let notificationUserId;
+            let notificationData: any = {};
+            
+            if (isDoctor && filteredUpdates.status === 'confirmed') {
+                // Doctor confirmed appointment, notify patient
+                notificationUserId = appointment.patientId._id;
+                notificationData = {
+                    type: 'appointment_confirmed',
+                    title: 'appointmentConfirmed',
+                    message: 'appointmentConfirmedMessage',
+                    translationData: {
+                        doctorName: `${(updatedAppointment!.providerId as any).firstName} ${(updatedAppointment!.providerId as any).lastName}`,
+                        date: new Date(updatedAppointment!.scheduledDate).toLocaleDateString()
+                    },
+                    priority: 'high'
+                };
+            } else if (isDoctor && filteredUpdates.status === 'cancelled') {
+                // Doctor cancelled appointment, notify patient
+                notificationUserId = appointment.patientId._id;
+                notificationData = {
+                    type: 'appointment_cancelled',
+                    title: 'appointmentCancelled',
+                    message: 'appointmentCancelledByDoctor',
+                    translationData: {
+                        doctorName: `${(updatedAppointment!.providerId as any).firstName} ${(updatedAppointment!.providerId as any).lastName}`,
+                        date: new Date(updatedAppointment!.scheduledDate).toLocaleDateString()
+                    },
+                    priority: 'high'
+                };
+            } else if (isPatient && filteredUpdates.status === 'cancelled') {
+                // Patient cancelled appointment, notify doctor
+                notificationUserId = appointment.providerId._id;
+                notificationData = {
+                    type: 'appointment_cancelled',
+                    title: 'appointmentCancelled',
+                    message: 'appointmentCancelledByPatient',
+                    translationData: {
+                        patientName: `${(updatedAppointment!.patientId as any).firstName} ${(updatedAppointment!.patientId as any).lastName}`,
+                        date: new Date(updatedAppointment!.scheduledDate).toLocaleDateString()
+                    },
+                    priority: 'medium'
+                };
+            }
+            
+            // Create notification if we have data
+            if (notificationUserId && notificationData.type) {
+                await Notification.create({
+                    userId: notificationUserId,
+                    ...notificationData,
+                    relatedEntity: {
+                        type: 'appointment',
+                        id: updatedAppointment!._id
+                    }
+                });
+            }
+        }
+
         res.json({
             message: "Appointment updated successfully",
             appointment: updatedAppointment
@@ -204,7 +267,9 @@ export const cancelAppointment = async (req: Request, res: Response): Promise<vo
         const { id } = req.params;
         const userId = (req as any).user.id;
         
-        const appointment = await Appointment.findById(id);
+        const appointment = await Appointment.findById(id)
+            .populate('patientId', 'firstName lastName')
+            .populate('providerId', 'firstName lastName specialization');
         
         if (!appointment) {
             res.status(404).json({ message: "Appointment not found" });
@@ -212,14 +277,54 @@ export const cancelAppointment = async (req: Request, res: Response): Promise<vo
         }
 
         // Check if user has permission to cancel this appointment
-        if (appointment.patientId.toString() !== userId && 
-            appointment.providerId.toString() !== userId) {
+        if (appointment.patientId._id.toString() !== userId && 
+            appointment.providerId._id.toString() !== userId) {
             res.status(403).json({ message: "Access denied" });
             return;
         }
 
         appointment.status = 'cancelled';
         await appointment.save();
+
+        // Create notification for the other party
+        const isDoctor = userId === appointment.providerId._id.toString();
+        const isPatient = userId === appointment.patientId._id.toString();
+        
+        if (isDoctor) {
+            // Doctor cancelled, notify patient
+            await Notification.create({
+                userId: appointment.patientId._id,
+                type: 'appointment_cancelled',
+                title: 'appointmentCancelled',
+                message: 'appointmentCancelledByDoctor',
+                translationData: {
+                    doctorName: `${(appointment.providerId as any).firstName} ${(appointment.providerId as any).lastName}`,
+                    date: new Date(appointment.scheduledDate).toLocaleDateString()
+                },
+                priority: 'high',
+                relatedEntity: {
+                    type: 'appointment',
+                    id: appointment._id
+                }
+            });
+        } else if (isPatient) {
+            // Patient cancelled, notify doctor
+            await Notification.create({
+                userId: appointment.providerId._id,
+                type: 'appointment_cancelled',
+                title: 'appointmentCancelled',
+                message: 'appointmentCancelledByPatient',
+                translationData: {
+                    patientName: `${(appointment.patientId as any).firstName} ${(appointment.patientId as any).lastName}`,
+                    date: new Date(appointment.scheduledDate).toLocaleDateString()
+                },
+                priority: 'medium',
+                relatedEntity: {
+                    type: 'appointment',
+                    id: appointment._id
+                }
+            });
+        }
 
         res.json({
             message: "Appointment cancelled successfully",
@@ -338,7 +443,7 @@ export const approveAppointment = async (req: Request, res: Response): Promise<v
         
         const appointment = await Appointment.findById(id)
             .populate('patientId', 'firstName lastName')
-            .populate('providerId', '_id');
+            .populate('providerId', 'firstName lastName specialization');
         
         if (!appointment) {
             res.status(404).json({ message: "Appointment not found" });

@@ -62,12 +62,12 @@ const TabsList = React.forwardRef<
       <div
         ref={scrollRef}
         className={cn(
-          "flex h-10 items-center bg-muted p-1 text-muted-foreground overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-rounded-md scrollbar-thumb-gray-300 max-w-full gap-1 rounded-md",
+          "flex flex-row flex-wrap items-start bg-muted p-1 text-muted-foreground scrollbar-thin scrollbar-thumb-rounded-md scrollbar-thumb-gray-300 max-w-full gap-1 rounded-md min-h-[60px]",
           className
         )}
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{ WebkitOverflowScrolling: 'touch', overflowX: 'visible', overflowY: 'visible' }}
       >
-        <TabsPrimitive.List ref={ref} className="flex w-full" {...props} />
+      <TabsPrimitive.List ref={ref} className="flex flex-row flex-wrap w-full min-h-[60px]" {...props} />
       </div>
       <ScrollButton direction="right" onClick={() => scroll('right')} disabled={!showRight} />
     </div>
@@ -82,7 +82,7 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm min-w-[120px] max-w-full text-ellipsis overflow-hidden",
+      "flex flex-col items-center justify-center break-words whitespace-normal rounded-sm px-5 py-3 text-base font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm min-w-[140px] min-h-[60px] w-full",
       className
     )}
     {...props}

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import path from "path";
-// import https from "https";
+import https from "https";
 import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -26,15 +26,12 @@ import notificationRoutes from './routes/notification.routes';
 dotenv.config();
 const app = express();
 
-// NOTE: HTTPS server code removed. HTTPS is now handled via a reverse proxy (e.g., Nginx) for security and maintainability. See documentation for details.
-// const httpsOptions = {
-//   key: fs.readFileSync('cert/localhost.key'),
-//   cert: fs.readFileSync('cert/localhost.crt'),
-// };
-// const server = https.createServer(httpsOptions, app);
-
-// Use HTTP server instead
-const server = require('http').createServer(app);
+// Enable HTTPS for development to match frontend
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, '../cert/localhost.key')),
+  cert: fs.readFileSync(path.join(__dirname, '../cert/localhost.crt')),
+};
+const server = https.createServer(httpsOptions, app);
 const wss = new WebSocketServer({ server });
 
 // WebSocket connection handling
@@ -152,8 +149,24 @@ wss.on('connection', (ws) => {
 });
 
 // Middleware
+const allowedOrigins = [
+    process.env.CORS_ORIGIN || "http://localhost:5173",
+    "https://localhost:5173", // Allow HTTPS for development
+    "http://localhost:5173"   // Allow HTTP for development
+];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -209,10 +222,10 @@ mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected successfully");
     server.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`🚀 HTTPS Server running on port ${PORT}`);
         console.log(`🔌 WebSocket server is running`);
-        console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:5173"}`);
-        console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+        console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || "https://localhost:5173"}`);
+        console.log(`🔗 API Base URL: https://localhost:${PORT}/api`);
     });
   })
   .catch(err => {

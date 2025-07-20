@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Force HTTP mode for local development
-const forceHttp = true;
+const forceHttp = false;
 
 // Configure options
 const options = {

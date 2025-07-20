@@ -8,12 +8,13 @@
     "dev": "vite --force",
     "backend": "cd backend && npm run dev",
     "peer": "node peer-server.js",
-    "start": "concurrently \"npm run backend\" \"npm run peer\" \"npm run dev\"",
+    "start": "bash ./start-mongo.sh && concurrently \"npm run backend\" \"npm run peer\" \"npm run dev\"",
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -43,6 +44,8 @@
     "concurrently": "^8.2.2",
     "dotenv": "^17.2.0",
     "embla-carousel-react": "^8.1.7",
+    "google-auth-library": "^10.1.0",
+    "googleapis": "^152.0.0",
     "i18next": "^23.16.8",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-http-backend": "^3.0.2",

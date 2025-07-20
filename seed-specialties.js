@@ -16,7 +16,7 @@ const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4NTk2NTMzYmU5ODRk
 
 async function seed() {
   for (const specialty of specialties) {
-    const res = await fetch('http://localhost:5000/api/specialties', {
+    const res = await fetch('https://localhost:5000/api/specialties', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

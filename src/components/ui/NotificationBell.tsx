@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { useUser } from '@/hooks/useUser';
 
 interface Notification {
   _id: string;
@@ -20,8 +21,10 @@ interface Notification {
   priority: 'urgent' | 'high' | 'medium' | 'low';
   isRead: boolean;
   actionUrl?: string;
-  relatedEntityId?: string;
-  relatedEntityType?: string;
+  relatedEntity?: {
+    type: string;
+    id: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +43,7 @@ interface NotificationStats {
 const NotificationBell: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -97,20 +101,25 @@ const NotificationBell: React.FC = () => {
     
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
-    } else if (notification.relatedEntityType && notification.relatedEntityId) {
-      // Navigate based on entity type
-      switch (notification.relatedEntityType) {
+    } else if (notification.relatedEntity?.type) {
+      // Navigate based on entity type and user role
+      switch (notification.relatedEntity.type) {
         case 'appointment':
-          navigate(`/appointments/${notification.relatedEntityId}`);
+          // Navigate to appropriate appointments page based on user role
+          if (user?.role === 'doctor') {
+            navigate('/dashboard/doctor/appointments');
+          } else if (user?.role === 'patient') {
+            navigate('/dashboard/patient/appointments');
+          }
           break;
         case 'prescription':
-          navigate(`/prescriptions/${notification.relatedEntityId}`);
+          navigate(`/prescriptions/${notification.relatedEntity.id}`);
           break;
         case 'medicalRecord':
-          navigate(`/medical-records/${notification.relatedEntityId}`);
+          navigate(`/medical-records/${notification.relatedEntity.id}`);
           break;
         case 'labResult':
-          navigate(`/lab-results/${notification.relatedEntityId}`);
+          navigate(`/lab-results/${notification.relatedEntity.id}`);
           break;
         default:
           break;
@@ -218,7 +227,7 @@ const NotificationBell: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {notification.title}
+                          {t(notification.title, notification.title)}
                         </p>
                         <Button
                           variant="ghost"
@@ -233,7 +242,7 @@ const NotificationBell: React.FC = () => {
                         </Button>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                        {notification.message}
+                        {t(notification.message, notification.message)}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}

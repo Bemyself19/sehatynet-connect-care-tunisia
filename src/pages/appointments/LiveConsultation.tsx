@@ -12,10 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { CreateMedicalRecordData } from '@/types/medicalRecord';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useTranslation } from 'react-i18next';
+import VideoCallTroubleshooting from '@/components/VideoCallTroubleshooting';
 
 // PeerJS dynamic import
 let Peer: any = null;
@@ -47,6 +49,9 @@ const ICE_SERVERS = [
 const LiveConsultation: React.FC = () => {
   const { t } = useTranslation();
   const { appointmentId } = useParams<{ appointmentId: string }>();
+
+  // Accordion state for doctor notes
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
   // State
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -86,7 +91,7 @@ const LiveConsultation: React.FC = () => {
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [vitals, setVitals] = useState<any>(null);
   const [isVitalsModalOpen, setVitalsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'notes' | 'records'>('notes');
+  const [activeSection, setActiveSection] = useState<'notes' | 'records'>('notes');
 
   // Refs
   const myVideoRef = useRef<HTMLVideoElement>(null);
@@ -95,6 +100,15 @@ const LiveConsultation: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
   const isActiveTabRef = useRef<boolean>(true);
+
+  // Retry media access function
+  const retryMediaAccess = () => {
+    setError(null);
+    setStatus('Initializing...');
+    // Force re-run of the PeerJS setup effect
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 100);
+  };
 
   // Fetch appointment and user data
   useEffect(() => {
@@ -191,11 +205,39 @@ const LiveConsultation: React.FC = () => {
         }
         
         setStatus('Camera and microphone ready');
-      } catch (err) {
+      } catch (err: any) {
         console.error('Media access error:', err);
-        setError('Could not access camera or microphone. Please check permissions.');
+        
+        let errorMessage = 'Could not access camera or microphone. ';
+        
+        if (err.name === 'NotAllowedError') {
+          errorMessage += 'Please allow camera and microphone permissions in your browser settings.';
+        } else if (err.name === 'NotFoundError') {
+          errorMessage += 'No camera or microphone found. Please check your device connections.';
+        } else if (err.name === 'NotReadableError') {
+          errorMessage += 'Camera or microphone is already in use by another application.';
+        } else if (err.name === 'OverconstrainedError') {
+          errorMessage += 'Camera or microphone does not meet the required specifications.';
+        } else if (location.protocol === 'http:' && location.hostname !== 'localhost') {
+          errorMessage += 'Video calls require a secure connection (HTTPS). Please use HTTPS or localhost.';
+        } else {
+          errorMessage += 'Please check permissions and try again.';
+        }
+        
+        setError(errorMessage);
         setStatus('Media access denied');
-        return;
+        
+        // Try audio-only fallback
+        try {
+          console.log('Attempting audio-only fallback...');
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          setMyStream(localStream);
+          setStatus('Audio-only mode (camera unavailable)');
+          setError('Video unavailable. Connected in audio-only mode.');
+        } catch (audioErr) {
+          console.error('Audio-only fallback failed:', audioErr);
+          return;
+        }
       }
       // Dynamic import PeerJS
       if (!Peer) Peer = (await import('peerjs')).default;
@@ -346,25 +388,57 @@ const LiveConsultation: React.FC = () => {
   };
   // Notes and records
   const handleCreateNote = async () => {
+      // Debug: fetch all medical records for the patient after saving
+      try {
+        const allRecords = await api.getPatientMedicalHistory(appointment.patientId._id);
+        console.log('[DEBUG] All medical records for patient:', allRecords);
+      } catch (err) {
+        console.error('[DEBUG] Failed to fetch all medical records:', err);
+      }
     if (!note.trim() || !appointment) return;
     setNoteLoading(true);
     try {
       const noteData: CreateMedicalRecordData = {
         patientId: appointment.patientId._id,
+        appointmentId: appointment._id,
         type: 'consultation',
-        title: 'Doctor Note',
+        title: t('doctorNote'),
         date: new Date().toISOString(),
-        details: { note: note.trim(), privacy: 'doctor-only' }
+        details: { note: note.trim(), privacy: 'doctor-only' },
+        privacyLevel: 'doctor_only',
+        isPrivate: true
       };
-      await api.createMedicalRecord(noteData);
+          const created = await api.createMedicalRecord(noteData);
+          console.log('[DEBUG] Created note:', created);
       toast.success('Note saved successfully');
       setNote('');
       setNoteModalOpen(false);
-      // Reload notes
-      const notes = await api.getDoctorNotes(appointment.patientId._id, currentUser._id);
-      setDoctorNotes(notes);
-    } catch (error) {
-      toast.error('Failed to save note');
+      // Reload notes by refetching all patient data (notes and records)
+      if (appointment && currentUser && currentUser._id === appointment.providerId._id) {
+        setNotesLoading(true);
+        setRecordsLoading(true);
+        setNotesError(null);
+        setRecordsError(null);
+        try {
+          const [notesData, recordsData] = await Promise.all([
+            api.getDoctorNotes(appointment.patientId._id, currentUser._id),
+            api.getDoctorOnlyMedicalRecords(appointment.patientId._id, currentUser._id)
+          ]);
+              console.log('[DEBUG] Notes after save:', notesData);
+          setDoctorNotes(notesData);
+          setMedicalRecords(recordsData);
+        } catch (error) {
+          setNotesError('Failed to load patient notes');
+          setRecordsError('Failed to load medical records');
+        } finally {
+          setNotesLoading(false);
+          setRecordsLoading(false);
+        }
+      }
+    } catch (error: any) {
+      let message = 'Failed to save note';
+      if (error && error.message) message += `: ${error.message}`;
+      toast.error(message);
     } finally {
       setNoteLoading(false);
     }
@@ -375,6 +449,17 @@ const LiveConsultation: React.FC = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   if (error || !appointment || !currentUser) {
+    // Show troubleshooting component for media access errors
+    if (error && (error.includes('camera') || error.includes('microphone') || error.includes('media'))) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
+          <VideoCallTroubleshooting 
+            error={error} 
+            onRetry={retryMediaAccess}
+          />
+        </div>
+      );
+    }
     return <div className="min-h-screen flex items-center justify-center text-red-600">{error || 'Unable to load consultation.'}</div>;
   }
 
@@ -630,108 +715,109 @@ const LiveConsultation: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'notes' | 'records')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="notes" className="flex items-center space-x-2">
-                    <Notebook className="h-4 w-4" />
-                    <span>{t('notesHistory')}</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="records" className="flex items-center space-x-2">
-                    <Activity className="h-4 w-4" />
-                    <span>{t('medicalRecordsLabel')}</span>
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="notes" className="mt-6">
+              <div className="w-full max-w-xs mb-4">
+                <Select value={activeSection} onValueChange={(val) => setActiveSection(val as 'notes' | 'records')}>
+                  <SelectTrigger>
+                    <SelectValue>
+                      {activeSection === 'notes' ? t('doctorNotesTab', 'Doctor Notes') : t('medicalRecordsTab', 'Medical Records')}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="notes">
+                      <span className="flex items-center gap-2"><Notebook className="h-4 w-4" />{t('doctorNotesTab', 'Doctor Notes')}</span>
+                    </SelectItem>
+                    <SelectItem value="records">
+                      <span className="flex items-center gap-2"><Activity className="h-4 w-4" />{t('medicalRecordsTab', 'Medical Records')}</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {activeSection === 'notes' ? (
+                <div className="bg-white/90 rounded-lg shadow p-6 min-h-[180px]">
                   {notesLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
                       <p className="text-gray-600">{t('loadingNotes')}</p>
                     </div>
                   ) : notesError ? (
-                    <div className="text-center py-8">
-                      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
                       <p className="text-red-600">{notesError}</p>
                     </div>
                   ) : doctorNotes.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Notebook className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">{t('noNotesFound')}</p>
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Notebook className="h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-500 text-lg font-medium">{t('noNotesFound')}</p>
+                      <p className="text-gray-400 text-sm mt-2">{t('addNotePrompt')}</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="divide-y divide-gray-200">
                       {doctorNotes.map(note => (
-                        <Card key={note._id} className="border border-gray-200">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="text-xs text-gray-500">
-                                {new Date(note.date).toLocaleString()} {t('by')} {note.providerId?.firstName} {note.providerId?.lastName}
-                              </div>
-                              <Badge variant="outline" className="text-xs">{t('private')}</Badge>
+                        <div key={note._id} className="py-2">
+                          <div
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded px-2 py-2"
+                            onClick={() => setExpandedNoteId(expandedNoteId === note._id ? null : note._id)}
+                          >
+                            <div>
+                              <span className="font-medium">{new Date(note.date).toLocaleDateString('fr-TN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                              <span className="ml-2 text-gray-600">{note.providerId?.firstName} {note.providerId?.lastName}</span>
                             </div>
-                            <div className="font-semibold text-gray-900 mb-2">{note.title}</div>
-                            <div className="text-gray-700">
-                              {typeof note.details === 'object' && note.details !== null && 'note' in note.details
-                                ? note.details.note
-                                : typeof note.details === 'string'
-                                  ? note.details
-                                  : ''}
+                            <span className="text-blue-600 text-sm">{expandedNoteId === note._id ? t('hide') : t('show')}</span>
+                          </div>
+                          {expandedNoteId === note._id && (
+                            <div className="mt-2 bg-gray-50 rounded p-3 text-sm">
+                              <div><span className="font-semibold">{t('note')}:</span> {note.details?.note || ''}</div>
+                              {/* Add more fields if needed */}
                             </div>
-                          </CardContent>
-                        </Card>
+                          )}
+                        </div>
                       ))}
                     </div>
                   )}
-                </TabsContent>
-                <TabsContent value="records" className="mt-6">
-                  {recordsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                      <p className="text-gray-600">{t('loadingMedicalRecords')}</p>
-                    </div>
-                  ) : recordsError ? (
-                    <div className="text-center py-8">
-                      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                      <p className="text-red-600">{recordsError}</p>
-                    </div>
-                  ) : medicalRecords.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500">{t('noMedicalRecordsFound')}</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>{t('date')}</TableHead>
-                            <TableHead>{t('type')}</TableHead>
-                            <TableHead>{t('title')}</TableHead>
-                            <TableHead>{t('provider')}</TableHead>
-                            <TableHead>{t('actions')}</TableHead>
+                </div>
+              ) : (
+                recordsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">{t('loadingMedicalRecords')}</p>
+                  </div>
+                ) : recordsError ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600">{recordsError}</p>
+                  </div>
+                ) : medicalRecords.filter(record => record.type !== 'doctor_note').length === 0 ? (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">{t('noMedicalRecordsFound')}</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('date')}</TableHead>
+                          <TableHead>{t('provider')}</TableHead>
+                          <TableHead>{t('actions')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {medicalRecords.filter(record => record.type !== 'doctor_note').map(record => (
+                          <TableRow key={record._id}>
+                            <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{record.providerId?.firstName} {record.providerId?.lastName}</TableCell>
+                            <TableCell>
+                              <Button asChild size="sm" variant="outline">
+                                <Link to={`/medical-records/${record._id}`}>{t('viewDetails')}</Link>
+                              </Button>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {medicalRecords.map(record => (
-                            <TableRow key={record._id}>
-                              <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{record.type}</Badge>
-                              </TableCell>
-                              <TableCell>{record.title}</TableCell>
-                              <TableCell>{record.providerId?.firstName} {record.providerId?.lastName}</TableCell>
-                              <TableCell>
-                                <Button asChild size="sm" variant="outline">
-                                  <Link to={`/medical-records/${record._id}`}>{t('viewDetails')}</Link>
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )
+              )}
             </CardContent>
           </Card>
         )}

@@ -152,14 +152,89 @@ export const getMedicalRecords = async (req: Request, res: Response): Promise<vo
                 { privacyLevel: 'shared' },
                 { isPrivate: false, privacyLevel: { $ne: 'doctor_only' } }
             ];
-        } else if (['doctor', 'pharmacy', 'lab', 'radiologist'].includes(userRole)) {
-            // Providers can see records they created (including private ones)
-            // and records shared with them
+        } else if (userRole === 'doctor') {
+            // Doctors can only see records for patients they have consulted with
+            const Appointment = require('../models/appointment.model').default;
+            const User = require('../models/user.model').default;
+            
+            // Get distinct patient IDs from appointments where this doctor is the provider
+            const consultedPatientIds = await Appointment.distinct('patientId', { 
+                providerId: userId 
+            });
+            
+            if (consultedPatientIds.length === 0) {
+                // No consulted patients, return empty result
+                query._id = { $in: [] };
+            } else {
+                // Get patients and check their consent settings
+                const consultedPatients = await User.find({ 
+                    _id: { $in: consultedPatientIds } 
+                }).select('_id allowOtherDoctorsAccess');
+                
+                const patientsWithConsent = consultedPatients
+                    .filter((p: any) => p.allowOtherDoctorsAccess)
+                    .map((p: any) => p._id);
+                
+                const patientsWithoutConsent = consultedPatients
+                    .filter((p: any) => !p.allowOtherDoctorsAccess)
+                    .map((p: any) => p._id);
+                
+                // Build query based on patient consent
+                const queryConditions = [];
+                
+                // For patients WITH consent: show all their records (shared + any other doctor's records)
+                if (patientsWithConsent.length > 0) {
+                    queryConditions.push({
+                        $and: [
+                            { patientId: { $in: patientsWithConsent } },
+                            {
+                                $or: [
+                                    { providerId: userId }, // Records this doctor created
+                                    { privacyLevel: 'shared' }, // Records shared with all providers
+                                    { privacyLevel: 'patient_visible' }, // Records visible to patient (and consenting doctors)
+                                    { privacyLevel: { $ne: 'doctor_only' } } // Non-private records
+                                ]
+                            }
+                        ]
+                    });
+                }
+                
+                // For patients WITHOUT consent: only show records this doctor created + shared records
+                if (patientsWithoutConsent.length > 0) {
+                    queryConditions.push({
+                        $and: [
+                            { patientId: { $in: patientsWithoutConsent } },
+                            {
+                                $or: [
+                                    { providerId: userId }, // Only records this doctor created
+                                    { privacyLevel: 'shared' } // Records explicitly shared with all providers
+                                ]
+                            }
+                        ]
+                    });
+                }
+                
+                if (queryConditions.length > 0) {
+                    query.$or = queryConditions;
+                } else {
+                    // No valid conditions, return empty result
+                    query._id = { $in: [] };
+                }
+            }
+        } else if (['pharmacy', 'lab', 'radiologist'].includes(userRole)) {
+            // Other providers can see records they created and records shared with them
             query.$or = [
                 { providerId: userId }, // Records they created
                 { privacyLevel: 'shared' }, // Records shared with all providers
                 { patientId: userId } // Records where they are the patient
             ];
+        } else if (userRole === 'admin') {
+            // Admins can see all records
+            // No additional query restrictions
+        } else {
+            // Other roles have no access
+            res.status(403).json({ message: "Access denied" });
+            return;
         }
 
         const medicalRecords = await MedicalRecord.find(query)
@@ -196,17 +271,55 @@ export const getMedicalRecordById = async (req: Request, res: Response): Promise
                 return;
             }
         } else if (userRole === 'doctor') {
+            // Ensure patientId is always a string ObjectId
+            let patientId: string;
+            if (typeof medicalRecord.patientId === 'object' && medicalRecord.patientId !== null && '_id' in medicalRecord.patientId) {
+                patientId = String((medicalRecord.patientId as any)._id);
+            } else {
+                patientId = String(medicalRecord.patientId);
+            }
+            
+            // First check if this doctor has consulted with this patient
+            const Appointment = require('../models/appointment.model').default;
+            const hasConsultedPatient = await Appointment.exists({ 
+                providerId: userId, 
+                patientId: patientId 
+            });
+            
+            if (!hasConsultedPatient) {
+                res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                return;
+            }
+            
+            // Then check if they can see this specific record
             let providerId: string | undefined;
             if (medicalRecord.providerId && typeof medicalRecord.providerId === 'object' && '_id' in medicalRecord.providerId) {
                 providerId = String((medicalRecord.providerId as any)._id);
             } else {
                 providerId = String(medicalRecord.providerId);
             }
-            if (providerId !== userId) {
-                console.log('Access denied: doctor', userId, 'providerId', providerId, 'raw providerId:', medicalRecord.providerId);
-                res.status(403).json({ message: "Access denied" });
-                return;
+            
+            // Doctor can see the record if:
+            // 1. They created it, OR
+            // 2. It's shared with all providers AND patient has given consent
+            const isOwnRecord = providerId === userId;
+            const isSharedRecord = medicalRecord.privacyLevel === 'shared';
+            
+            if (!isOwnRecord && !isSharedRecord) {
+                // Check patient consent for other doctors' records
+                const User = require('../models/user.model').default;
+                const patient = await User.findById(patientId);
+                
+                if (!patient || !patient.allowOtherDoctorsAccess) {
+                    res.status(403).json({ message: "Access denied: Patient has not granted access to other doctors' records" });
+                    return;
+                }
             }
+        } else if (userRole === 'admin') {
+            // Admins can access all records
+        } else {
+            res.status(403).json({ message: "Access denied" });
+            return;
         }
 
         res.json(medicalRecord);
@@ -302,6 +415,22 @@ export const getPatientMedicalHistory = async (req: Request, res: Response): Pro
         if (userRole === 'patient' && patientId !== userId) {
             res.status(403).json({ message: "Access denied" });
             return;
+        }
+
+        // For doctors: First verify they have consulted with this patient
+        if (userRole === 'doctor' && patientId !== userId) {
+            const Appointment = require('../models/appointment.model').default;
+            
+            // Check if this doctor has ever had an appointment with this patient
+            const hasConsultedPatient = await Appointment.exists({ 
+                providerId: userId, 
+                patientId: patientId 
+            });
+            
+            if (!hasConsultedPatient) {
+                res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                return;
+            }
         }
 
         let query: any = { patientId };
@@ -493,10 +622,26 @@ export const getDoctorNotesForPatient = async (req: Request, res: Response): Pro
         const userRole = (req as any).user.role;
         const { doctorId } = req.query; // Optional filter for specific doctor
         
-        // Only allow access for doctors or the provider themselves
+        // Only allow access for doctors or admins
         if (userRole !== 'doctor' && userRole !== 'admin') {
             res.status(403).json({ message: 'Access denied' });
             return;
+        }
+
+        // For doctors: First verify they have consulted with this patient
+        if (userRole === 'doctor') {
+            const Appointment = require('../models/appointment.model').default;
+            
+            // Check if this doctor has ever had an appointment with this patient
+            const hasConsultedPatient = await Appointment.exists({ 
+                providerId: userId, 
+                patientId: patientId 
+            });
+            
+            if (!hasConsultedPatient) {
+                res.status(403).json({ message: "Access denied: No consultation history with this patient" });
+                return;
+            }
         }
 
         let query: any = {

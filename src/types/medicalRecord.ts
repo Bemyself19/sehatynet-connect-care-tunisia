@@ -7,7 +7,7 @@ export interface MedicalRecord {
   providerId: User;
   appointmentId?: Appointment;
   title: string;
-  type: 'lab_result' | 'consultation' | 'imaging' | 'prescription' | 'vaccination' | 'surgery';
+  type: 'lab_result' | 'consultation' | 'imaging' | 'prescription' | 'vaccination' | 'surgery' | 'doctor_note';
   date: string;
   details: any;
   fileUrl?: string;
@@ -24,8 +24,9 @@ export interface MedicalRecord {
 
 export interface CreateMedicalRecordData {
     patientId: string;
+    appointmentId?: string;
     title: string;
-    type: 'lab_result' | 'consultation' | 'imaging' | 'prescription' | 'vaccination' | 'surgery';
+    type: 'lab_result' | 'consultation' | 'imaging' | 'prescription' | 'vaccination' | 'surgery' | 'doctor_note';
     date: string;
     details: any;
     fileUrl?: string;

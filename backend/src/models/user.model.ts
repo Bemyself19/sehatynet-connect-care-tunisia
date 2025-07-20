@@ -3,7 +3,14 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     nationalId: { type: String, unique: true, sparse: true }, // Tunisian National ID (8 digits)
-    password: { type: String, required: true },
+    password: { 
+        type: String, 
+        required: function(this: any) { 
+            return !this.googleId; 
+        } 
+    }, // Required only if not Google user
+    googleId: { type: String, unique: true, sparse: true }, // Google SSO ID
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' }, // Authentication provider
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     role: { 

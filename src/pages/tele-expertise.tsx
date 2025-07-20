@@ -19,7 +19,7 @@ const TeleExpertiseRequestsPage: React.FC = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const { t, i18n } = useTranslation();
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://localhost:5000';
 
   useEffect(() => {
     if (!user) return;

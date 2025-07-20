@@ -26,8 +26,8 @@ cd ..
 
 echo "[4/4] Starting both servers..."
 echo
-echo "Backend will run on: http://localhost:5000"
-echo "Frontend will run on: http://localhost:5173"
+echo "Backend will run on: https://localhost:5000"
+echo "Frontend will run on: https://localhost:5173"
 echo
 echo "Press Ctrl+C to stop both servers"
 echo

@@ -53,7 +53,7 @@ A comprehensive backend API for the SehatyNet+ telehealth platform, built with N
    MONGO_URI=mongodb://localhost:27017/sehatynet
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    ADMIN_CODE=ADMIN2024
-   FRONTEND_URL=http://localhost:5173
+   FRONTEND_URL=https://localhost:5173
    ```
 
 4. **Start MongoDB**
@@ -251,7 +251,7 @@ src/
 | `JWT_SECRET` | JWT signing secret | - |
 | `JWT_EXPIRES_IN` | JWT expiration time | 1d |
 | `ADMIN_CODE` | Admin login code | ADMIN2024 |
-| `FRONTEND_URL` | Frontend URL for CORS | http://localhost:5173 |
+| `FRONTEND_URL` | Frontend URL for CORS | https://localhost:5173 |
 
 ## API Response Format
 

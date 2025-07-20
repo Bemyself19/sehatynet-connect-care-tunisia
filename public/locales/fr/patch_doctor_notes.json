@@ -1,0 +1,6 @@
+{
+  "doctorNotesTab": "Notes du médecin",
+  "doctorNotesTabDesc": "Notes que vous avez écrites pour ce patient. Visibles uniquement par vous et les autres médecins si le consentement est accordé.",
+  "medicalRecordsTab": "Dossiers médicaux",
+  "medicalRecordsTabDesc": "Tous les dossiers médicaux de ce patient, y compris les ordonnances et les résultats de laboratoire."
+}

@@ -54,9 +54,9 @@ npm run start
 
 ## 🌐 Access Points
 
-- **Frontend Application**: http://localhost:5173
-- **Backend API**: http://localhost:5000
-- **Health Check**: http://localhost:5000/health
+- **Frontend Application**: https://localhost:5173
+- **Backend API**: https://localhost:5000
+- **Health Check**: https://localhost:5000/health
 
 ## 📋 Prerequisites
 
@@ -216,7 +216,7 @@ server {
     }
 
     location / {
-        proxy_pass http://localhost:5173/;
+        proxy_pass https://localhost:5173/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

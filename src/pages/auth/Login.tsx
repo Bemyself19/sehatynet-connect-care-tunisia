@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { BrandLogo } from '@/components/ui/logo';
+import GoogleSignIn from '@/components/auth/GoogleSignIn';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<LoginForm>({
@@ -26,6 +28,7 @@ const Login: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { login, isLoggingIn } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (userTypeFromUrl !== 'provider') {
@@ -99,6 +102,34 @@ const Login: React.FC = () => {
     };
     
     login(loginData);
+  };
+
+  const handleGoogleSuccess = (result: { token: string; user: any; message: string }) => {
+    // Clear all data from previous sessions
+    queryClient.clear();
+    
+    // Store the new user's authentication token
+    sessionStorage.setItem('authToken', result.token);
+    
+    // Set user data in cache (same key as useUser hook)
+    queryClient.setQueryData(['userProfile'], result.user);
+    
+    toast.success(result.message);
+    
+    // Navigate to dashboard
+    const dashboardPath = `/dashboard/${result.user.role}`;
+    navigate(dashboardPath);
+  };
+
+  const handleGoogleError = (error: string) => {
+    toast.error(error);
+  };
+
+  const getGoogleSignInRole = (): UserRole => {
+    if (userTypeFromUrl === 'provider') {
+      return selectedRole || 'doctor';
+    }
+    return (userTypeFromUrl as UserRole) || 'patient';
   };
 
   const getTitle = () => {
@@ -207,6 +238,26 @@ const Login: React.FC = () => {
         <Button type="submit" className="w-full" disabled={isLoggingIn}>
           {isLoggingIn ? t('loading') || 'Loading...' : t('login') || 'Login'}
         </Button>
+        
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2 text-muted-foreground">
+              {t('orContinueWith') || 'Or continue with'}
+            </span>
+          </div>
+        </div>
+
+        <GoogleSignIn
+          role={getGoogleSignInRole()}
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          mode="signin"
+          disabled={isLoggingIn}
+        />
+
         <div className="text-center">
           <span className="text-sm text-gray-600">
             {t('noAccount') || "Don't have an account?"}{' '}
