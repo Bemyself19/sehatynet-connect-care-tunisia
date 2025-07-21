@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Download, TrendingUp, Users, Calendar, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Reports: React.FC = () => {
+  const { t } = useTranslation();
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,12 +26,12 @@ const Reports: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600">Generate and view system reports</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reportsAnalytics')}</h1>
+          <p className="text-gray-600">{t('generateSystemReports')}</p>
         </div>
-        <Button variant="outline" onClick={() => toast.info('Export coming soon!')}>
+        <Button variant="outline" onClick={() => toast.info(t('exportComingSoon'))}>
           <Download className="h-4 w-4 mr-2" />
-          Export Report
+          {t('exportLogs')}
         </Button>
       </div>
 
@@ -37,7 +39,7 @@ const Reports: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalUsers')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -45,14 +47,14 @@ const Reports: React.FC = () => {
               {loading ? '...' : overview?.totalUsers ?? '-'}
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> from last month
+              <span className="text-green-600">+12%</span> {t('fromLastMonth')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Providers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('activeProviders')}</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -60,14 +62,14 @@ const Reports: React.FC = () => {
               {loading ? '...' : overview?.activeProviders ?? '-'}
             </div>
             <p className="text-xs text-muted-foreground">
-              Currently online
+              {t('currentlyOnline')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Appointments Today</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('appointmentsToday')}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -75,14 +77,14 @@ const Reports: React.FC = () => {
               {loading ? '...' : overview?.appointmentsToday ?? '-'}
             </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8%</span> from yesterday
+              <span className="text-green-600">+8%</span> {t('fromYesterday')}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('systemUptime')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -90,7 +92,7 @@ const Reports: React.FC = () => {
               {loading ? '...' : (overview?.systemUptime ? `${overview.systemUptime}%` : '-')}
             </div>
             <p className="text-xs text-muted-foreground">
-              Last 30 days
+              {t('last30Days')}
             </p>
           </CardContent>
         </Card>
@@ -102,22 +104,22 @@ const Reports: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Users className="h-5 w-5 text-blue-600" />
-              <span>User Reports</span>
+              <span>{t('userReports')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              User registration, activity, and engagement analytics
+              {t('userReportsDesc')}
             </p>
             <div className="space-y-2">
               <Button variant="outline" size="sm" className="w-full justify-start">
-                User Registration Report
+                {t('userRegistrationReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                User Activity Report
+                {t('userActivityReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Role Distribution Report
+                {t('roleDistributionReport')}
               </Button>
             </div>
           </CardContent>
@@ -127,22 +129,22 @@ const Reports: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Calendar className="h-5 w-5 text-green-600" />
-              <span>Appointment Reports</span>
+              <span>{t('appointmentReports')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              Appointment scheduling, completion, and provider performance
+              {t('appointmentReportsDesc')}
             </p>
             <div className="space-y-2">
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Appointment Volume Report
+                {t('appointmentVolumeReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Provider Performance Report
+                {t('providerPerformanceReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Cancellation Report
+                {t('cancellationReport')}
               </Button>
             </div>
           </CardContent>
@@ -152,22 +154,22 @@ const Reports: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="h-5 w-5 text-purple-600" />
-              <span>System Reports</span>
+              <span>{t('systemReports')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              System performance, errors, and operational metrics
+              {t('systemReportsDesc')}
             </p>
             <div className="space-y-2">
               <Button variant="outline" size="sm" className="w-full justify-start">
-                System Performance Report
+                {t('systemPerformanceReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Error Log Report
+                {t('errorLogReport')}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start">
-                Security Audit Report
+                {t('securityAuditReport')}
               </Button>
             </div>
           </CardContent>
@@ -177,7 +179,7 @@ const Reports: React.FC = () => {
       {/* Recent Reports */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Reports</CardTitle>
+          <CardTitle>{t('recentReports')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -187,13 +189,13 @@ const Reports: React.FC = () => {
                   <Users className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">User Registration Report</h3>
-                  <p className="text-sm text-gray-500">Generated 2 hours ago</p>
+                  <h3 className="font-medium">{t('userRegistrationReport')}</h3>
+                  <p className="text-sm text-gray-500">{t('generatedAgo', { time: '2', unit: t('hours') })}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                {t('download')}
               </Button>
             </div>
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -202,13 +204,13 @@ const Reports: React.FC = () => {
                   <Calendar className="h-5 w-5 text-green-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Appointment Volume Report</h3>
-                  <p className="text-sm text-gray-500">Generated 1 day ago</p>
+                  <h3 className="font-medium">{t('appointmentVolumeReport')}</h3>
+                  <p className="text-sm text-gray-500">{t('generatedAgo', { time: '1', unit: t('day') })}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                {t('download')}
               </Button>
             </div>
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -217,13 +219,13 @@ const Reports: React.FC = () => {
                   <BarChart3 className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium">System Performance Report</h3>
-                  <p className="text-sm text-gray-500">Generated 3 days ago</p>
+                  <h3 className="font-medium">{t('systemPerformanceReport')}</h3>
+                  <p className="text-sm text-gray-500">{t('generatedAgo', { time: '3', unit: t('days') })}</p>
                 </div>
               </div>
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
-                Download
+                {t('download')}
               </Button>
             </div>
           </div>

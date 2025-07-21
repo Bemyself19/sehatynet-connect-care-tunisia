@@ -15,14 +15,14 @@ export default defineConfig(({ mode }) => ({
       key: fs.readFileSync("cert/localhost.key"),
       cert: fs.readFileSync("cert/localhost.crt"),
     },
-    // No proxy needed - both frontend and backend use HTTPS
-    // proxy: {
-    //   '/api': {
-    //     target: 'https://localhost:5000',
-    //     secure: false, // Allow self-signed certificates
-    //     changeOrigin: true
-    //   }
-    // }
+    // Proxy API requests to backend server
+    proxy: {
+      '/api': {
+        target: 'https://localhost:5000', // Change port if your backend uses a different one
+        secure: false, // Allow self-signed certificates
+        changeOrigin: true
+      }
+    }
   },
   plugins: [
     react(),

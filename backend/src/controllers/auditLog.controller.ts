@@ -4,6 +4,7 @@ import User from '../models/user.model';
 
 // GET /api/audit-logs
 export const getAuditLogs = async (req: Request, res: Response) => {
+  console.log('getAuditLogs endpoint called', req.query);
   try {
     const { page = 1, limit = 20, search = '', status, action, user } = req.query;
     const query: any = {};

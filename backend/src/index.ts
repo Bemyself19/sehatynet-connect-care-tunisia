@@ -17,6 +17,7 @@ import teleExpertiseRequestRoutes from './routes/teleExpertiseRequest.routes';
 import paymentRoutes from "./routes/payment.routes";
 import systemSettingRoutes from './routes/systemSetting.routes';
 import reportRoutes from './routes/report.routes';
+import auditLogRoutes from './routes/auditLog.routes';
 import labResultRoutes from './routes/labResult.routes';
 import medicationRoutes from './routes/medication.routes';
 import allergyRoutes from './routes/allergy.routes';
@@ -200,6 +201,7 @@ app.use('/api/medications', medicationRoutes);
 app.use('/api/allergies', allergyRoutes);
 app.use('/api/immunizations', immunizationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

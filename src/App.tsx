@@ -10,6 +10,13 @@ import LoginSelection from "./pages/auth/LoginSelection";
 import Register from "./pages/auth/Register";
 import RegisterSelection from "./pages/auth/RegisterSelection";
 import PatientDashboard from "./pages/dashboards/PatientDashboard";
+import AdminDashboard from "./pages/dashboards/AdminDashboard";
+import AdminLayout from "./components/layouts/AdminLayout";
+import AdminUserManagementPage from "./pages/dashboards/admin/UserManagement";
+import AdminSystemSettingsPage from "./pages/dashboards/admin/SystemSettings";
+import AdminAuditLogsPage from "./pages/dashboards/admin/AuditLogs";
+import AdminReportsPage from "./pages/dashboards/admin/Reports";
+import AdminProfilePage from "./pages/dashboards/admin/AdminProfile";
 import BookAppointment from "./pages/appointments/BookAppointment";
 import Profile from "./pages/profile/Profile";
 import NotFound from "./pages/NotFound";
@@ -71,6 +78,14 @@ const App = () => {
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             {/* Protected Routes */}
+            <Route path="/dashboard/admin" element={<ProtectedRoute element={<AdminLayout />} />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUserManagementPage />} />
+              <Route path="settings" element={<AdminSystemSettingsPage />} />
+              <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+              <Route path="reports" element={<AdminReportsPage />} />
+              <Route path="profile" element={<AdminProfilePage />} />
+            </Route>
             <Route path="/dashboard/patient" element={<ProtectedRoute element={<PatientLayout />} />}>
               <Route index element={<PatientDashboard />} />
               <Route path="appointments" element={<AppointmentsList />} />

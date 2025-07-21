@@ -61,13 +61,19 @@ async function createAdminUser() {
 async function loginAdmin(email, password) {
   try {
     console.log('Logging in admin user...');
-    
+    // Include role and adminCode for admin login
+    const loginPayload = {
+      email,
+      password,
+      role: 'admin',
+      adminCode: process.env.ADMIN_CODE || 'admin123'
+    };
     const response = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify(loginPayload)
     });
 
     const result = await response.json();

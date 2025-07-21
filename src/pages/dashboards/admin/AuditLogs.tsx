@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileText, Search, Download, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 const AuditLogs: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -26,12 +28,12 @@ const AuditLogs: React.FC = () => {
       const res = await fetch(`/api/audit-logs?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${sessionStorage.getItem('authToken')}` }
       });
-      if (!res.ok) throw new Error('Failed to fetch logs');
+      if (!res.ok) throw new Error('failedToFetchLogs');
       const data = await res.json();
       setLogs(data.logs);
       setTotal(data.total);
     } catch (err) {
-      toast.error('Failed to fetch audit logs');
+      toast.error(t('failedToFetchAuditLogs') || 'Failed to fetch audit logs');
     } finally {
       setLoading(false);
     }
@@ -55,12 +57,12 @@ const AuditLogs: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-          <p className="text-gray-600">View system activity and user actions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('auditLogs') || 'Audit Logs'}</h1>
+          <p className="text-gray-600">{t('viewSystemActivityLogs') || 'View system activity and user actions'}</p>
         </div>
-        <Button variant="outline" onClick={() => toast.info('Export coming soon!')}>
+        <Button variant="outline" onClick={() => toast.info(t('exportComingSoon') || 'Export coming soon!')}>
           <Download className="h-4 w-4 mr-2" />
-          Export Logs
+          {t('exportLogs') || 'Export Logs'}
         </Button>
       </div>
 
@@ -71,7 +73,7 @@ const AuditLogs: React.FC = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search logs..."
+                placeholder={t('searchLogs') || 'Search logs...'}
                 className="pl-10"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
@@ -79,7 +81,7 @@ const AuditLogs: React.FC = () => {
             </div>
             <Button variant="outline" type="submit">
               <Filter className="h-4 w-4 mr-2" />
-              Filter
+              {t('filter') || 'Filter'}
             </Button>
           </form>
         </CardContent>
@@ -90,25 +92,25 @@ const AuditLogs: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <FileText className="h-5 w-5" />
-            <span>System Activity Logs</span>
+            <span>{t('systemActivityLogs') || 'System Activity Logs'}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center h-32">Loading logs...</div>
+            <div className="flex items-center justify-center h-32">{t('loadingLogs') || 'Loading logs...'}</div>
           ) : logs.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">No logs found.</div>
+            <div className="text-center text-gray-500 py-8">{t('noLogsFound') || 'No logs found.'}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-medium">Timestamp</th>
-                    <th className="text-left py-3 px-4 font-medium">User</th>
-                    <th className="text-left py-3 px-4 font-medium">Action</th>
-                    <th className="text-left py-3 px-4 font-medium">Resource</th>
-                    <th className="text-left py-3 px-4 font-medium">Status</th>
-                    <th className="text-left py-3 px-4 font-medium">IP Address</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('timestamp') || 'Timestamp'}</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('user') || 'User'}</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('action') || 'Action'}</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('resource') || 'Resource'}</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('status') || 'Status'}</th>
+                    <th className="text-left py-3 px-4 font-medium">{t('ipAddress') || 'IP Address'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -134,11 +136,11 @@ const AuditLogs: React.FC = () => {
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-4">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
-                Previous
+                {t('previous') || 'Previous'}
               </Button>
-              <span className="text-sm">Page {page} of {totalPages}</span>
+              <span className="text-sm">{t('page')} {page} {t('of')} {totalPages}</span>
               <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
-                Next
+                {t('next') || 'Next'}
               </Button>
             </div>
           )}

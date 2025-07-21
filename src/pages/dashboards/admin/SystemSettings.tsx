@@ -90,15 +90,15 @@ const SystemSettings: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64">Loading settings...</div>;
+  if (loading) return <div className="flex items-center justify-center h-64">{t('loadingSettings') || 'Loading settings...'}</div>;
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
-          <p className="text-gray-600">Configure system parameters and preferences</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('systemSettings') || 'System Settings'}</h1>
+          <p className="text-gray-600">{t('configureSystemParameters') || 'Configure system parameters and preferences'}</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -109,19 +109,19 @@ const SystemSettings: React.FC = () => {
                 const data = await api.getSystemSettings();
                 console.log('Refreshed settings:', data);
                 setSettings({ ...defaultSettings, ...data });
-                toast.success('Settings refreshed');
+                toast.success(t('settingsRefreshed') || 'Settings refreshed');
               } catch (err) {
-                toast.error('Failed to refresh settings');
+                toast.error(t('failedToRefreshSettings') || 'Failed to refresh settings');
               } finally {
                 setLoading(false);
               }
             }}
           >
-            Refresh Settings
+            {t('refreshSettings') || 'Refresh Settings'}
           </Button>
           <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={saving}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? (t('saving') || 'Saving...') : (t('saveChanges') || 'Save Changes')}
           </Button>
         </div>
       </div>
@@ -131,25 +131,25 @@ const SystemSettings: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Settings className="h-5 w-5" />
-            <span>General Settings</span>
+            <span>{t('generalSettings') || 'General Settings'}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="siteName">Site Name</Label>
+              <Label htmlFor="siteName">{t('siteName') || 'Site Name'}</Label>
               <Input id="siteName" value={settings.siteName} onChange={e => handleChange('siteName', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contactEmail">Contact Email</Label>
+              <Label htmlFor="contactEmail">{t('contactEmail') || 'Contact Email'}</Label>
               <Input id="contactEmail" type="email" value={settings.contactEmail} onChange={e => handleChange('contactEmail', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
+              <Label htmlFor="timezone">{t('timezone') || 'Timezone'}</Label>
               <Input id="timezone" value={settings.timezone} onChange={e => handleChange('timezone', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="language">Default Language</Label>
+              <Label htmlFor="language">{t('defaultLanguage') || 'Default Language'}</Label>
               <Input id="language" value={settings.language} onChange={e => handleChange('language', e.target.value)} />
             </div>
           </div>
@@ -158,7 +158,7 @@ const SystemSettings: React.FC = () => {
               <h3 className="font-medium">{t('enablePayments') || 'Enable Payments'}</h3>
               <p className="text-sm text-gray-500">{t('paymentDescription') || 'Require payment for services. If disabled, all services are free.'}</p>
               <p className="text-xs text-blue-600 mt-1">
-                {settings.paymentsEnabled ? 'Payment features are currently enabled' : 'Payment features are currently disabled'}
+                {settings.paymentsEnabled ? (t('paymentFeaturesEnabled') || 'Payment features are currently enabled') : (t('paymentFeaturesDisabled') || 'Payment features are currently disabled')}
               </p>
             </div>
             <Switch 
@@ -175,27 +175,27 @@ const SystemSettings: React.FC = () => {
       {/* Security Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Security Settings</CardTitle>
+          <CardTitle>{t('securitySettings') || 'Security Settings'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Two-Factor Authentication</h3>
-              <p className="text-sm text-gray-500">Require 2FA for all users</p>
+              <h3 className="font-medium">{t('twoFactorAuth') || 'Two-Factor Authentication'}</h3>
+              <p className="text-sm text-gray-500">{t('require2FA') || 'Require 2FA for all users'}</p>
             </div>
             <Switch checked={settings.twoFactorAuth} onCheckedChange={v => handleChange('twoFactorAuth', v)} />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Session Timeout</h3>
-              <p className="text-sm text-gray-500">Auto-logout after inactivity</p>
+              <h3 className="font-medium">{t('sessionTimeout') || 'Session Timeout'}</h3>
+              <p className="text-sm text-gray-500">{t('autoLogout') || 'Auto-logout after inactivity'}</p>
             </div>
             <Switch checked={settings.sessionTimeout} onCheckedChange={v => handleChange('sessionTimeout', v)} />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Password Policy</h3>
-              <p className="text-sm text-gray-500">Enforce strong passwords</p>
+              <h3 className="font-medium">{t('passwordPolicy') || 'Password Policy'}</h3>
+              <p className="text-sm text-gray-500">{t('enforceStrongPasswords') || 'Enforce strong passwords'}</p>
             </div>
             <Switch checked={settings.passwordPolicy} onCheckedChange={v => handleChange('passwordPolicy', v)} />
           </div>
@@ -205,27 +205,27 @@ const SystemSettings: React.FC = () => {
       {/* Notification Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Notification Settings</CardTitle>
+          <CardTitle>{t('notificationSettings') || 'Notification Settings'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Email Notifications</h3>
-              <p className="text-sm text-gray-500">Send email alerts for system events</p>
+              <h3 className="font-medium">{t('emailNotifications') || 'Email Notifications'}</h3>
+              <p className="text-sm text-gray-500">{t('emailAlerts') || 'Send email alerts for system events'}</p>
             </div>
             <Switch checked={settings.emailNotifications} onCheckedChange={v => handleChange('emailNotifications', v)} />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">SMS Notifications</h3>
-              <p className="text-sm text-gray-500">Send SMS alerts for critical events</p>
+              <h3 className="font-medium">{t('smsNotifications') || 'SMS Notifications'}</h3>
+              <p className="text-sm text-gray-500">{t('smsAlerts') || 'Send SMS alerts for critical events'}</p>
             </div>
             <Switch checked={settings.smsNotifications} onCheckedChange={v => handleChange('smsNotifications', v)} />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">In-App Notifications</h3>
-              <p className="text-sm text-gray-500">Show notifications within the application</p>
+              <h3 className="font-medium">{t('inAppNotifications') || 'In-App Notifications'}</h3>
+              <p className="text-sm text-gray-500">{t('inAppAlerts') || 'Show notifications within the application'}</p>
             </div>
             <Switch checked={settings.inAppNotifications} onCheckedChange={v => handleChange('inAppNotifications', v)} />
           </div>
@@ -235,23 +235,23 @@ const SystemSettings: React.FC = () => {
       {/* Backup Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Backup & Maintenance</CardTitle>
+          <CardTitle>{t('backupMaintenance') || 'Backup & Maintenance'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="backupFrequency">Backup Frequency</Label>
+              <Label htmlFor="backupFrequency">{t('backupFrequency') || 'Backup Frequency'}</Label>
               <Input id="backupFrequency" value={settings.backupFrequency} onChange={e => handleChange('backupFrequency', e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="retentionPeriod">Retention Period</Label>
+              <Label htmlFor="retentionPeriod">{t('retentionPeriod') || 'Retention Period'}</Label>
               <Input id="retentionPeriod" value={settings.retentionPeriod} onChange={e => handleChange('retentionPeriod', e.target.value)} />
             </div>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Automatic Backups</h3>
-              <p className="text-sm text-gray-500">Schedule automatic system backups</p>
+              <h3 className="font-medium">{t('automaticBackups') || 'Automatic Backups'}</h3>
+              <p className="text-sm text-gray-500">{t('scheduleBackups') || 'Schedule automatic system backups'}</p>
             </div>
             <Switch checked={settings.automaticBackups} onCheckedChange={v => handleChange('automaticBackups', v)} />
           </div>
