@@ -7,11 +7,18 @@ import { Badge } from '@/components/ui/badge';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 import { Shield } from 'lucide-react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { useTranslation } from 'react-i18next';
 
 const AdminProfile: React.FC = () => {
   const { user } = useUser();
-  const { t } = useLanguage();
+  const { t } = useTranslation();
+  // Debug log for i18n translation output
+  console.log('DEBUG i18n:', {
+    updateAdminInfo: t('updateAdminInfo'),
+    myProfile: t('myProfile'),
+    personalInformation: t('personalInformation'),
+    updatePersonalDetails: t('updatePersonalDetails'),
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',

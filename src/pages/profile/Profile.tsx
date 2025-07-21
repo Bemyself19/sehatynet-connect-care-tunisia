@@ -19,6 +19,13 @@ import { Switch } from '@/components/ui/switch';
 
 const Profile: React.FC = () => {
   const { t, i18n } = useTranslation();
+  // Debug log for i18n translation output
+  console.log('DEBUG i18n:', {
+    updateAdminInfo: t('updateAdminInfo'),
+    myProfile: t('myProfile'),
+    personalInformation: t('personalInformation'),
+    updatePersonalDetails: t('updatePersonalDetails'),
+  });
   const navigate = useNavigate();
   const { user, isLoading: isUserLoading, error: userError, refetch } = useUser();
   const { logout } = useAuth();
