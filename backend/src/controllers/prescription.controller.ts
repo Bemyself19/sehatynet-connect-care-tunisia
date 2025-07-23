@@ -1,28 +1,10 @@
-import { Request, Response } from "express";
-import Prescription from "../models/prescription.model";
-import User from "../models/user.model";
-import Appointment from "../models/appointment.model";
-import MedicalRecord from "../models/medicalRecord.model";
-import PDFDocument from 'pdfkit';
-import stream from 'stream';
-
 // @desc    Create a new prescription
 // @route   POST /api/prescriptions
 // @access  Private (Doctor only)
 export const createPrescription = async (req: Request, res: Response): Promise<void> => {
-    const { 
-        patientId, 
-        appointmentId,
-        medications = [],
-        labTests = [],
-        radiology = [],
-        notes
-    } = req.body;
-    
     try {
+        const { patientId, appointmentId, medications = [], labTests = [], radiology = [], notes } = req.body;
         const providerId = (req as any).user.id;
-
-        // Validation: at least one section must be non-empty
         if (!patientId || !appointmentId || (
           (!medications || medications.length === 0) &&
           (!labTests || labTests.length === 0) &&
@@ -31,15 +13,12 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
             res.status(400).json({ message: "Missing required prescription fields: at least one section must be filled" });
             return;
         }
-
         const patient = await User.findById(patientId);
         const appointment = await Appointment.findById(appointmentId);
-
         if (!patient || !appointment) {
             res.status(404).json({ message: "Patient or Appointment not found" });
             return;
         }
-
         const prescription = new Prescription({
             patientId,
             providerId,
@@ -49,17 +28,13 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
             radiology,
             notes
         });
-
         const savedPrescription = await prescription.save();
-        
-        // Create a medical record for this prescription event
         const details: any = {
           prescriptionId: savedPrescription._id,
           medications: medications || [],
           labTests: labTests || [],
           radiologyExams: radiology || []
         };
-
         const medicalRecord = new MedicalRecord({
             patientId,
             providerId,
@@ -69,9 +44,14 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
             date: new Date(),
             details
         });
-
         await medicalRecord.save();
-
+        await notify({
+          userId: patientId,
+          type: 'prescription_ready',
+          title: 'New Prescription',
+          message: 'A new prescription has been created for you.',
+          relatedEntity: { type: 'prescription', id: savedPrescription._id }
+        });
         res.status(201).json({
             message: "Prescription created successfully",
             prescription: savedPrescription
@@ -79,6 +59,592 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
     } catch (err) {
         console.error('Create prescription error:', err);
         res.status(500).json({ message: "Failed to create prescription", error: err });
+    }
+};
+
+// @desc    Provider sets item as ready for pickup
+// @route   PATCH /api/prescriptions/:id/item/ready-for-pickup
+// @access  Private (Provider)
+export const setItemReadyForPickup = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { type, itemIndex } = req.body;
+        if (!['medication', 'lab', 'radiology'].includes(type) || typeof itemIndex !== 'number') {
+            res.status(400).json({ message: 'type (medication|lab|radiology) and itemIndex (number) are required' });
+            return;
+        }
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+        let item: any = undefined;
+        if (type === 'medication') item = prescription.medications[itemIndex];
+        else if (type === 'lab') item = prescription.labTests[itemIndex];
+        else if (type === 'radiology') item = prescription.radiology[itemIndex];
+        if (!item) {
+            res.status(404).json({ message: 'Item not found' });
+            return;
+        }
+        if (!['confirmed', 'partial_accepted'].includes(item.status)) {
+            res.status(400).json({ message: 'Item must be confirmed or partial_accepted to be set as ready for pickup' });
+            return;
+        }
+        item.status = 'ready_for_pickup';
+        if (!item.history) item.history = [];
+        item.history.push({
+            status: 'ready_for_pickup',
+            date: new Date(),
+            by: (req as any).user.id
+        });
+        await prescription.save();
+        await notify({
+            userId: prescription.patientId,
+            type: 'prescription_updated',
+            title: 'Order Ready for Pickup',
+            message: 'Your prescription item is ready for pickup.',
+            relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Item marked as ready for pickup', prescription });
+    } catch (err) {
+        console.error('Set ready for pickup error:', err);
+        res.status(500).json({ message: 'Failed to set ready for pickup', error: err });
+    }
+};
+
+// @desc    Provider marks item as completed (picked up by patient), generates transactionId
+// @route   PATCH /api/prescriptions/:id/item/complete
+// @access  Private (Provider)
+export const setItemCompleted = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { type, itemIndex } = req.body;
+        if (!['medication', 'lab', 'radiology'].includes(type) || typeof itemIndex !== 'number') {
+            res.status(400).json({ message: 'type (medication|lab|radiology) and itemIndex (number) are required' });
+            return;
+        }
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+        let item: any = undefined;
+        if (type === 'medication') item = prescription.medications[itemIndex];
+        else if (type === 'lab') item = prescription.labTests[itemIndex];
+        else if (type === 'radiology') item = prescription.radiology[itemIndex];
+        if (!item) {
+            res.status(404).json({ message: 'Item not found' });
+            return;
+        }
+        if (item.status !== 'ready_for_pickup') {
+            res.status(400).json({ message: 'Item must be ready for pickup to be completed' });
+            return;
+        }
+        item.status = 'completed';
+        if (!item.transactionId) {
+            item.transactionId = generateTransactionId();
+        }
+        if (!item.history) item.history = [];
+        item.history.push({
+            status: 'completed',
+            date: new Date(),
+            by: (req as any).user.id
+        });
+        await prescription.save();
+        await notify({
+            userId: prescription.patientId,
+            type: 'prescription_updated',
+            title: 'Order Completed',
+            message: `Your prescription item has been picked up. Transaction ID: ${item.transactionId}`,
+            relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Item marked as completed', transactionId: item.transactionId, prescription });
+    } catch (err) {
+        console.error('Set completed error:', err);
+        res.status(500).json({ message: 'Failed to set completed', error: err });
+    }
+};
+
+import { Request, Response } from "express";
+import Prescription from "../models/prescription.model";
+import User from "../models/user.model";
+import Appointment from "../models/appointment.model";
+import MedicalRecord from "../models/medicalRecord.model";
+import Notification from '../models/notification.model';
+import PDFDocument from 'pdfkit';
+import stream from 'stream';
+
+// Utility to generate a transactionId (simple random string, can be replaced with your logic)
+function generateTransactionId() {
+  return 'TX-' + Math.random().toString(36).substr(2, 9).toUpperCase() + '-' + Date.now();
+}
+
+// Utility to create a notification
+async function notify({ userId, type, title, message, priority = 'medium', relatedEntity }: { userId: any, type: string, title: string, message: string, priority?: string, relatedEntity?: any }) {
+  try {
+    await Notification.create({ userId, type, title, message, priority, relatedEntity });
+  } catch (err) {
+    console.error('Notification error:', err);
+  }
+}
+
+// ...existing code (all controller functions, starting with createPrescription, go here)...
+// @desc    Patient reassigns provider for a medication, lab, or radiology item (if partial/rejected)
+// @route   PATCH /api/prescriptions/:id/reassign
+// @access  Private (Patient)
+export const reassignPrescriptionItem = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { type, itemIndex, newProviderId } = req.body;
+        if (!['medication', 'lab', 'radiology'].includes(type) || typeof itemIndex !== 'number' || !newProviderId) {
+            res.status(400).json({ message: 'type (medication|lab|radiology), itemIndex (number), and newProviderId are required' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+
+        // Only patient can reassign their own prescription
+        if ((req as any).user.id !== prescription.patientId.toString()) {
+            res.status(403).json({ message: 'Not authorized to reassign this prescription' });
+            return;
+        }
+
+        let item: any = undefined, providerRole: string = '';
+        if (type === 'medication') {
+            item = prescription.medications[itemIndex];
+            providerRole = 'pharmacy';
+        } else if (type === 'lab') {
+            item = prescription.labTests[itemIndex];
+            providerRole = 'lab';
+        } else if (type === 'radiology') {
+            item = prescription.radiology[itemIndex];
+            providerRole = 'radiologist';
+        }
+
+        if (!item) {
+            res.status(404).json({ message: 'Item not found' });
+            return;
+        }
+
+        // Only allow reassignment if item is partial, rejected, or partial_accepted
+        const status = item.status as string || '';
+        if (!['partial', 'rejected', 'partial_accepted'].includes(status)) {
+            res.status(400).json({ message: 'Item cannot be reassigned unless it is partial, rejected, or partial_accepted' });
+            return;
+        }
+
+        // Check new provider role
+        const newProvider = await User.findById(newProviderId);
+        if (!newProvider || newProvider.role !== providerRole) {
+            res.status(400).json({ message: `Assigned provider must be a ${providerRole}` });
+            return;
+        }
+
+        // Notify initial provider before reassignment
+        const initialProviderId = item.assignedProvider;
+        // Assign new provider, reset status, and add to history
+        item.assignedProvider = newProvider._id;
+        item.status = 'confirmed';
+        if (!item.history) item.history = [];
+        item.history.push({
+            status: 'confirmed',
+            date: new Date(),
+            by: (req as any).user.id,
+            note: 'Reassigned by patient' as any // allow note for now
+        });
+
+        await prescription.save();
+        // Notify new provider
+        await notify({
+          userId: newProviderId,
+          type: 'prescription_updated',
+          title: 'Item Reassigned',
+          message: 'A prescription item has been reassigned to you by the patient.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        // Notify initial provider (if exists and not same as new)
+        if (initialProviderId && initialProviderId.toString() !== newProviderId) {
+          await notify({
+            userId: initialProviderId,
+            type: 'prescription_updated',
+            title: 'Item Reassigned by Patient',
+            message: 'A prescription item you were assigned to has been reassigned by the patient.',
+            relatedEntity: { type: 'prescription', id: prescription._id }
+          });
+        }
+        res.json({ message: 'Item reassigned to new provider', prescription });
+    } catch (err) {
+        console.error('Reassign prescription item error:', err);
+        res.status(500).json({ message: 'Failed to reassign item', error: err });
+    }
+};
+// @desc    Fulfill (full/partial/reject) radiology exam items in a prescription
+// @route   PATCH /api/prescriptions/:id/radiology/fulfillment
+// @access  Private (Radiologist)
+export const fulfillRadiologyItems = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { fulfillment } = req.body;
+        if (!Array.isArray(fulfillment)) {
+            res.status(400).json({ message: 'fulfillment must be an array' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+
+        let allFulfilled = true;
+        let allRejected = true;
+        for (const item of fulfillment) {
+            const { radiologyIndex, fulfilled, reason } = item;
+            if (typeof radiologyIndex !== 'number' || radiologyIndex < 0 || radiologyIndex >= prescription.radiology.length) {
+                continue; // skip invalid index
+            }
+            const exam = prescription.radiology[radiologyIndex];
+            if (fulfilled === true) {
+                exam.status = 'fulfilled';
+                allRejected = false;
+            } else {
+                exam.status = 'rejected';
+                allFulfilled = false;
+            }
+            if (!exam.history) exam.history = [];
+            exam.history.push({
+                status: exam.status,
+                date: new Date(),
+                by: (req as any).user.id,
+                ...(reason ? { note: reason } : {})
+            });
+        }
+
+        // If some are fulfilled and some rejected, mark rejected as 'partial' for patient UI
+        if (!allFulfilled && !allRejected) {
+            for (const item of fulfillment) {
+                const { radiologyIndex, fulfilled } = item;
+                if (typeof radiologyIndex !== 'number' || radiologyIndex < 0 || radiologyIndex >= prescription.radiology.length) continue;
+                const exam = prescription.radiology[radiologyIndex];
+                if (exam.status === 'rejected') exam.status = 'partial';
+            }
+        }
+
+        await prescription.save();
+        // Notify patient for every status change
+        await notify({
+          userId: prescription.patientId,
+          type: 'radiology_result_ready',
+          title: 'Radiology Status Changed',
+          message: 'Your radiology exam items have been updated by the radiologist.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Radiology fulfillment updated', prescription });
+    } catch (err) {
+        console.error('Radiology fulfillment error:', err);
+        res.status(500).json({ message: 'Failed to update radiology fulfillment', error: err });
+    }
+};
+// @desc    Fulfill (full/partial/reject) lab test items in a prescription
+// @route   PATCH /api/prescriptions/:id/lab-tests/fulfillment
+// @access  Private (Lab)
+export const fulfillLabTestItems = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { fulfillment } = req.body;
+        if (!Array.isArray(fulfillment)) {
+            res.status(400).json({ message: 'fulfillment must be an array' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+
+        let allFulfilled = true;
+        let allRejected = true;
+        for (const item of fulfillment) {
+            const { labTestIndex, fulfilled, reason } = item;
+            if (typeof labTestIndex !== 'number' || labTestIndex < 0 || labTestIndex >= prescription.labTests.length) {
+                continue; // skip invalid index
+            }
+            const lab = prescription.labTests[labTestIndex];
+            if (fulfilled === true) {
+                lab.status = 'fulfilled';
+                allRejected = false;
+            } else {
+                lab.status = 'rejected';
+                allFulfilled = false;
+            }
+            if (!lab.history) lab.history = [];
+            lab.history.push({
+                status: lab.status,
+                date: new Date(),
+                by: (req as any).user.id,
+                ...(reason ? { note: reason } : {})
+            });
+        }
+
+        // If some are fulfilled and some rejected, mark rejected as 'partial' for patient UI
+        if (!allFulfilled && !allRejected) {
+            for (const item of fulfillment) {
+                const { labTestIndex, fulfilled } = item;
+                if (typeof labTestIndex !== 'number' || labTestIndex < 0 || labTestIndex >= prescription.labTests.length) continue;
+                const lab = prescription.labTests[labTestIndex];
+                if (lab.status === 'rejected') lab.status = 'partial';
+            }
+        }
+
+        await prescription.save();
+        // Notify patient for every status change
+        await notify({
+          userId: prescription.patientId,
+          type: 'lab_result_ready',
+          title: 'Lab Test Status Changed',
+          message: 'Your lab test items have been updated by the lab.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Lab test fulfillment updated', prescription });
+    } catch (err) {
+        console.error('Lab test fulfillment error:', err);
+        res.status(500).json({ message: 'Failed to update lab test fulfillment', error: err });
+    }
+};
+// @desc    Fulfill (full/partial/reject) medication items in a prescription
+// @route   PATCH /api/prescriptions/:id/medications/fulfillment
+// @access  Private (Pharmacy)
+export const fulfillMedicationItems = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { fulfillment } = req.body;
+        if (!Array.isArray(fulfillment)) {
+            res.status(400).json({ message: 'fulfillment must be an array' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+
+        let allFulfilled = true;
+        let allRejected = true;
+        for (const item of fulfillment) {
+            const { medicationIndex, fulfilled, reason } = item;
+            if (typeof medicationIndex !== 'number' || medicationIndex < 0 || medicationIndex >= prescription.medications.length) {
+                continue; // skip invalid index
+            }
+            const med = prescription.medications[medicationIndex];
+            if (fulfilled === true) {
+                med.status = 'fulfilled';
+                allRejected = false;
+            } else {
+                med.status = 'rejected';
+                allFulfilled = false;
+            }
+            if (!med.history) med.history = [];
+            med.history.push({
+                status: med.status,
+                date: new Date(),
+                by: (req as any).user.id,
+                ...(reason ? { note: reason } : {})
+            });
+        }
+
+        // If some are fulfilled and some rejected, mark rejected as 'partial' for patient UI
+        if (!allFulfilled && !allRejected) {
+            for (const item of fulfillment) {
+                const { medicationIndex, fulfilled } = item;
+                if (typeof medicationIndex !== 'number' || medicationIndex < 0 || medicationIndex >= prescription.medications.length) continue;
+                const med = prescription.medications[medicationIndex];
+                if (med.status === 'rejected') med.status = 'partial';
+            }
+        }
+
+        await prescription.save();
+        // Notify patient for every status change
+        await notify({
+          userId: prescription.patientId,
+          type: 'prescription_updated',
+          title: 'Medication Status Changed',
+          message: 'Your medication items have been updated by the pharmacy.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Medication fulfillment updated', prescription });
+    } catch (err) {
+        console.error('Medication fulfillment error:', err);
+        res.status(500).json({ message: 'Failed to update medication fulfillment', error: err });
+    }
+};
+// Assign provider to a medication item
+export const assignMedicationProvider = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { medicationIndex, providerId } = req.body;
+        if (typeof medicationIndex !== 'number' || !providerId) {
+            res.status(400).json({ message: 'medicationIndex (number) and providerId are required' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+        if (!prescription.medications || !prescription.medications[medicationIndex]) {
+            res.status(404).json({ message: 'Medication item not found' });
+            return;
+        }
+
+        // Check provider role
+        const provider = await User.findById(providerId);
+        if (!provider || provider.role !== 'pharmacy') {
+            res.status(400).json({ message: 'Assigned provider must be a pharmacy' });
+            return;
+        }
+
+        // Assign provider and update status/history
+        prescription.medications[medicationIndex].assignedProvider = provider._id;
+        prescription.medications[medicationIndex].status = 'confirmed';
+        if (!prescription.medications[medicationIndex].history) {
+            prescription.medications[medicationIndex].history = [];
+        }
+        prescription.medications[medicationIndex].history.push({
+            status: 'confirmed',
+            date: new Date(),
+            by: (req as any).user.id
+        });
+
+        await prescription.save();
+        // Notify provider
+        await notify({
+          userId: providerId,
+          type: 'prescription_updated',
+          title: 'Medication Assignment',
+          message: 'A medication item has been assigned to you.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Provider assigned to medication', prescription });
+    } catch (err) {
+        console.error('Assign medication provider error:', err);
+        res.status(500).json({ message: 'Failed to assign provider', error: err });
+    }
+};
+
+// Assign provider to a lab test item
+export const assignLabProvider = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { labTestIndex, providerId } = req.body;
+        if (typeof labTestIndex !== 'number' || !providerId) {
+            res.status(400).json({ message: 'labTestIndex (number) and providerId are required' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+        if (!prescription.labTests || !prescription.labTests[labTestIndex]) {
+            res.status(404).json({ message: 'Lab test item not found' });
+            return;
+        }
+
+        // Check provider role
+        const provider = await User.findById(providerId);
+        if (!provider || provider.role !== 'lab') {
+            res.status(400).json({ message: 'Assigned provider must be a lab' });
+            return;
+        }
+
+        // Assign provider and update status/history
+        prescription.labTests[labTestIndex].assignedProvider = provider._id;
+        prescription.labTests[labTestIndex].status = 'confirmed';
+        if (!prescription.labTests[labTestIndex].history) {
+            prescription.labTests[labTestIndex].history = [];
+        }
+        prescription.labTests[labTestIndex].history.push({
+            status: 'confirmed',
+            date: new Date(),
+            by: (req as any).user.id
+        });
+
+        await prescription.save();
+        // Notify provider
+        await notify({
+          userId: providerId,
+          type: 'prescription_updated',
+          title: 'Lab Test Assignment',
+          message: 'A lab test item has been assigned to you.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Provider assigned to lab test', prescription });
+    } catch (err) {
+        console.error('Assign lab provider error:', err);
+        res.status(500).json({ message: 'Failed to assign provider', error: err });
+    }
+};
+
+// Assign provider to a radiology exam item
+export const assignRadiologyProvider = async (req: Request, res: Response) => {
+    try {
+        const prescriptionId = req.params.id;
+        const { radiologyIndex, providerId } = req.body;
+        if (typeof radiologyIndex !== 'number' || !providerId) {
+            res.status(400).json({ message: 'radiologyIndex (number) and providerId are required' });
+            return;
+        }
+
+        const prescription = await Prescription.findById(prescriptionId);
+        if (!prescription) {
+            res.status(404).json({ message: 'Prescription not found' });
+            return;
+        }
+        if (!prescription.radiology || !prescription.radiology[radiologyIndex]) {
+            res.status(404).json({ message: 'Radiology exam item not found' });
+            return;
+        }
+
+        // Check provider role
+        const provider = await User.findById(providerId);
+        if (!provider || provider.role !== 'radiologist') {
+            res.status(400).json({ message: 'Assigned provider must be a radiologist' });
+            return;
+        }
+
+        // Assign provider and update status/history
+        prescription.radiology[radiologyIndex].assignedProvider = provider._id;
+        prescription.radiology[radiologyIndex].status = 'confirmed';
+        if (!prescription.radiology[radiologyIndex].history) {
+            prescription.radiology[radiologyIndex].history = [];
+        }
+        prescription.radiology[radiologyIndex].history.push({
+            status: 'confirmed',
+            date: new Date(),
+            by: (req as any).user.id
+        });
+
+        await prescription.save();
+        // Notify provider
+        await notify({
+          userId: providerId,
+          type: 'prescription_updated',
+          title: 'Radiology Assignment',
+          message: 'A radiology exam item has been assigned to you.',
+          relatedEntity: { type: 'prescription', id: prescription._id }
+        });
+        res.json({ message: 'Provider assigned to radiology exam', prescription });
+    } catch (err) {
+        console.error('Assign radiology provider error:', err);
+        res.status(500).json({ message: 'Failed to assign provider', error: err });
     }
 };
 

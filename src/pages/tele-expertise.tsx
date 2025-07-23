@@ -170,7 +170,7 @@ const TeleExpertiseRequestsPage: React.FC = () => {
                               {req.details}
                             </p>
                             <div className="text-sm text-gray-500">
-                              {t('requested') || 'Requested'}: {new Date(req.createdAt).toLocaleDateString()} {t('at') || 'at'} {new Date(req.createdAt).toLocaleTimeString()}
+                              {t('requested') || 'Requested'}: {new Date(req.createdAt).toLocaleDateString('fr-TN')} {t('at') || 'at'} {new Date(req.createdAt).toLocaleTimeString('fr-TN')}
                             </div>
                           </div>
                         </div>

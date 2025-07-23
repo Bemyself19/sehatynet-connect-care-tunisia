@@ -1,4 +1,5 @@
 {
+  "dashboard": "لوحة التحكم",
   "deleteAccount": "حذف الحساب",
   "deleteAccountConfirm": "هل أنت متأكد أنك تريد حذف حسابك؟ هذا الإجراء لا يمكن التراجع عنه.",
   "accountDeleted": "تم حذف الحساب بنجاح.",
@@ -78,19 +79,21 @@
   "appointments": "المواعيد",
   "viewAppointments": "عرض المواعيد القادمة",
   "medicalRecords": {
+    "title": "السجلات الطبية",
+    "stats": {
+      "totalConsultations": "الاستشارات",
+      "totalPrescriptions": "الوصفات الطبية",
+      "totalRecords": "السجلات"
+    },
     "tabs": {
       "consultations": "الاستشارات",
-      "recent": "السجلات الحديثة",
-      "labResults": "نتائج المختبر",
-      "medications": "الأدوية",
-      "allergies": "الحساسيات",
-      "immunizations": "التطعيمات",
-      "statistics": "الإحصائيات",
-      "prescription": "الوصفة الطبية",
-      "lab": "نتائج المختبر",
-      "radiology": "نتائج الأشعة",
-      "pharmacy": "الصيدلية"
-    }
+      "prescriptions": "الوصفات الطبية"
+    },
+    "actions": {
+      "viewDetails": "عرض التفاصيل"
+    },
+    "noConsultations": "لا يوجد سجل استشارات.",
+    "noPrescriptions": "لا توجد وصفات طبية حديثة."
   },
   "accessRecords": "الوصول إلى سجلاتك الصحية",
   "teleExpertise": "التشاور عن بعد",
@@ -403,7 +406,6 @@
   "accountCreated": "تم إنشاء حسابك. يرجى تسجيل الدخول للمتابعة.",
   "registrationFailed": "فشل التسجيل",
   "unableToCreateAccount": "غير قادر على إنشاء الحساب. يرجى المحاولة مرة أخرى.",
-  "dashboard": "لوحة التحكم",
   "patients": "المرضى",
   "analytics": "التحليلات",
   "testResults": "نتائج الاختبارات",
@@ -607,6 +609,12 @@
   "action": "الإجراء",
   "resource": "المورد",
   "status": "الحالة",
+  "transactionId": "معرّف المعاملة",
+  "actions": "إجراءات",
+  "markReadyForPickup": "تحديد كجاهز للاستلام",
+ 
+  "markingReady": "جاري التحديد...",
+  "markingCompleted": "جاري التحديد...",
   "ipAddress": "عنوان IP",
   "previous": "السابق",
   "page": "صفحة",

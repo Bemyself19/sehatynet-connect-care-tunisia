@@ -1,3 +1,35 @@
+
+import { Request, Response } from "express";
+import User from "../models/user.model";
+import Appointment from '../models/appointment.model';
+import TeleExpertiseRequest from '../models/teleExpertiseRequest.model';
+import Prescription from '../models/prescription.model';
+import mongoose from 'mongoose';
+
+export const searchProvidersByRole = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { role, search } = req.query as { role?: string; search?: string };
+        if (!role || !['pharmacy', 'lab', 'radiologist'].includes(role)) {
+            res.status(400).json({ message: "Invalid or missing provider role" });
+            return;
+        }
+        const query: any = { role, isActive: true };
+        if (search) {
+            query.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { specialization: { $regex: search, $options: 'i' } }
+            ];
+        }
+        const providers = await User.find(query).select('firstName lastName specialization address city country rating reviewCount');
+        res.json(providers);
+        return;
+    } catch (err) {
+        console.error('Provider search error:', err);
+        res.status(500).json({ message: "Failed to search providers", error: err });
+        return;
+    }
+};
 // Delete own account (authenticated user)
 export const deleteOwnAccount = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -13,12 +45,6 @@ export const deleteOwnAccount = async (req: Request, res: Response): Promise<voi
         res.status(500).json({ message: "Failed to delete account", error: err });
     }
 };
-import { Request, Response } from "express";
-import User from "../models/user.model";
-import Appointment from '../models/appointment.model';
-import TeleExpertiseRequest from '../models/teleExpertiseRequest.model';
-import Prescription from '../models/prescription.model';
-import mongoose from 'mongoose';
 
 export const getProfile = async (req: any, res: Response): Promise<void> => {
     try {

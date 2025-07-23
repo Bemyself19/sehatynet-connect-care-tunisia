@@ -6,16 +6,19 @@ export interface Medication {
   frequency: string;
   duration: string;
   instructions: string;
+  transactionId?: string;
 }
 
 export interface LabTest {
   testName: string;
   notes?: string;
+  transactionId?: string;
 }
 
 export interface RadiologyExam {
   examName: string;
   notes?: string;
+  transactionId?: string;
 }
 
 export interface Prescription {
@@ -43,4 +46,4 @@ export interface CreatePrescriptionData {
   appointmentId: string;
   medications: Medication[];
   notes?: string;
-} 
+}

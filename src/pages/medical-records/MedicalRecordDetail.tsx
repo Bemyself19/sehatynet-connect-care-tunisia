@@ -37,7 +37,7 @@ const MedicalRecordDetail: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">{t('medicalRecordDetails')}</h1>
       {/* General Info */}
       <div className="space-y-1">
-        <div><span className="font-semibold">{t('date')}:</span> {new Date(record.date).toLocaleString()}</div>
+        <div><span className="font-semibold">{t('date')}:</span> {new Date(record.date).toLocaleString('fr-TN')}</div>
         <div><span className="font-semibold">{t('type')}:</span> {humanize(record.type)}</div>
         <div><span className="font-semibold">{t('title')}:</span> {record.title}</div>
       </div>
@@ -72,11 +72,12 @@ const MedicalRecordDetail: React.FC = () => {
                   <table className="min-w-full text-sm border">
                     <thead>
                       <tr className="bg-gray-100">
-                        <th className="px-2 py-1 text-left">{t('medication')}</th>
+                        <th className="px-2 py-1 text-left">{t('name')}</th>
                         <th className="px-2 py-1 text-left">{t('dosage')}</th>
                         <th className="px-2 py-1 text-left">{t('frequency')}</th>
                         <th className="px-2 py-1 text-left">{t('duration')}</th>
                         <th className="px-2 py-1 text-left">{t('instructions')}</th>
+                        <th className="px-2 py-1 text-left">Transaction ID</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -87,6 +88,7 @@ const MedicalRecordDetail: React.FC = () => {
                           <td className="px-2 py-1">{med.frequency}</td>
                           <td className="px-2 py-1">{med.duration}</td>
                           <td className="px-2 py-1">{med.instructions || ''}</td>
+                          <td className="px-2 py-1">{med.transactionId || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -104,6 +106,7 @@ const MedicalRecordDetail: React.FC = () => {
                       <tr className="bg-gray-100">
                         <th className="px-2 py-1 text-left">{t('testName')}</th>
                         <th className="px-2 py-1 text-left">{t('notes')}</th>
+                        <th className="px-2 py-1 text-left">Transaction ID</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -111,6 +114,7 @@ const MedicalRecordDetail: React.FC = () => {
                         <tr key={idx} className="border-t">
                           <td className="px-2 py-1">{test.testName}</td>
                           <td className="px-2 py-1">{test.notes}</td>
+                          <td className="px-2 py-1">{test.transactionId || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -118,30 +122,37 @@ const MedicalRecordDetail: React.FC = () => {
                 </div>
               </div>
             )}
-            {/* Radiology Exams */}
-            {Array.isArray(record.details.radiology) && record.details.radiology.length > 0 && (
-              <div className="mb-4">
-                <div className="font-semibold mb-1">{t('radiology')}</div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm border">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="px-2 py-1 text-left">{t('examName')}</th>
-                        <th className="px-2 py-1 text-left">{t('notes')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {record.details.radiology.map((exam: any, idx: number) => (
-                        <tr key={idx} className="border-t">
-                          <td className="px-2 py-1">{exam.examName}</td>
-                          <td className="px-2 py-1">{exam.notes}</td>
+            {/* Radiology Exams (support both radiology and radiologyExams fields) */}
+            {(() => {
+              const radiologyList = Array.isArray(record.details.radiologyExams) && record.details.radiologyExams.length > 0
+                ? record.details.radiologyExams
+                : (Array.isArray(record.details.radiology) ? record.details.radiology : []);
+              return radiologyList.length > 0 ? (
+                <div className="mb-4">
+                  <div className="font-semibold mb-1">{t('radiology')}</div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm border">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="px-2 py-1 text-left">{t('examName')}</th>
+                          <th className="px-2 py-1 text-left">{t('notes')}</th>
+                          <th className="px-2 py-1 text-left">Transaction ID</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {radiologyList.map((exam: any, idx: number) => (
+                          <tr key={idx} className="border-t">
+                            <td className="px-2 py-1">{exam.examName}</td>
+                            <td className="px-2 py-1">{exam.notes}</td>
+                            <td className="px-2 py-1">{exam.transactionId || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : null;
+            })()}
             {/* Fallback for other details */}
             {(!record.details.medications && !record.details.labTests && !record.details.radiology) && (
               <div className="bg-gray-50 p-3 rounded border text-sm space-y-2">
@@ -167,4 +178,4 @@ const MedicalRecordDetail: React.FC = () => {
   );
 };
 
-export default MedicalRecordDetail; 
+export default MedicalRecordDetail;

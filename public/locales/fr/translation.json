@@ -1,4 +1,5 @@
 {
+  "dashboard": "Tableau de bord",
   "deleteAccount": "Supprimer le compte",
   "deleteAccountConfirm": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
   "accountDeleted": "Compte supprimé avec succès.",
@@ -37,19 +38,21 @@
   "appointments": "Rendez-vous",
   "viewAppointments": "Voir les rendez-vous à venir",
   "medicalRecords": {
+    "title": "Dossiers Médicaux",
+    "stats": {
+      "totalConsultations": "Consultations",
+      "totalPrescriptions": "Ordonnances",
+      "totalRecords": "Dossiers"
+    },
     "tabs": {
-      "consultations": "Historique des consultations",
-      "recent": "Dossiers récents",
-      "labResults": "Résultats de laboratoire",
-      "medications": "Médicaments",
-      "allergies": "Allergies",
-      "immunizations": "Vaccinations",
-      "statistics": "Statistiques",
-      "prescription": "Ordonnance",
-      "lab": "Résultats de laboratoire",
-      "radiology": "Résultats de radiologie",
-      "pharmacy": "Pharmacie"
-    }
+      "consultations": "Consultations",
+      "prescriptions": "Ordonnances"
+    },
+    "actions": {
+      "viewDetails": "Voir les détails"
+    },
+    "noConsultations": "Aucun historique de consultation trouvé.",
+    "noPrescriptions": "Aucune ordonnance récente trouvée."
   },
   "accessRecords": "Accédez à vos dossiers de santé",
   "teleExpertise": "Télé-Expertise",
@@ -358,24 +361,12 @@
   "accountCreated": "Votre compte a été créé. Veuillez vous connecter pour continuer.",
   "registrationFailed": "Inscription Échouée",
   "unableToCreateAccount": "Impossible de créer le compte. Veuillez réessayer.",
-  "dashboard": "Tableau de Bord",
   "patients": "Patients",
   "analytics": "Statistiques",
   "testResults": "Résultats de Tests",
   "testCatalog": "Catalogue de Tests",
   "prescriptions": "Ordonnances",
-  "inventory": {
-    "_": "Inventaire",
-    "title": "Inventaire",
-    "description": "Description de l'inventaire",
-    "managementTitle": "Gestion de l'inventaire",
-    "managementDescription": "Gérer les niveaux de stock et les détails de l'inventaire",
-    "managementHeader": "Aperçu de l'inventaire",
-    "managementDetails": "Fonctionnalités détaillées de gestion de l'inventaire",
-    "inStock": "En stock: {{count}}",
-    "lowStock": "Stock faible: {{count}}",
-    "outOfStock": "Rupture de stock: {{count}}"
-  },
+  "inventory": "Inventaire",
   "imagingReports": "Rapports d'Imagerie",
   "imagingStudies": "Études d'Imagerie",
   "forgotPasswordSubtitle": "Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
@@ -444,6 +435,12 @@
   "instructions": "Instructions",
   "pharmacyRequest": "Demande de Pharmacie",
   "status": "Statut",
+  "transactionId": "ID de transaction",
+  "actions": "Actions",
+  "markReadyForPickup": "Marquer comme prêt à être récupéré",
+ 
+  "markingReady": "Marquage...",
+  "markingCompleted": "Marquage...",
   "pharmacistFeedback": "Retour du Pharmacien",
   "noFeedbackProvided": "Aucun retour fourni.",
   "accepting": "Acceptation...",
@@ -516,7 +513,7 @@
   "appointmentId": "ID du rendez-vous",
   "appointmentInfo": "Infos du rendez-vous",
   "healthcareProvider": "Professionnel de santé",
-  "actions": "Actions",
+ 
   "createPrescription": "Créer une ordonnance",
   "addNote": "Ajouter une note",
   "viewLiveVitals": "Voir les signes vitaux en direct",
@@ -727,7 +724,7 @@
   "permissions": "Permissions",
   "editProfile": "Modifier le profil",
   "sessionId": "ID de session",
-  "transactionId": "ID de transaction",
+ 
   "responseCode": "Code de réponse",
   "responseMessage": "Message de réponse",
   "signature": "Signature",

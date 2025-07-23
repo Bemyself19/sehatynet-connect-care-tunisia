@@ -8,7 +8,7 @@ import fs from "fs";
 import { WebSocketServer, WebSocket } from "ws";
 
 import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes";
+const userRoutes = require("./routes/user.routes");
 import appointmentRoutes from "./routes/appointment.routes";
 import medicalRecordRoutes from "./routes/medicalRecord.routes";
 import prescriptionRoutes from "./routes/prescription.routes";

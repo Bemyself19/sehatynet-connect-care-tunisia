@@ -9,6 +9,21 @@ import { Allergy, CreateAllergyData, UpdateAllergyData } from '@/types/allergy';
 import { Immunization, CreateImmunizationData, UpdateImmunizationData, AddDoseData, ImmunizationSchedule } from '@/types/immunization';
 
 class ApiClient {
+  // Prescription item status updates
+  // Prescription item status updates
+  async setPrescriptionItemReadyForPickup(prescriptionId: string, type: 'medication' | 'lab' | 'radiology', itemIndex: number): Promise<any> {
+    return this.request(`/prescriptions/${prescriptionId}/item/ready-for-pickup`, {
+      method: 'PATCH',
+      body: JSON.stringify({ type, itemIndex }),
+    });
+  }
+
+  async setPrescriptionItemCompleted(prescriptionId: string, type: 'medication' | 'lab' | 'radiology', itemIndex: number): Promise<any> {
+    return this.request(`/prescriptions/${prescriptionId}/item/complete`, {
+      method: 'PATCH',
+      body: JSON.stringify({ type, itemIndex }),
+    });
+  }
   // ...existing code...
 
   // Account Deletion

@@ -637,7 +637,7 @@ const LiveConsultation: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600">
-                        {new Date(appointment.scheduledDate).toLocaleDateString()}
+                        {new Date(appointment.scheduledDate).toLocaleDateString('fr-TN')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -804,7 +804,7 @@ const LiveConsultation: React.FC = () => {
                       <TableBody>
                         {medicalRecords.filter(record => record.type !== 'doctor_note').map(record => (
                           <TableRow key={record._id}>
-                            <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(record.date).toLocaleDateString('fr-TN')}</TableCell>
                             <TableCell>{record.providerId?.firstName} {record.providerId?.lastName}</TableCell>
                             <TableCell>
                               <Button asChild size="sm" variant="outline">

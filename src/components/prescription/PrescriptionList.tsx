@@ -48,7 +48,7 @@ export function PrescriptionList({ userId, userRole }: PrescriptionListProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('fr-TN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -87,7 +87,7 @@ export function PrescriptionList({ userId, userRole }: PrescriptionListProps) {
           <CardHeader>
             <CardTitle>{t('prescription') || 'Prescription'} #{prescription.prescriptionId}</CardTitle>
             <CardDescription>
-              {t('createdOn') || 'Created on'} {new Date(prescription.createdAt).toLocaleDateString()}
+              {t('createdOn') || 'Created on'} {new Date(prescription.createdAt).toLocaleDateString('fr-TN')}
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -382,12 +382,12 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                           <div>
                             <h3 className="font-semibold">{result.labName}</h3>
                             <p className="text-sm text-gray-600">
-                              {new Date(result.orderDate).toLocaleDateString()}
+                              {new Date(result.orderDate).toLocaleDateString('fr-TN')}
                             </p>
                           </div>
                           <Badge className={getStatusColor(result.overallStatus)}>
                             {getStatusIcon(result.overallStatus)}
-                            <span className="ml-1">{result.overallStatus}</span>
+                            <span className="ml-1">{t(result.overallStatus)}</span>
                           </Badge>
                         </div>
                       </CardHeader>
@@ -416,7 +416,7 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                                 </TableCell>
                                 <TableCell>
                                   <Badge className={getStatusColor(test.status)}>
-                                    {test.status}
+                                    {t(test.status)}
                                   </Badge>
                                 </TableCell>
                               </TableRow>
@@ -456,7 +456,7 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                             </p>
                           </div>
                           <Badge className={getStatusColor(medication.status)}>
-                            {medication.status}
+                            {t(medication.status)}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -465,7 +465,7 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                           <div>
                             <p><strong>Dosage:</strong> {medication.dosage.amount} {medication.dosage.unit}</p>
                             <p><strong>Frequency:</strong> {medication.dosage.frequency}</p>
-                            <p><strong>Started:</strong> {new Date(medication.startDate).toLocaleDateString()}</p>
+                            <p><strong>Started:</strong> {new Date(medication.startDate).toLocaleDateString('fr-TN')}</p>
                           </div>
                           <div>
                             <p><strong>Type:</strong> {medication.medicationType}</p>
@@ -591,7 +591,7 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                               <p><strong>Required:</strong> {immunization.isRequired ? 'Yes' : 'No'}</p>
                             </div>
                             <div>
-                              <p><strong>Next Due:</strong> {immunization.nextDueDate ? new Date(immunization.nextDueDate).toLocaleDateString() : 'N/A'}</p>
+                              <p><strong>Next Due:</strong> {immunization.nextDueDate ? new Date(immunization.nextDueDate).toLocaleDateString('fr-TN') : 'N/A'}</p>
                               <p><strong>Source:</strong> {immunization.source}</p>
                             </div>
                           </div>
@@ -602,7 +602,7 @@ const EnhancedMedicalRecords: React.FC<EnhancedMedicalRecordsProps> = ({
                               <div className="space-y-2">
                                 {immunization.doses.map((dose, index) => (
                                   <div key={index} className="p-2 bg-gray-50 rounded text-sm">
-                                    <p><strong>Dose {dose.doseNumber}:</strong> {new Date(dose.date).toLocaleDateString()}</p>
+                                    <p><strong>Dose {dose.doseNumber}:</strong> {new Date(dose.date).toLocaleDateString('fr-TN')}</p>
                                     {dose.site && <p>Site: {dose.site}</p>}
                                     {dose.route && <p>Route: {dose.route}</p>}
                                   </div>

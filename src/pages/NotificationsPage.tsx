@@ -114,7 +114,7 @@ const NotificationsPage: React.FC = () => {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return t('daysAgo', { count: diffInDays });
     
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('fr-TN');
   };
 
   // Handle notification click

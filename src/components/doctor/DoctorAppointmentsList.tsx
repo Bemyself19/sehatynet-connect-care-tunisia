@@ -49,7 +49,7 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
                     <div className="font-semibold">{apt.patientId.firstName} {apt.patientId.lastName}</div>
                     <div className="text-sm text-gray-500 flex items-center mt-1">
                       <Calendar className="w-4 h-4 mr-2" />
-                      {new Date(apt.scheduledDate).toLocaleDateString()}
+                      {new Date(apt.scheduledDate).toLocaleDateString('fr-TN')}
                       <Clock className="w-4 h-4 ml-4 mr-2" />
                       {apt.scheduledTime}
                     </div>
@@ -89,7 +89,7 @@ const DoctorAppointmentsList: React.FC<DoctorAppointmentsListProps> = ({
                     <div className="font-semibold">{apt.patientId.firstName} {apt.patientId.lastName}</div>
                     <div className="text-sm text-gray-500 flex items-center mt-1">
                       <Calendar className="w-4 h-4 mr-2" />
-                      {new Date(apt.scheduledDate).toLocaleDateString()}
+                      {new Date(apt.scheduledDate).toLocaleDateString('fr-TN')}
                       <Clock className="w-4 h-4 ml-4 mr-2" />
                       {apt.scheduledTime}
                     </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Prescription, Medication } from '@/types/prescription';
+import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { User, Pill } from 'lucide-react';
@@ -28,6 +29,8 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
   const [error, setError] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { setItemReadyForPickup, setItemCompleted } = usePrescriptions();
+  const [itemActionLoading, setItemActionLoading] = useState<{ [key: string]: boolean }>({});
 
   const prescriptionId = prescription._id;
 
@@ -149,7 +152,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
         <CardHeader>
           <CardTitle>{t('prescriptionDetails') || 'Prescription Details'}</CardTitle>
           <CardDescription>
-            {t('prescribedOn') || 'Prescribed on'} {new Date(prescription.createdAt).toLocaleDateString()}
+            {t('prescribedOn') || 'Prescribed on'} {new Date(prescription.createdAt).toLocaleDateString('fr-TN')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,16 +179,60 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                 <TableHead>{t('frequency') || 'Frequency'}</TableHead>
                 <TableHead>{t('duration') || 'Duration'}</TableHead>
                 <TableHead>{t('instructions') || 'Instructions'}</TableHead>
+                <TableHead>{t('status') || 'Status'}</TableHead>
+                <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
+                <TableHead>{t('actions') || 'Actions'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {prescription.medications.map((med: Medication, index: number) => (
+              {prescription.medications.map((med: any, index: number) => (
                 <TableRow key={index}>
                   <TableCell>{med.name}</TableCell>
                   <TableCell>{med.dosage}</TableCell>
                   <TableCell>{med.frequency}</TableCell>
                   <TableCell>{med.duration}</TableCell>
                   <TableCell>{med.instructions}</TableCell>
+                  <TableCell>{med.status ? (t(med.status) !== med.status ? t(med.status) : t(`analyticsPage.status.${med.status}`) !== `analyticsPage.status.${med.status}` ? t(`analyticsPage.status.${med.status}`) : med.status) : '-'}</TableCell>
+                  <TableCell>{med.transactionId || '-'}</TableCell>
+                  <TableCell>
+                    {/* Provider actions: Ready for Pickup, Complete */}
+                    {med.status === 'confirmed' || med.status === 'partial_accepted' ? (
+                      <Button
+                        size="sm"
+                        disabled={itemActionLoading[`ready-${index}`]}
+                        onClick={async () => {
+                          setItemActionLoading((prev) => ({ ...prev, [`ready-${index}`]: true }));
+                          try {
+                            await setItemReadyForPickup(prescription._id, 'medication', index);
+                          } finally {
+                            setItemActionLoading((prev) => ({ ...prev, [`ready-${index}`]: false }));
+                          }
+                        }}
+                      >
+                        {itemActionLoading[`ready-${index}`]
+                          ? t('markingReady') || 'Marking...'
+                          : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
+                      </Button>
+                    ) : null}
+                    {med.status === 'ready_for_pickup' ? (
+                      <Button
+                        size="sm"
+                        disabled={itemActionLoading[`complete-${index}`]}
+                        onClick={async () => {
+                          setItemActionLoading((prev) => ({ ...prev, [`complete-${index}`]: true }));
+                          try {
+                            await setItemCompleted(prescription._id, 'medication', index);
+                          } finally {
+                            setItemActionLoading((prev) => ({ ...prev, [`complete-${index}`]: false }));
+                          }
+                        }}
+                      >
+                        {itemActionLoading[`complete-${index}`]
+                          ? t('markingCompleted') || 'Marking...'
+                          : t('markCompleted') || 'Mark as Completed'}
+                      </Button>
+                    ) : null}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -338,6 +385,9 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                   <TableRow>
                     <TableHead>{t('testName') || 'Test Name'}</TableHead>
                     <TableHead>{t('notes') || 'Notes'}</TableHead>
+                    <TableHead>{t('status') || 'Status'}</TableHead>
+                    <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
+                    <TableHead>{t('actions') || 'Actions'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -345,6 +395,46 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     <TableRow key={index}>
                       <TableCell>{test.testName}</TableCell>
                       <TableCell>{test.notes}</TableCell>
+                      <TableCell>{test.status || '-'}</TableCell>
+                      <TableCell>{test.transactionId || '-'}</TableCell>
+                      <TableCell>
+                        {test.status === 'confirmed' || test.status === 'partial_accepted' ? (
+                          <Button
+                            size="sm"
+                            disabled={itemActionLoading[`lab-ready-${index}`]}
+                            onClick={async () => {
+                              setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: true }));
+                              try {
+                                await setItemReadyForPickup(prescription._id, 'lab', index);
+                              } finally {
+                                setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: false }));
+                              }
+                            }}
+                          >
+                            {itemActionLoading[`lab-ready-${index}`]
+                              ? t('markingReady') || 'Marking...'
+                              : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
+                          </Button>
+                        ) : null}
+                        {test.status === 'ready_for_pickup' ? (
+                          <Button
+                            size="sm"
+                            disabled={itemActionLoading[`lab-complete-${index}`]}
+                            onClick={async () => {
+                              setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: true }));
+                              try {
+                                await setItemCompleted(prescription._id, 'lab', index);
+                              } finally {
+                                setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: false }));
+                              }
+                            }}
+                          >
+                            {itemActionLoading[`lab-complete-${index}`]
+                              ? t('markingCompleted') || 'Marking...'
+                              : t('markCompleted') || 'Mark as Completed'}
+                          </Button>
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -396,6 +486,9 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                   <TableRow>
                     <TableHead>{t('examName') || 'Exam Name'}</TableHead>
                     <TableHead>{t('notes') || 'Notes'}</TableHead>
+                    <TableHead>{t('status') || 'Status'}</TableHead>
+                    <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
+                    <TableHead>{t('actions') || 'Actions'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -403,6 +496,46 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     <TableRow key={index}>
                       <TableCell>{exam.examName}</TableCell>
                       <TableCell>{exam.notes}</TableCell>
+                      <TableCell>{exam.status || '-'}</TableCell>
+                      <TableCell>{exam.transactionId || '-'}</TableCell>
+                      <TableCell>
+                        {exam.status === 'confirmed' || exam.status === 'partial_accepted' ? (
+                          <Button
+                            size="sm"
+                            disabled={itemActionLoading[`rad-ready-${index}`]}
+                            onClick={async () => {
+                              setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: true }));
+                              try {
+                                await setItemReadyForPickup(prescription._id, 'radiology', index);
+                              } finally {
+                                setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: false }));
+                              }
+                            }}
+                          >
+                            {itemActionLoading[`rad-ready-${index}`]
+                              ? t('markingReady') || 'Marking...'
+                              : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
+                          </Button>
+                        ) : null}
+                        {exam.status === 'ready_for_pickup' ? (
+                          <Button
+                            size="sm"
+                            disabled={itemActionLoading[`rad-complete-${index}`]}
+                            onClick={async () => {
+                              setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: true }));
+                              try {
+                                await setItemCompleted(prescription._id, 'radiology', index);
+                              } finally {
+                                setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: false }));
+                              }
+                            }}
+                          >
+                            {itemActionLoading[`rad-complete-${index}`]
+                              ? t('markingCompleted') || 'Marking...'
+                              : t('markCompleted') || 'Mark as Completed'}
+                          </Button>
+                        ) : null}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

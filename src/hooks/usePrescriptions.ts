@@ -18,5 +18,12 @@ export const usePrescriptions = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  return { prescriptions, isLoading, isError, error };
+  // Expose item status update methods
+  const setItemReadyForPickup = (prescriptionId: string, type: 'medication' | 'lab' | 'radiology', itemIndex: number) =>
+    api.setPrescriptionItemReadyForPickup(prescriptionId, type, itemIndex);
+
+  const setItemCompleted = (prescriptionId: string, type: 'medication' | 'lab' | 'radiology', itemIndex: number) =>
+    api.setPrescriptionItemCompleted(prescriptionId, type, itemIndex);
+
+  return { prescriptions, isLoading, isError, error, setItemReadyForPickup, setItemCompleted };
 }; 

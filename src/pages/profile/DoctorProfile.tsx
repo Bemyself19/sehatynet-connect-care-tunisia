@@ -31,9 +31,32 @@ const DoctorProfile: React.FC = () => {
     return t(`specialties.${specialtyName}`) || specialtyName;
   };
 
-  // Use current user's ID for "My Profile" view, fallback to URL param for admin views
-  const profileId = user?._id || id;
-  const { provider, loading, error } = useProvider(profileId, 'doctor');
+  // Use /users/me for own profile, not /users/:id
+  const isOwnProfile = !id || (user && id === user._id);
+  const [provider, setProvider] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    if (isOwnProfile) {
+      api.getProfile()
+        .then((data) => {
+          setProvider(data);
+          setError(null);
+        })
+        .catch(() => setError('Profile not found'))
+        .finally(() => setLoading(false));
+    } else if (id) {
+      api.getUserById(id)
+        .then((data) => {
+          setProvider(data);
+          setError(null);
+        })
+        .catch(() => setError('Profile not found'))
+        .finally(() => setLoading(false));
+    }
+  }, [id, user, isOwnProfile]);
 
   // Redirect if URL param doesn't match current user (for "My Profile" views)
   useEffect(() => {
@@ -42,7 +65,7 @@ const DoctorProfile: React.FC = () => {
     }
   }, [user, id, navigate]);
 
-  const isOwnProfile = user && profileId === user._id;
+  // Removed duplicate isOwnProfile/profileId
 
   useEffect(() => {
     if (provider && isOwnProfile) {

@@ -1,4 +1,5 @@
 {
+  "dashboard": "Dashboard",
   "permissions": "Permissions",
   "editProfile": "Edit Profile",
   "administrativeInformation": "Administrative Information",
@@ -70,19 +71,21 @@
   "appointments": "Appointments",
   "viewAppointments": "View upcoming appointments",
   "medicalRecords": {
+    "title": "Medical Records",
+    "stats": {
+      "totalConsultations": "Consultations",
+      "totalPrescriptions": "Prescriptions",
+      "totalRecords": "Records"
+    },
     "tabs": {
-      "consultations": "Consultation History",
-      "recent": "Recent Records",
-      "labResults": "Lab Results",
-      "medications": "Medications",
-      "allergies": "Allergies",
-      "immunizations": "Immunizations",
-      "statistics": "Statistics",
-      "prescription": "Prescription",
-      "lab": "Lab Results",
-      "radiology": "Radiology Results",
-      "pharmacy": "Pharmacy"
-    }
+      "consultations": "Consultations",
+      "prescriptions": "Prescriptions"
+    },
+    "actions": {
+      "viewDetails": "View Details"
+    },
+    "noConsultations": "No consultation history found.",
+    "noPrescriptions": "No recent prescriptions found."
   },
   "accessRecords": "Access your health records",
   "teleExpertise": "Tele-Expertise",
@@ -386,23 +389,12 @@
   "accountCreated": "Your account has been created. Please log in to continue.",
   "registrationFailed": "Registration Failed",
   "unableToCreateAccount": "Unable to create account. Please try again.",
-  "dashboard": "Dashboard",
   "patients": "Patients",
   "analytics": "Analytics",
   "testResults": "Test Results",
   "testCatalog": "Test Catalog",
   "prescriptions": "Prescriptions",
-  "inventory": {
-    "_": "Inventory",
-    "title": "Inventory",
-    "managementTitle": "Inventory Management",
-    "managementDescription": "Manage stock levels and inventory details",
-    "managementHeader": "Inventory Overview",
-    "managementDetails": "Detailed inventory management features",
-    "inStock": "In Stock: {{count}}",
-    "lowStock": "Low Stock: {{count}}",
-    "outOfStock": "Out of Stock: {{count}}"
-  },
+  "inventory": "Inventory",
   "imagingReports": "Imaging Reports",
   "imagingStudies": "Imaging Studies",
   "forgotPasswordSubtitle": "Enter your email address and we will send you a link to reset your password.",
@@ -477,6 +469,12 @@
   "instructions": "Instructions",
   "pharmacyRequest": "Pharmacy Request",
   "status": "Status",
+  "transactionId": "Transaction ID",
+  "actions": "Actions",
+  "markReadyForPickup": "Mark as Ready for Pickup",
+ 
+  "markingReady": "Marking...",
+  "markingCompleted": "Marking...",
   "pharmacistFeedback": "Pharmacist Feedback",
   "noFeedbackProvided": "No feedback provided.",
   "accepting": "Accepting...",
@@ -547,7 +545,7 @@
   "appointmentId": "Appointment ID",
   "appointmentInfo": "Appointment Info",
   "healthcareProvider": "Healthcare Provider",
-  "actions": "Actions",
+ 
   "createPrescription": "Create Prescription",
   "addNote": "Add Note",
   "viewLiveVitals": "View Live Vitals",
@@ -669,9 +667,9 @@
   "timestamp": "Timestamp",
   "user": "User",
   "action": "Action",
-  "resource": "Resource",
+  
  
-  "ipAddress": "IP Address",
+
   "previous": "Previous",
  
   "page": "Page",
