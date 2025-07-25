@@ -31,32 +31,9 @@ const DoctorProfile: React.FC = () => {
     return t(`specialties.${specialtyName}`) || specialtyName;
   };
 
-  // Use /users/me for own profile, not /users/:id
-  const isOwnProfile = !id || (user && id === user._id);
-  const [provider, setProvider] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLoading(true);
-    if (isOwnProfile) {
-      api.getProfile()
-        .then((data) => {
-          setProvider(data);
-          setError(null);
-        })
-        .catch(() => setError('Profile not found'))
-        .finally(() => setLoading(false));
-    } else if (id) {
-      api.getUserById(id)
-        .then((data) => {
-          setProvider(data);
-          setError(null);
-        })
-        .catch(() => setError('Profile not found'))
-        .finally(() => setLoading(false));
-    }
-  }, [id, user, isOwnProfile]);
+  // Use current user's ID for "My Profile" view, fallback to URL param for admin views
+  const profileId = user?._id || id;
+  const { provider, loading, error } = useProvider('doctor');
 
   // Redirect if URL param doesn't match current user (for "My Profile" views)
   useEffect(() => {
@@ -65,7 +42,7 @@ const DoctorProfile: React.FC = () => {
     }
   }, [user, id, navigate]);
 
-  // Removed duplicate isOwnProfile/profileId
+  const isOwnProfile = user && profileId === user._id;
 
   useEffect(() => {
     if (provider && isOwnProfile) {
@@ -181,9 +158,11 @@ const DoctorProfile: React.FC = () => {
           </div>
           {/* Role Badge */}
           <div className="flex items-center space-x-2">
-            <Badge className="bg-blue-100 text-blue-800">
-              {profileData.role?.charAt(0).toUpperCase() + profileData.role?.slice(1)}
-            </Badge>
+            {typeof profileData.role === 'string' && profileData.role.length > 0 && (
+              <Badge className="bg-blue-100 text-blue-800">
+                {profileData.role.charAt(0).toUpperCase() + profileData.role.slice(1)}
+              </Badge>
+            )}
             {profileData.specialization && (
               <Badge variant="outline">
                 {getTranslatedSpecialtyName(profileData.specialization)}

@@ -5,10 +5,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import i18n from './i18n';
 import Index from "./pages/Index";
-import PharmacyLayout from "./components/layouts/PharmacyLayout";
-import PharmacyDashboard from "./pages/dashboards/pharmacy/PharmacyDashboard";
-import PharmacyPrescriptions from "./pages/dashboards/pharmacy/PharmacyPrescriptions";
-import PharmacyInventory from "./pages/dashboards/pharmacy/PharmacyInventory";
 import Login from "./pages/auth/Login";
 import LoginSelection from "./pages/auth/LoginSelection";
 import Register from "./pages/auth/Register";
@@ -23,7 +19,6 @@ import AdminReportsPage from "./pages/dashboards/admin/Reports";
 import AdminProfilePage from "./pages/dashboards/admin/AdminProfile";
 import BookAppointment from "./pages/appointments/BookAppointment";
 import Profile from "./pages/profile/Profile";
-import LabProfile from "./pages/profile/LabProfile";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/auth/AdminLogin";
 import DoctorDashboard from "./pages/dashboards/DoctorDashboard";
@@ -33,14 +28,7 @@ import MedicalRecordDetail from './pages/medical-records/MedicalRecordDetail';
 import { useUser } from './hooks/useUser';
 import CreateServiceRequest from './pages/appointments/CreateServiceRequest';
 import PharmacyProfile from './pages/profile/PharmacyProfile';
-import LabLayout from './components/layouts/LabLayout';
-import LabDashboard from './pages/dashboards/lab/LabDashboard';
-import LabResults from './pages/dashboards/lab/LabResults';
-import LabCatalog from './pages/dashboards/lab/LabCatalog';
-import RadiologistLayout from './components/layouts/RadiologistLayout';
-import RadiologistDashboard from './pages/dashboards/radiologist/RadiologistDashboard';
-import RadiologistReports from './pages/dashboards/radiologist/RadiologistReports';
-import RadiologistStudies from './pages/dashboards/radiologist/RadiologistStudies';
+import LabProfile from './pages/profile/LabProfile';
 import RadiologyProfile from './pages/profile/RadiologyProfile';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
@@ -56,6 +44,18 @@ import DoctorProfile from '@/pages/profile/DoctorProfile';
 import PaymentReturn from './pages/payment/PaymentReturn';
 import FlouciPaymentReturn from './pages/payment/FlouciPaymentReturn';
 import ProtectedRoute from './components/ProtectedRoute';
+import PharmacyLayout from '@/components/layouts/PharmacyLayout';
+import PharmacyDashboard from '@/pages/dashboards/pharmacy/PharmacyDashboard';
+import PharmacyPrescriptions from '@/pages/dashboards/pharmacy/PharmacyPrescriptions';
+import PharmacyInventory from '@/pages/dashboards/pharmacy/PharmacyInventory';
+import LabLayout from '@/components/layouts/LabLayout';
+import LabDashboard from '@/pages/dashboards/lab/LabDashboard';
+import LabResults from '@/pages/dashboards/lab/LabResults';
+import LabCatalog from '@/pages/dashboards/lab/LabCatalog';
+import RadiologistLayout from '@/components/layouts/RadiologistLayout';
+import RadiologistDashboard from '@/pages/dashboards/radiologist/RadiologistDashboard';
+import RadiologistReports from '@/pages/dashboards/radiologist/RadiologistReports';
+import RadiologistStudies from '@/pages/dashboards/radiologist/RadiologistStudies';
 
 const queryClient = new QueryClient();
 
@@ -116,23 +116,21 @@ const App = () => {
             </Route>
             <Route path="/dashboard/pharmacy" element={<ProtectedRoute element={<PharmacyLayout />} />}>
               <Route index element={<PharmacyDashboard />} />
-              <Route path="profile" element={<PharmacyProfile />} />
               <Route path="prescriptions" element={<PharmacyPrescriptions />} />
               <Route path="inventory" element={<PharmacyInventory />} />
+              <Route path="profile" element={<PharmacyProfile />} />
             </Route>
             <Route path="/dashboard/lab" element={<ProtectedRoute element={<LabLayout />} />}>
               <Route index element={<LabDashboard />} />
-              <Route path="profile" element={<LabProfile />} />
               <Route path="results" element={<LabResults />} />
               <Route path="catalog" element={<LabCatalog />} />
-              {/* Add other lab routes here */}
+              <Route path="profile" element={<LabProfile />} />
             </Route>
             <Route path="/dashboard/radiologist" element={<ProtectedRoute element={<RadiologistLayout />} />}>
               <Route index element={<RadiologistDashboard />} />
-              <Route path="profile" element={<RadiologyProfile />} />
               <Route path="reports" element={<RadiologistReports />} />
               <Route path="studies" element={<RadiologistStudies />} />
-              {/* Add other radiologist routes here */}
+              <Route path="profile" element={<RadiologyProfile />} />
             </Route>
             <Route path="/live-consultation/:appointmentId" element={<ProtectedRoute element={<LiveConsultation />} />} />
             <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />

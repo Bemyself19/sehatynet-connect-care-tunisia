@@ -8,10 +8,10 @@ const PharmacyLayout = () => {
   const { t } = useTranslation();
 
   const sidebarItems = [
-    { label: t('pharmacyDashboard') || 'Tableau de Bord', icon: <Activity className="h-5 w-5" />, href: '/dashboard/pharmacy' },
-    { label: t('prescriptions') || 'Ordonnances', icon: <FileText className="h-5 w-5" />, href: '/dashboard/pharmacy/prescriptions' },
-    { label: t('inventory') || 'Inventaire', icon: <ShoppingCart className="h-5 w-5" />, href: '/dashboard/pharmacy/inventory' },
-    { label: t('profile') || 'Profil', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/pharmacy/profile' },
+    { label: t('dashboard') || 'Dashboard', icon: <Activity className="h-5 w-5" />, href: '/dashboard/pharmacy' },
+    { label: t('prescriptions') || 'Prescriptions', icon: <FileText className="h-5 w-5" />, href: '/dashboard/pharmacy/prescriptions' },
+    { label: t('inventory._') || 'Inventory', icon: <ShoppingCart className="h-5 w-5" />, href: '/dashboard/pharmacy/inventory' },
+    { label: t('profile') || 'Profile', icon: <UserIcon className="h-5 w-5" />, href: '/dashboard/pharmacy/profile' },
   ];
 
   return (

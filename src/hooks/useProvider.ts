@@ -14,15 +14,14 @@ function isProvider(user: User, expectedRole: Provider['role']): user is Provide
   );
 }
 
-export function useProvider(id: string | undefined, expectedRole: Provider['role']) {
+export function useProvider(expectedRole: Provider['role']) {
   const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
     setLoading(true);
-    api.getUserById(id)
+    api.getProfile()
       .then((user: User) => {
         if (isProvider(user, expectedRole)) {
           setProvider(user);
@@ -32,7 +31,7 @@ export function useProvider(id: string | undefined, expectedRole: Provider['role
       })
       .catch(() => setError('Provider not found'))
       .finally(() => setLoading(false));
-  }, [id, expectedRole]);
+  }, [expectedRole]);
 
   return { provider, loading, error };
-} 
+}

@@ -38,7 +38,10 @@ const notificationSchema = new Schema<INotification>({
       'lab_result_ready',
       'radiology_result_ready',
       'system_maintenance',
-      'general'
+      'general',
+      'pharmacy_assignment',
+      'lab_assignment',
+      'radiology_assignment'
     ]
   },
   title: {

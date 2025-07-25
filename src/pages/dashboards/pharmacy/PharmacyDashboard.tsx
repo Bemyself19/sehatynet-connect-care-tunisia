@@ -73,8 +73,10 @@ const PharmacyDashboard: React.FC = () => {
     );
   }
 
-  // Allow rendering even if user is missing or role is not pharmacy
-  // This will let the layout debug block show actual state for diagnosis
+  if (!user || user.role !== 'pharmacy') {
+    navigate('/auth/login');
+    return null;
+  }
 
   return (
     <div className="space-y-6">

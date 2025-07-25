@@ -31,38 +31,9 @@ const RadiologyProfile: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { logout } = useAuth();
 
-  // Use /users/me for own profile, fallback to useProvider for admin views
-  const [provider, setProvider] = useState<Provider | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        if (user && (!id || id === user._id)) {
-          // Own profile: use /users/me
-          const profile = await api.getProfile();
-          setProvider(profile as Provider);
-        } else if (id) {
-          // Admin view: useProvider logic
-          const profile = await api.getUserById(id);
-          if (profile.role === 'radiologist') {
-            setProvider(profile as Provider);
-          } else {
-            setError('Provider not found');
-          }
-        } else {
-          setError('Provider not found');
-        }
-      } catch (err) {
-        setError('Provider not found');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [user, id]);
+  // Use current user's ID for "My Profile" view, fallback to URL param for admin views
+  const profileId = user?._id || id;
+  const { provider, loading, error } = useProvider('radiologist');
 
   // Redirect if URL param doesn't match current user (for "My Profile" views)
   useEffect(() => {
@@ -71,10 +42,10 @@ const RadiologyProfile: React.FC = () => {
     }
   }, [user, id, navigate]);
 
-  const isOwnProfile = user && (!id || id === user._id);
+  const isOwnProfile = user && profileId === user._id;
 
   useEffect(() => {
-    if (provider) {
+    if (provider && isOwnProfile) {
       setProfileData({
         firstName: provider.firstName || '',
         lastName: provider.lastName || '',
@@ -89,7 +60,7 @@ const RadiologyProfile: React.FC = () => {
         cnamId: provider.cnamId || '',
       });
     }
-  }, [provider]);
+  }, [provider, isOwnProfile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfileData((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -333,4 +304,4 @@ const RadiologyProfile: React.FC = () => {
   );
 };
 
-export default RadiologyProfile; 
+export default RadiologyProfile;
