@@ -4,7 +4,8 @@ import { MedicalRecord, CreateMedicalRecordData } from '@/types/medicalRecord';
 import { Prescription, CreatePrescriptionData } from '@/types/prescription';
 import { DashboardStats } from '@/types/api';
 import { LabResult, CreateLabResultData, UpdateLabResultData } from '@/types/labResult';
-import { MedicationHistory, CreateMedicationHistoryData, UpdateMedicationHistoryData, MedicationInteraction } from '@/types/medication';
+import { MedicationFulfillment } from '@/types/prescription';
+import { MedicationHistory, CreateMedicationHistoryData, UpdateMedicationHistoryData, MedicationInteraction, MedicationType } from '@/types/medication';
 import { Allergy, CreateAllergyData, UpdateAllergyData } from '@/types/allergy';
 import { Immunization, CreateImmunizationData, UpdateImmunizationData, AddDoseData, ImmunizationSchedule } from '@/types/immunization';
 
@@ -415,7 +416,7 @@ class ApiClient {
     return this.request<MedicalRecord[]>(`/medical-records/assigned`);
   }
 
-  async fulfillAssignedRequest(id: string, data: { status: string; feedback?: string; resultFileUrl?: string }): Promise<any> {
+  async fulfillAssignedRequest(id: string, data: { status: string; feedback?: string; resultFileUrl?: string; medications?: MedicationFulfillment[] }): Promise<any> {
     return this.request(`/medical-records/${id}/fulfill`, {
       method: 'PATCH',
       body: JSON.stringify(data),

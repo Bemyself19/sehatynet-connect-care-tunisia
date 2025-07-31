@@ -47,3 +47,8 @@ export interface CreatePrescriptionData {
   medications: Medication[];
   notes?: string;
 }
+
+export interface MedicationFulfillment {
+  name: string;
+  available: boolean;
+}

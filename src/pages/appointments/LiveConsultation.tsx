@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Video, PhoneOff, Mic, MicOff, VideoOff, AlertCircle, FilePlus, Notebook, ArrowLeft, Heart, User, Clock, MessageSquare, Activity, Settings, Users, Calendar, HeartPulse, Wind, Droplets } from 'lucide-react';
 import api from '@/lib/api';
 import { Appointment } from '@/types/appointment';
 import { User as UserType } from '@/types/user';
 import { PrescriptionModal } from '@/components/prescription/PrescriptionModal';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+// Removed duplicate Dialog imports
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { CreateMedicalRecordData } from '@/types/medicalRecord';
@@ -83,6 +84,8 @@ const LiveConsultation: React.FC = () => {
   const [isNoteModalOpen, setNoteModalOpen] = useState(false);
   const [note, setNote] = useState('');
   const [noteLoading, setNoteLoading] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+  const [isRecordModalOpen, setRecordModalOpen] = useState(false);
   const [doctorNotes, setDoctorNotes] = useState<any[]>([]);
   const [medicalRecords, setMedicalRecords] = useState<any[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
@@ -807,8 +810,8 @@ const LiveConsultation: React.FC = () => {
                             <TableCell>{new Date(record.date).toLocaleDateString('fr-TN')}</TableCell>
                             <TableCell>{record.providerId?.firstName} {record.providerId?.lastName}</TableCell>
                             <TableCell>
-                              <Button asChild size="sm" variant="outline">
-                                <Link to={`/medical-records/${record._id}`}>{t('viewDetails')}</Link>
+                              <Button size="sm" variant="outline" onClick={() => { setSelectedRecord(record); setRecordModalOpen(true); }}>
+                                {t('viewDetails')}
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -864,6 +867,98 @@ const LiveConsultation: React.FC = () => {
                 </div>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isRecordModalOpen} onOpenChange={setRecordModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('medicalRecordDetails', 'Medical Record Details')}</DialogTitle>
+          </DialogHeader>
+          {selectedRecord && (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+              <div>
+                <span className="font-semibold">{t('date')}:</span> {new Date(selectedRecord.date).toLocaleDateString('fr-TN')}
+              </div>
+              <div>
+                <span className="font-semibold">{t('provider')}:</span> {selectedRecord.providerId?.firstName} {selectedRecord.providerId?.lastName}
+              </div>
+              <div>
+                <span className="font-semibold">{t('type')}:</span> {selectedRecord.type}
+              </div>
+              {/* Prescription details rendering */}
+              {selectedRecord.type === 'prescription' && selectedRecord.details ? (
+                <div className="space-y-2">
+                  {Object.entries(selectedRecord.details).map(([key, value]) => {
+                    const labelMap: Record<string, string> = {
+                      medication: t('medication', 'Médicament'),
+                      medicationName: t('medication', 'Médicament'),
+                      dosage: t('dosage', 'Posologie'),
+                      instructions: t('instructions', 'Instructions'),
+                      frequency: t('frequency', 'Fréquence'),
+                      duration: t('duration', 'Durée'),
+                      note: t('note', 'Notes'),
+                      prescriptionId: t('prescriptionId', 'ID de prescription'),
+                      medications: t('medications', 'Médicaments'),
+                      labTests: t('labTests', 'Analyses de laboratoire'),
+                      radiologyExams: t('radiologyExams', "Examens d'imagerie"),
+                    };
+                    // Render arrays as tables for user-friendly view
+                    if (Array.isArray(value) && value.length && typeof value[0] === 'object') {
+                      return (
+                        <div key={key}>
+                          <span className="font-semibold">{labelMap[key] || t(key)}:</span>
+                          <table className="min-w-full border mt-2 mb-2 text-sm">
+                            <thead>
+                              <tr>
+                                {Object.keys(value[0]).map((col) => (
+                                  <th key={col} className="border px-2 py-1 font-semibold">{t(col)}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {value.map((item, idx) => (
+                                <tr key={idx}>
+                                  {Object.values(item).map((cell, cidx) => (
+                                    <td key={cidx} className="border px-2 py-1">{String(cell)}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    }
+                    // Render objects as key-value pairs
+                    if (typeof value === 'object' && value !== null) {
+                      return (
+                        <div key={key}>
+                          <span className="font-semibold">{labelMap[key] || t(key)}:</span>
+                          <div className="ml-2">
+                            {Object.entries(value).map(([subKey, subValue]) => (
+                              <div key={subKey}><span className="font-medium">{t(subKey)}:</span> {String(subValue)}</div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                    // Render primitives
+                    return (
+                      <div key={key}>
+                        <span className="font-semibold">{labelMap[key] || t(key)}:</span> {String(value)}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div>
+                  <span className="font-semibold">{t('details')}:</span> {selectedRecord.details?.note || selectedRecord.details?.description || ''}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecordModalOpen(false)}>{t('close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

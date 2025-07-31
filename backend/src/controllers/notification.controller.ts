@@ -135,7 +135,7 @@ export const deleteNotification = async (req: Request, res: Response): Promise<v
 // Create notification (admin only)
 export const createNotification = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, type, title, message, priority, relatedEntity } = req.body;
+    const { userId, type, title, message, priority, relatedEntity, actionUrl } = req.body;
 
     const notification = new Notification({
       userId,
@@ -143,7 +143,8 @@ export const createNotification = async (req: Request, res: Response): Promise<v
       title,
       message,
       priority: priority || 'medium',
-      relatedEntity
+      relatedEntity,
+      actionUrl
     });
 
     await notification.save();

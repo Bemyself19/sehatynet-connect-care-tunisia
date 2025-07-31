@@ -529,6 +529,8 @@
   "dateLabel": "التاريخ",
   "labTestsLabel": "فحوصات المختبر",
   "radiologyExamsLabel": "فحوصات الأشعة",
+  "prescriptionId": "معرف الوصفة الطبية",
+  "radiologyExams": "فحوصات التصوير الطبي",
   "labResultsLabel": "نتائج المختبر",
   "titleLabel": "العنوان",
   "detailsLabel": "التفاصيل",

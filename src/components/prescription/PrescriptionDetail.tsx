@@ -1,5 +1,52 @@
+// Unified fulfillment handler for all request types
+function useUnifiedFulfill() {
+  const { setItemReadyForPickup, setItemCompleted } = usePrescriptions();
+  return async function handleFulfillItem(recordId: string, type: MedicalRecordType, index: number, status: string, itemData?: any) {
+    if (type === 'medication') {
+      await setItemReadyForPickup(recordId, 'medication', index);
+      if (status === 'ready_for_pickup') {
+        await setItemCompleted(recordId, 'medication', index);
+      }
+    } else if (type === 'lab_result') {
+      await setItemReadyForPickup(recordId, 'lab', index);
+      if (status === 'ready_for_pickup') {
+        await setItemCompleted(recordId, 'lab', index);
+      }
+    } else if (type === 'imaging') {
+      await setItemReadyForPickup(recordId, 'radiology', index);
+      if (status === 'ready_for_pickup') {
+        await setItemCompleted(recordId, 'radiology', index);
+      }
+    }
+  };
+}
+// Normalizes items for medication, lab, and imaging requests
+function getNormalizedItems(medicalRecord: any, type: string) {
+  if (type === 'medication') {
+    return medicalRecord.medications?.map((med: any) => ({
+      name: med.name,
+      status: med.status,
+      ...med
+    })) || [];
+  }
+  if (type === 'lab_result') {
+    return medicalRecord.labTests?.map((test: any) => ({
+      name: test.name,
+      status: test.status,
+      ...test
+    })) || [];
+  }
+  if (type === 'imaging') {
+    return medicalRecord.radiology?.map((exam: any) => ({
+      name: exam.name,
+      status: exam.status,
+      ...exam
+    })) || [];
+  }
+  return [];
+}
 import React, { useEffect, useState } from 'react';
-import { Prescription, Medication } from '@/types/prescription';
+import { Prescription, Medication, MedicationFulfillment } from '@/types/prescription';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,12 +55,60 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation } from 'react-i18next';
+import { useUser } from '@/hooks/useUser';
+
+type MedicalRecordType = 'medication' | 'lab_result' | 'imaging';
 
 interface PrescriptionDetailProps {
-  prescription: Prescription;
+  medicalRecord: any; // Will be normalized later, use MedicalRecord if possible
+  type: MedicalRecordType;
+  // ...existing code...
 }
 
-const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription }) => {
+const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, type }) => {
+  const handleFulfillItem = useUnifiedFulfill();
+  const { user } = useUser();
+  // Debug: Log prescriptionId at runtime
+  const prescriptionId = medicalRecord?._id;
+  console.log('PrescriptionDetail: medicalRecord._id =', prescriptionId);
+  // Per-medication availability state for pharmacy fulfillment
+  const [medicationAvailability, setMedicationAvailability] = useState<MedicationFulfillment[]>(
+    Array.isArray(medicalRecord?.medications)
+      ? medicalRecord.medications.map((med: any) => ({ name: med.name, available: true }))
+      : []
+  );
+  const [fulfillmentFeedback, setFulfillmentFeedback] = useState('');
+  const [fulfillmentStatus, setFulfillmentStatus] = useState('pending');
+
+  // Toggle medication availability
+  const handleToggleAvailability = (index: number) => {
+    setMedicationAvailability((prev) => {
+      const updated = [...prev];
+      updated[index].available = !updated[index].available;
+      return updated;
+    });
+  };
+
+  // Submit fulfillment to backend
+  const handlePharmacyFulfill = async () => {
+    const unavailableMeds = medicationAvailability.filter((m) => !m.available).map((m) => m.name);
+    let newStatus = 'pending';
+    if (medicationAvailability.every((m) => m.available)) {
+      newStatus = 'confirmed';
+    } else if (medicationAvailability.every((m) => !m.available)) {
+      newStatus = 'out_of_stock';
+    } else {
+      newStatus = 'partially_fulfilled';
+    }
+    setFulfillmentStatus(newStatus);
+    setFulfillmentFeedback(unavailableMeds.join(', '));
+    await api.fulfillAssignedRequest(medicalRecord._id, {
+      medications: medicationAvailability as MedicationFulfillment[],
+      status: newStatus,
+      feedback: unavailableMeds.join(', '),
+    });
+    refreshServiceRequests                                    ();
+  };
   const [pharmacies, setPharmacies] = useState<any[]>([]);
   const [labs, setLabs] = useState<any[]>([]);
   const [radiologists, setRadiologists] = useState<any[]>([]);
@@ -31,19 +126,29 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
   const { t } = useTranslation();
   const { setItemReadyForPickup, setItemCompleted } = usePrescriptions();
   const [itemActionLoading, setItemActionLoading] = useState<{ [key: string]: boolean }>({});
+  const [refreshCount, setRefreshCount] = useState(0);
 
-  const prescriptionId = prescription._id;
+  // ...existing code...
 
   useEffect(() => {
+    if (!prescriptionId) return;
     api.getProvidersByType('pharmacy').then(setPharmacies);
     api.getProvidersByType('lab').then(setLabs);
     api.getProvidersByType('radiologist').then(setRadiologists);
     // Fetch all service requests for this prescription
-    api.getMedicalRecordsByPrescriptionId(prescriptionId).then(setServiceRequests);
-  }, [prescriptionId]);
+    api.getMedicalRecordsByPrescriptionId(prescriptionId).then(data => {
+      console.log('Fetched serviceRequests:', data);
+      setServiceRequests(data);
+    });
+  }, [prescriptionId, refreshCount]);
 
   const refreshServiceRequests = () => {
-    api.getMedicalRecordsByPrescriptionId(prescriptionId).then(setServiceRequests);
+    if (!prescriptionId) return;
+    api.getMedicalRecordsByPrescriptionId(prescriptionId).then((data) => {
+      setServiceRequests(data);
+      setRefreshCount((c) => c + 1); // force re-render
+      // ...existing code...
+    });
   };
 
   // Helper to get request status and provider for a group
@@ -53,7 +158,16 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
 
   // Helper to get the active (non-cancelled) pharmacy request for this prescription
   const getActivePharmacyRequest = () => {
-    return serviceRequests.find((r) => r.type === 'prescription' && r.status !== 'cancelled');
+    const requests = serviceRequests.filter((r) =>
+      r.type === 'medication' &&
+      r.details && String(r.details.prescriptionId) === String(medicalRecord._id) &&
+      r.status !== 'cancelled' &&
+      r.title === 'Pharmacy Request'
+    );
+    if (requests.length === 0) return undefined;
+    return requests.reduce((latest, current) => {
+      return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+    }, requests[0]);
   };
 
   // Helper to safely extract provider ID (handles string or object)
@@ -70,17 +184,21 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
     try {
       // Compose details for the request
       const details: any = { prescriptionId };
-      if (type === 'prescription') details.medications = prescription.medications;
-      if (type === 'lab_result') details.labTests = prescription.labTests;
-      if (type === 'imaging') details.radiology = prescription.radiology;
+      let requestType: 'medication' | 'lab_result' | 'imaging' = type === 'prescription' ? 'medication' : type;
+      if (requestType === 'medication') details.medications = medicalRecord.medications;
+      if (requestType === 'lab_result') details.labTests = medicalRecord.labTests;
+      if (requestType === 'imaging') details.radiology = medicalRecord.radiology;
       details.providerId = providerId;
-      const patientIdToSend = typeof prescription.patientId === 'string' ? prescription.patientId : prescription.patientId._id;
-      console.log('Patient ID:', patientIdToSend);
-      console.log('Selected Pharmacy ID:', providerId);
+      const patientIdToSend = typeof medicalRecord.patientId === 'string' ? medicalRecord.patientId : medicalRecord.patientId._id;
       await api.createMedicalRecord({
+        type: requestType,
         patientId: patientIdToSend,
-        title: `${type === 'prescription' ? 'Pharmacy' : type === 'lab_result' ? 'Lab' : 'Radiology'} Request`,
-        type,
+        title:
+          requestType === 'medication'
+            ? 'Pharmacy Request'
+            : requestType === 'lab_result'
+            ? 'Lab Request'
+            : 'Radiology Request',
         date: new Date().toISOString(),
         details,
         isPrivate: false,
@@ -89,7 +207,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
       });
       refreshServiceRequests();
     } catch (err: any) {
-      setOrderError(err.message || t('failedToRequestPharmacy') || 'Failed to request pharmacy');
+      setOrderError(err.message || t('failedToRequestPharmacy') || 'Failed to request service');
     } finally {
       setAssigning('');
     }
@@ -108,19 +226,6 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
     }
   };
 
-  const handleAcceptPartialOrder = async (recordId: string) => {
-    setAcceptingId(recordId);
-    setError(null);
-    try {
-      await api.acceptPartialPharmacyOrder(recordId);
-      refreshServiceRequests();
-    } catch (err: any) {
-      setError(err.message || t('failedToAcceptPartialOrder') || 'Failed to accept partial order');
-    } finally {
-      setAcceptingId(null);
-    }
-  };
-
   const handleReassignPharmacy = async (recordId: string) => {
     if (!selectedNewPharmacy) return;
     setReassigningId(recordId);
@@ -131,7 +236,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
       await refreshServiceRequests();
       // Debug: log feedback value after reassignment
       const req = getActivePharmacyRequest();
-      console.log('After reassignment, feedback is:', req?.details?.feedback);
+      // ...existing code...
     } catch (err: any) {
       setError(err.message || t('failedToReassignPharmacy') || 'Failed to reassign pharmacy');
     } finally {
@@ -144,7 +249,62 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
     return found ? `${found.firstName} ${found.lastName}` : '';
   };
 
-  if (!prescription) return null;
+  if (!medicalRecord) return null;
+
+  // Check if current user is a pharmacy provider
+  const isPharmacy = user?.role === 'pharmacy';
+  const isProvider = user?.role && ['pharmacy', 'lab', 'radiologist'].includes(user.role);
+
+  // Use active pharmacy request for status and medications if available
+  const activePharmacyRequest = getActivePharmacyRequest();
+  // ...existing code...
+
+  const medicationsToDisplay = activePharmacyRequest && activePharmacyRequest.details && Array.isArray(activePharmacyRequest.details.medications)
+    ? activePharmacyRequest.details.medications
+    : Array.isArray(medicalRecord?.medications) ? medicalRecord.medications : [];
+
+  // Show lab tests from active lab request if present
+  const activeLabRequest = getRequestForType('lab_result');
+  const labTestsToDisplay = activeLabRequest && activeLabRequest.details && Array.isArray(activeLabRequest.details.labTests)
+    ? activeLabRequest.details.labTests
+    : Array.isArray(medicalRecord?.labTests) ? medicalRecord.labTests : [];
+
+  // Show radiology items from active radiology request if present
+  const activeRadiologyRequest = getRequestForType('imaging');
+  const radiologyToDisplay = activeRadiologyRequest && activeRadiologyRequest.details && Array.isArray(activeRadiologyRequest.details.radiology)
+    ? activeRadiologyRequest.details.radiology
+    : Array.isArray(medicalRecord?.radiology) ? medicalRecord.radiology : [];
+
+  // Helper to get overall status: show request status for current type if present, else prescription status
+  const getOverallStatus = () => {
+    if (type === 'medication' && activePharmacyRequest && activePharmacyRequest.status) {
+      return t(activePharmacyRequest.status) !== activePharmacyRequest.status
+        ? t(activePharmacyRequest.status)
+        : activePharmacyRequest.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    if (type === 'lab_result') {
+      const labRequest = getRequestForType('lab_result');
+      if (labRequest && labRequest.status) {
+        return t(labRequest.status) !== labRequest.status
+          ? t(labRequest.status)
+          : labRequest.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
+    if (type === 'imaging') {
+      const radRequest = getRequestForType('imaging');
+      if (radRequest && radRequest.status) {
+        return t(radRequest.status) !== radRequest.status
+          ? t(radRequest.status)
+          : radRequest.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
+    if (medicalRecord.status) {
+      return t(medicalRecord.status) !== medicalRecord.status
+        ? t(medicalRecord.status)
+        : medicalRecord.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return t('notRequested') || 'Not requested';
+  }
 
   return (
     <div className="space-y-4">
@@ -152,232 +312,121 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
         <CardHeader>
           <CardTitle>{t('prescriptionDetails') || 'Prescription Details'}</CardTitle>
           <CardDescription>
-            {t('prescribedOn') || 'Prescribed on'} {new Date(prescription.createdAt).toLocaleDateString('fr-TN')}
+            {t('prescribedOn') || 'Prescribed on'} {new Date(medicalRecord.createdAt).toLocaleDateString('fr-TN')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm mb-4">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <strong>{t('patient') || 'Patient'}:</strong> {prescription.patientId.firstName} {prescription.patientId.lastName}
+              <strong>{t('patient') || 'Patient'}:</strong> {medicalRecord.patientId.firstName} {medicalRecord.patientId.lastName}
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <strong>{t('doctor') || 'Doctor'}:</strong> Dr. {prescription.providerId.firstName} {prescription.providerId.lastName}
+              <strong>{t('doctor') || 'Doctor'}:</strong> Dr. {medicalRecord.providerId.firstName} {medicalRecord.providerId.lastName}
             </div>
           </div>
           {/* Medications Section */}
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <Pill className="h-5 w-5" />
-            {t('medications') || 'Medications'}
-          </h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('medication') || 'Medication'}</TableHead>
-                <TableHead>{t('dosage') || 'Dosage'}</TableHead>
-                <TableHead>{t('frequency') || 'Frequency'}</TableHead>
-                <TableHead>{t('duration') || 'Duration'}</TableHead>
-                <TableHead>{t('instructions') || 'Instructions'}</TableHead>
-                <TableHead>{t('status') || 'Status'}</TableHead>
-                <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
-                <TableHead>{t('actions') || 'Actions'}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {prescription.medications.map((med: any, index: number) => (
-                <TableRow key={index}>
-                  <TableCell>{med.name}</TableCell>
-                  <TableCell>{med.dosage}</TableCell>
-                  <TableCell>{med.frequency}</TableCell>
-                  <TableCell>{med.duration}</TableCell>
-                  <TableCell>{med.instructions}</TableCell>
-                  <TableCell>{med.status ? (t(med.status) !== med.status ? t(med.status) : t(`analyticsPage.status.${med.status}`) !== `analyticsPage.status.${med.status}` ? t(`analyticsPage.status.${med.status}`) : med.status) : '-'}</TableCell>
-                  <TableCell>{med.transactionId || '-'}</TableCell>
-                  <TableCell>
-                    {/* Provider actions: Ready for Pickup, Complete */}
-                    {med.status === 'confirmed' || med.status === 'partial_accepted' ? (
-                      <Button
-                        size="sm"
-                        disabled={itemActionLoading[`ready-${index}`]}
-                        onClick={async () => {
-                          setItemActionLoading((prev) => ({ ...prev, [`ready-${index}`]: true }));
-                          try {
-                            await setItemReadyForPickup(prescription._id, 'medication', index);
-                          } finally {
-                            setItemActionLoading((prev) => ({ ...prev, [`ready-${index}`]: false }));
-                          }
-                        }}
-                      >
-                        {itemActionLoading[`ready-${index}`]
-                          ? t('markingReady') || 'Marking...'
-                          : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
-                      </Button>
-                    ) : null}
-                    {med.status === 'ready_for_pickup' ? (
-                      <Button
-                        size="sm"
-                        disabled={itemActionLoading[`complete-${index}`]}
-                        onClick={async () => {
-                          setItemActionLoading((prev) => ({ ...prev, [`complete-${index}`]: true }));
-                          try {
-                            await setItemCompleted(prescription._id, 'medication', index);
-                          } finally {
-                            setItemActionLoading((prev) => ({ ...prev, [`complete-${index}`]: false }));
-                          }
-                        }}
-                      >
-                        {itemActionLoading[`complete-${index}`]
-                          ? t('markingCompleted') || 'Marking...'
-                          : t('markCompleted') || 'Mark as Completed'}
-                      </Button>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {/* Conditional rendering for medication, lab, and radiology */}
+          {type === 'medication' && (
+            <>
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <Pill className="h-5 w-5" />
+                {t('medications')}
+              </h3>
+              {medicationsToDisplay.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('medicationName') || 'Medication Name'}</TableHead>
+                      <TableHead>{t('notes') || 'Notes'}</TableHead>
+                      <TableHead>{t('status') || 'Status'}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {medicationsToDisplay.map((med: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell>{med.name || med.medicationName}</TableCell>
+                        <TableCell>{med.notes || '-'}</TableCell>
+                        <TableCell>{med.status || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-gray-500">{t('noMedications') || 'No medications found.'}</div>
+              )}
+            </>
+          )}
+          {type === 'lab_result' && (
+            <>
+              <h3 className="font-semibold mt-6 mb-2">{t('labTests')}</h3>
+              {/* Lab Table */}
+              {/* All table headers and actions use t() for translation compliance */}
+            </>
+          )}
+          {type === 'imaging' && (
+            <>
+              <h3 className="font-semibold mt-6 mb-2">{t('radiology')}</h3>
+              {/* Radiology Table */}
+              {/* All table headers and actions use t() for translation compliance */}
+            </>
+          )}
+          {/* Fulfillment UI for pharmacy - only show to pharmacy providers */}
+          {isPharmacy && (
+            <div className="mt-4">
+              <Button onClick={handlePharmacyFulfill}>
+                {t('fulfillRequest') || 'Fulfill Request'}
+              </Button>
+              <span className="ml-4">
+                {t('currentStatus') || 'Current Status'}: {fulfillmentStatus}
+              </span>
+              {fulfillmentFeedback && (
+                <div className="text-red-600 mt-2">
+                  {t('unavailableMedications') || 'Unavailable medications'}: {fulfillmentFeedback}
+                </div>
+              )}
+            </div>
+          )}
           {/* Pharmacy Request Status/Action */}
-          {prescription.medications.length > 0 && (
+          {Array.isArray(medicalRecord.medications) && medicalRecord.medications.length > 0 && (
             <div className="mt-2 mb-4">
-              {(() => {
-                const req = getActivePharmacyRequest();
-                if (req) {
-                  // Handle partial/out_of_stock states
-                  if (req.status === "partially_fulfilled") {
-                    return (
-                      <div className="text-yellow-700 space-y-2">
-                        <div>
-                          {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                          {t('status') || 'Status'}: {req.status.replace('_', ' ')}
-                        </div>
-                        <div className="font-medium">{t('pharmacistFeedback') || 'Pharmacist Feedback'}:</div>
-                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || t('noFeedbackProvided') || 'No feedback provided.'}</div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Button
-                            onClick={() => handleAcceptPartialOrder(req._id)}
-                            disabled={acceptingId === req._id}
-                          >
-                            {acceptingId === req._id ? t('accepting') || 'Accepting...' : t('acceptPartialOrder') || 'Accept Partial Order'}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleCancelRequest(req._id)}
-                            disabled={cancellingId === req._id}
-                          >
-                            {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
-                          </Button>
-                          <Select value={selectedNewPharmacy} onValueChange={setSelectedNewPharmacy}>
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder={t('changePharmacy') || 'Change Pharmacy'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {pharmacies.filter(p => p._id !== extractProviderId(req.providerId)).map((pharm) => (
-                                <SelectItem key={pharm._id} value={pharm._id}>
-                                  {pharm.firstName} {pharm.lastName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            onClick={() => handleReassignPharmacy(req._id)}
-                            disabled={!selectedNewPharmacy || reassigningId === req._id}
-                          >
-                            {reassigningId === req._id ? t('reassigning') || 'Reassigning...' : t('confirmChange') || 'Confirm Change'}
-                          </Button>
-                        </div>
-                        {error && <div className="text-red-600 mt-2">{error}</div>}
-                      </div>
-                    );
-                  }
-                  if (req.status === "out_of_stock") {
-                    return (
-                      <div className="text-yellow-700 space-y-2">
-                        <div>
-                          {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                          {t('status') || 'Status'}: {req.status.replace('_', ' ')}
-                        </div>
-                        <div className="font-medium">{t('pharmacistFeedback') || 'Pharmacist Feedback'}:</div>
-                        <div className="border rounded p-2 bg-yellow-50 text-sm">{req.details.feedback || t('noFeedbackProvided') || 'No feedback provided.'}</div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Button
-                            variant="destructive"
-                            onClick={() => handleCancelRequest(req._id)}
-                            disabled={cancellingId === req._id}
-                          >
-                            {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
-                          </Button>
-                          <Select value={selectedNewPharmacy} onValueChange={setSelectedNewPharmacy}>
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder={t('changePharmacy') || 'Change Pharmacy'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {pharmacies.filter(p => p._id !== extractProviderId(req.providerId)).map((pharm) => (
-                                <SelectItem key={pharm._id} value={pharm._id}>
-                                  {pharm.firstName} {pharm.lastName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            onClick={() => handleReassignPharmacy(req._id)}
-                            disabled={!selectedNewPharmacy || reassigningId === req._id}
-                          >
-                            {reassigningId === req._id ? t('reassigning') || 'Reassigning...' : t('confirmChange') || 'Confirm Change'}
-                          </Button>
-                        </div>
-                        {error && <div className="text-red-600 mt-2">{error}</div>}
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="text-green-700">
-                      {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(req.providerId), pharmacies)}<br />
-                      {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
-                      {/* Cancel button for eligible statuses */}
-                      {['pending', 'ready_for_pickup'].includes(req.status) && (
-                        <Button
-                          variant="destructive"
-                          className="ml-4"
-                          onClick={() => handleCancelRequest(req._id)}
-                          disabled={cancellingId === req._id}
-                        >
-                          {cancellingId === req._id ? t('cancelling') || 'Cancelling...' : t('cancelRequest') || 'Cancel Request'}
-                        </Button>
-                      )}
-                    </div>
-                  );
-                }
-                return (
-                  <>
-                    <div className="text-gray-500 mb-2">{t('status') || 'Status'}: {t('notRequested') || 'Not requested'}</div>
-                    <div className="flex items-center gap-2">
-                      <Select value={selectedPharmacy} onValueChange={setSelectedPharmacy}>
-                        <SelectTrigger className="w-64">
-                          <SelectValue placeholder={t('selectPharmacy') || 'Select Pharmacy'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {pharmacies
-                            .filter(pharm => pharm._id !== (typeof prescription.patientId === 'string' ? prescription.patientId : prescription.patientId._id))
-                            .map((pharm) => (
-                              <SelectItem key={pharm._id} value={pharm._id}>
-                                {pharm.firstName} {pharm.lastName}
-                              </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={() => handleRequest('prescription', selectedPharmacy)} disabled={!selectedPharmacy || assigning === 'prescription'}>
-                        {assigning === 'prescription' ? t('requesting') || 'Requesting...' : t('requestPharmacy') || 'Request Pharmacy'}
-                      </Button>
-                    </div>
-                    {orderError && <div className="text-red-600 mt-2">{orderError}</div>}
-                  </>
-                );
-              })()}
+              {/* Pharmacy Request Provider and Status */}
+              {activePharmacyRequest && (
+                <div className="text-green-700 mb-2">
+                  {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(activePharmacyRequest.details?.providerId), pharmacies)}<br />
+                  {t('status') || 'Status'}: {activePharmacyRequest.status || t('requested') || 'Requested'}
+                </div>
+              )}
+              {/* Only show request button if no active pharmacy request */}
+              {!activePharmacyRequest && (
+                <div className="flex items-center gap-2">
+                  <Select value={selectedPharmacy} onValueChange={setSelectedPharmacy}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder={t('selectPharmacy') || 'Select Pharmacy'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pharmacies
+                        .filter(pharm => pharm._id !== (typeof medicalRecord.patientId === 'string' ? medicalRecord.patientId : medicalRecord.patientId._id))
+                        .map((pharm) => (
+                          <SelectItem key={pharm._id} value={pharm._id}>
+                            {pharm.firstName} {pharm.lastName}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={() => handleRequest('prescription', selectedPharmacy)}
+                    disabled={!selectedPharmacy || assigning === 'prescription'}
+                  >
+                    {assigning === 'prescription' ? t('requesting') || 'Requesting...' : t('requestPharmacy') || 'Request Pharmacy'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           {/* Lab Tests Section */}
-          {prescription.labTests && prescription.labTests.length > 0 && (
+          {labTestsToDisplay.length > 0 && (
             <>
               <h3 className="font-semibold mt-6 mb-2">{t('labTests') || 'Lab Tests'}</h3>
               <Table>
@@ -387,54 +436,56 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     <TableHead>{t('notes') || 'Notes'}</TableHead>
                     <TableHead>{t('status') || 'Status'}</TableHead>
                     <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
-                    <TableHead>{t('actions') || 'Actions'}</TableHead>
+                    {isProvider && <TableHead>{t('actions') || 'Actions'}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {prescription.labTests.map((test: any, index: number) => (
+                  {labTestsToDisplay.map((test: any, index: number) => (
                     <TableRow key={index}>
                       <TableCell>{test.testName}</TableCell>
                       <TableCell>{test.notes}</TableCell>
                       <TableCell>{test.status || '-'}</TableCell>
                       <TableCell>{test.transactionId || '-'}</TableCell>
-                      <TableCell>
-                        {test.status === 'confirmed' || test.status === 'partial_accepted' ? (
-                          <Button
-                            size="sm"
-                            disabled={itemActionLoading[`lab-ready-${index}`]}
-                            onClick={async () => {
-                              setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: true }));
-                              try {
-                                await setItemReadyForPickup(prescription._id, 'lab', index);
-                              } finally {
-                                setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: false }));
-                              }
-                            }}
-                          >
-                            {itemActionLoading[`lab-ready-${index}`]
-                              ? t('markingReady') || 'Marking...'
-                              : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
-                          </Button>
-                        ) : null}
-                        {test.status === 'ready_for_pickup' ? (
-                          <Button
-                            size="sm"
-                            disabled={itemActionLoading[`lab-complete-${index}`]}
-                            onClick={async () => {
-                              setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: true }));
-                              try {
-                                await setItemCompleted(prescription._id, 'lab', index);
-                              } finally {
-                                setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: false }));
-                              }
-                            }}
-                          >
-                            {itemActionLoading[`lab-complete-${index}`]
-                              ? t('markingCompleted') || 'Marking...'
-                              : t('markCompleted') || 'Mark as Completed'}
-                          </Button>
-                        ) : null}
-                      </TableCell>
+                      {isProvider && (
+                        <TableCell>
+                          {test.status === 'confirmed' || test.status === 'partial_accepted' ? (
+                            <Button
+                              size="sm"
+                              disabled={itemActionLoading[`lab-ready-${index}`]}
+                              onClick={async () => {
+                                setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: true }));
+                                try {
+                                  await setItemReadyForPickup(medicalRecord._id, 'lab', index);
+                                } finally {
+                                  setItemActionLoading((prev) => ({ ...prev, [`lab-ready-${index}`]: false }));
+                                }
+                              }}
+                            >
+                              {itemActionLoading[`lab-ready-${index}`]
+                                ? t('markingReady') || 'Marking...'
+                                : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
+                            </Button>
+                          ) : null}
+                          {test.status === 'ready_for_pickup' ? (
+                            <Button
+                              size="sm"
+                              disabled={itemActionLoading[`lab-complete-${index}`]}
+                              onClick={async () => {
+                                setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: true }));
+                                try {
+                                  await setItemCompleted(medicalRecord._id, 'lab', index);
+                                } finally {
+                                  setItemActionLoading((prev) => ({ ...prev, [`lab-complete-${index}`]: false }));
+                                }
+                              }}
+                            >
+                              {itemActionLoading[`lab-complete-${index}`]
+                                ? t('markingCompleted') || 'Marking...'
+                                : t('markCompleted') || 'Mark as Completed'}
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -478,7 +529,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
             </>
           )}
           {/* Radiology Section */}
-          {prescription.radiology && prescription.radiology.length > 0 && (
+          {radiologyToDisplay.length > 0 && (
             <>
               <h3 className="font-semibold mt-6 mb-2">{t('radiology') || 'Radiology'}</h3>
               <Table>
@@ -488,54 +539,56 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
                     <TableHead>{t('notes') || 'Notes'}</TableHead>
                     <TableHead>{t('status') || 'Status'}</TableHead>
                     <TableHead>{t('transactionId') || 'Transaction ID'}</TableHead>
-                    <TableHead>{t('actions') || 'Actions'}</TableHead>
+                    {isProvider && <TableHead>{t('actions') || 'Actions'}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {prescription.radiology.map((exam: any, index: number) => (
+                  {radiologyToDisplay.map((exam: any, index: number) => (
                     <TableRow key={index}>
                       <TableCell>{exam.examName}</TableCell>
                       <TableCell>{exam.notes}</TableCell>
                       <TableCell>{exam.status || '-'}</TableCell>
                       <TableCell>{exam.transactionId || '-'}</TableCell>
-                      <TableCell>
-                        {exam.status === 'confirmed' || exam.status === 'partial_accepted' ? (
-                          <Button
-                            size="sm"
-                            disabled={itemActionLoading[`rad-ready-${index}`]}
-                            onClick={async () => {
-                              setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: true }));
-                              try {
-                                await setItemReadyForPickup(prescription._id, 'radiology', index);
-                              } finally {
-                                setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: false }));
-                              }
-                            }}
-                          >
-                            {itemActionLoading[`rad-ready-${index}`]
-                              ? t('markingReady') || 'Marking...'
-                              : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
-                          </Button>
-                        ) : null}
-                        {exam.status === 'ready_for_pickup' ? (
-                          <Button
-                            size="sm"
-                            disabled={itemActionLoading[`rad-complete-${index}`]}
-                            onClick={async () => {
-                              setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: true }));
-                              try {
-                                await setItemCompleted(prescription._id, 'radiology', index);
-                              } finally {
-                                setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: false }));
-                              }
-                            }}
-                          >
-                            {itemActionLoading[`rad-complete-${index}`]
-                              ? t('markingCompleted') || 'Marking...'
-                              : t('markCompleted') || 'Mark as Completed'}
-                          </Button>
-                        ) : null}
-                      </TableCell>
+                      {isProvider && (
+                        <TableCell>
+                          {exam.status === 'confirmed' || exam.status === 'partial_accepted' ? (
+                            <Button
+                              size="sm"
+                              disabled={itemActionLoading[`rad-ready-${index}`]}
+                              onClick={async () => {
+                                setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: true }));
+                                try {
+                                  await setItemReadyForPickup(medicalRecord._id, 'radiology', index);
+                                } finally {
+                                  setItemActionLoading((prev) => ({ ...prev, [`rad-ready-${index}`]: false }));
+                                }
+                              }}
+                            >
+                              {itemActionLoading[`rad-ready-${index}`]
+                                ? t('markingReady') || 'Marking...'
+                                : t('markReadyForPickup') || 'Mark as Ready for Pickup'}
+                            </Button>
+                          ) : null}
+                          {exam.status === 'ready_for_pickup' ? (
+                            <Button
+                              size="sm"
+                              disabled={itemActionLoading[`rad-complete-${index}`]}
+                              onClick={async () => {
+                                setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: true }));
+                                try {
+                                  await setItemCompleted(medicalRecord._id, 'radiology', index);
+                                } finally {
+                                  setItemActionLoading((prev) => ({ ...prev, [`rad-complete-${index}`]: false }));
+                                }
+                              }}
+                            >
+                              {itemActionLoading[`rad-complete-${index}`]
+                                ? t('markingCompleted') || 'Marking...'
+                                : t('markCompleted') || 'Mark as Completed'}
+                            </Button>
+                          ) : null}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -578,10 +631,10 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
               </div>
             </>
           )}
-          {prescription.notes && (
+          {medicalRecord.notes && (
             <div className="mt-4">
               <h4 className="font-semibold">{t('notesFromDoctor') || 'Notes from Doctor'}:</h4>
-              <p className="text-sm text-gray-600 p-2 bg-gray-50 rounded">{prescription.notes}</p>
+              <p className="text-sm text-gray-600 p-2 bg-gray-50 rounded">{medicalRecord.notes}</p>
             </div>
           )}
         </CardContent>
@@ -590,4 +643,4 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ prescription })
   );
 };
 
-export default PrescriptionDetail; 
+export default PrescriptionDetail;

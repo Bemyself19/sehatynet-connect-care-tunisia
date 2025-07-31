@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+                          import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +45,11 @@ const NotificationsPage: React.FC = () => {
         api.getNotificationStats()
       ]);
       
-      setNotifications(notificationsData);
+      if (unreadOnly) {
+        setNotifications(notificationsData);
+      } else {
+        setNotifications(notificationsData.notifications);
+      }
       setStats(statsData);
     } catch (err: any) {
       console.error('Error fetching notifications:', err);
@@ -135,8 +139,10 @@ const NotificationsPage: React.FC = () => {
       } else if (notification.relatedEntity?.type) {
         // Navigate based on entity type and user role
         switch (notification.relatedEntity.type) {
+          case 'medication':
+            navigate(`/dashboard/pharmacy/requests/${notification.relatedEntity.id}`);
+            break;
           case 'appointment':
-            // Navigate to appropriate appointments page based on user role
             if (user?.role === 'doctor') {
               navigate('/dashboard/doctor/appointments');
             } else if (user?.role === 'patient') {
@@ -144,10 +150,15 @@ const NotificationsPage: React.FC = () => {
             }
             break;
           case 'prescription':
-            navigate(`/prescriptions/${notification.relatedEntity.id}`);
+            navigate(`/dashboard/patient/medical-records?open=${notification.relatedEntity.id}`);
             break;
           case 'medicalRecord':
-            navigate(`/medical-records/${notification.relatedEntity.id}`);
+            const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(notification.relatedEntity.id);
+            if (isValidObjectId) {
+                navigate(`/medical-records/${notification.relatedEntity.id}`);
+            } else {
+                console.warn('Invalid medical record id in notification:', notification.relatedEntity.id);
+            }
             break;
           case 'labResult':
             navigate(`/lab-results/${notification.relatedEntity.id}`);
@@ -420,7 +431,7 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
                     )}
                   </div>
                   <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                    {t(notification.message, notification.message)}
+                    {substituteVariables(t(notification.message, notification.message), notification.translationData)}
                   </p>
                   <div className="flex items-center text-xs text-gray-500">
                     <Clock className="h-3 w-3 mr-1" />
@@ -443,5 +454,13 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
     </div>
   );
 };
+
+// Helper function for variable substitution
+function substituteVariables(message: string, data?: Record<string, any>): string {
+  if (!data) return message;
+  return message.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return data[key] !== undefined ? String(data[key]) : `{{${key}}}`;
+  });
+}
 
 export default NotificationsPage;

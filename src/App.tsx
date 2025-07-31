@@ -117,6 +117,7 @@ const App = () => {
             <Route path="/dashboard/pharmacy" element={<ProtectedRoute element={<PharmacyLayout />} />}>
               <Route index element={<PharmacyDashboard />} />
               <Route path="prescriptions" element={<PharmacyPrescriptions />} />
+              <Route path="prescriptions/:id" element={<PharmacyPrescriptions />} />
               <Route path="inventory" element={<PharmacyInventory />} />
               <Route path="profile" element={<PharmacyProfile />} />
             </Route>

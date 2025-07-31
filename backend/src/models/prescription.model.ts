@@ -72,8 +72,8 @@ const medicationSchema = new Schema<IMedication>({
   assignedProvider: { type: Schema.Types.ObjectId, ref: 'User' },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['not_requested', 'pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
+    default: 'not_requested'
   },
   transactionId: { type: String },
   history: [itemHistorySchema]
@@ -85,8 +85,8 @@ const labTestSchema = new Schema<ILabTest>({
   assignedProvider: { type: Schema.Types.ObjectId, ref: 'User' },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['not_requested', 'pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
+    default: 'not_requested'
   },
   transactionId: { type: String },
   history: [itemHistorySchema]
@@ -98,8 +98,8 @@ const radiologySchema = new Schema<IRadiologyExam>({
   assignedProvider: { type: Schema.Types.ObjectId, ref: 'User' },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['not_requested', 'pending', 'confirmed', 'partial', 'partial_accepted', 'rejected', 'ready_for_pickup', 'completed', 'cancelled'],
+    default: 'not_requested'
   },
   transactionId: { type: String },
   history: [itemHistorySchema]

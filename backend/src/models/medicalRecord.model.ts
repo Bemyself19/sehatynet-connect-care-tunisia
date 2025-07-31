@@ -32,7 +32,7 @@ const medicalRecordSchema = new mongoose.Schema({
     title: { type: String, required: true },
     type: { 
         type: String, 
-        enum: ['lab_result', 'consultation', 'imaging', 'prescription', 'vaccination', 'surgery', 'doctor_note'],
+        enum: ['lab_result', 'consultation', 'imaging', 'prescription', 'vaccination', 'surgery', 'doctor_note', 'medication'],
         required: true 
     },
     date: { type: String, required: true },
@@ -50,12 +50,10 @@ const medicalRecordSchema = new mongoose.Schema({
         enum: ['private', 'doctor_only', 'patient_visible', 'shared'],
         default: 'doctor_only' // Default to doctor-only for consultation notes
     },
-    tags: [{ type: String }],
-    prescriptionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' }, // For lab, radiology, and pharmacy records linked to a prescription
     status: {
         type: String,
-        enum: ['pending', 'ready_for_pickup', 'completed', 'cancelled', 'partially_fulfilled', 'out_of_stock'], // pending: new/requested, ready_for_pickup: pharmacy prepared, completed: picked up, cancelled: not fulfilled, partially_fulfilled: some meds unavailable, out_of_stock: none available
-        default: 'pending',
+        enum: ['not_requested', 'pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'partially_fulfilled', 'out_of_stock'], // not_requested: no pharmacy assigned, pending: new/requested, confirmed: all meds available, ready_for_pickup: pharmacy prepared, completed: picked up, cancelled: not fulfilled, partially_fulfilled: some meds unavailable, out_of_stock: none available
+        default: 'not_requested',
     },
 }, { 
     timestamps: true 

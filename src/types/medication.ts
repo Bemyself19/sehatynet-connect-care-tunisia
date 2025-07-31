@@ -1,3 +1,6 @@
+// ...existing code...
+export type MedicationType = 'prescription' | 'over_the_counter' | 'supplement' | 'herbal';
+// ...existing code...
 import { User } from './user';
 
 export interface MedicationDosage {

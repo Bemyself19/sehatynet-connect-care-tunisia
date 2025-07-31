@@ -19,6 +19,16 @@ const UserManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [editUser, setEditUser] = useState<any | null>(null);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    role: 'patient',
+    isActive: true
+  });
+  const [addingUser, setAddingUser] = useState(false);
   const { t } = useLanguage();
   const { t: tI18n } = useTranslation();
 
@@ -81,6 +91,53 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleAddUser = async () => {
+    if (!newUser.firstName || !newUser.lastName || !newUser.email || !newUser.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setAddingUser(true);
+    try {
+      const userData = {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        isActive: newUser.isActive
+      };
+
+      const response = await api.register(userData);
+      
+      // Add the new user to the local state
+      const responseData = response as any;
+      const userWithId = { 
+        ...userData, 
+        _id: responseData.user?._id || responseData._id || Date.now().toString(), 
+        password: undefined 
+      };
+      setUsers(users => [...users, userWithId]);
+      
+      // Reset form and close modal
+      setNewUser({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        role: 'patient',
+        isActive: true
+      });
+      setShowAddUserModal(false);
+      
+      toast.success('User created successfully');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create user');
+    } finally {
+      setAddingUser(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">{tI18n('loadingUsers') || 'Loading users...'}</div>;
   }
@@ -133,7 +190,7 @@ const UserManagement: React.FC = () => {
               <SelectItem value="inactive">{tI18n('inactive') || t('inactive') || 'Inactive'}</SelectItem>
             </SelectContent>
           </Select>
-          <Button>
+          <Button onClick={() => setShowAddUserModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             {tI18n('addUser') || t('addUser') || 'Add User'}
           </Button>
@@ -196,6 +253,91 @@ const UserManagement: React.FC = () => {
             </TableBody>
           </Table>
         </div>
+        {/* Add User Modal */}
+        {showAddUserModal && (
+          <Modal isOpen={showAddUserModal} onClose={() => setShowAddUserModal(false)} title={tI18n('addUser') || t('addUser') || 'Add User'}>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">{tI18n('firstName') || t('firstName') || 'First Name'} *</label>
+                <Input 
+                  value={newUser.firstName} 
+                  onChange={e => setNewUser({ ...newUser, firstName: e.target.value })}
+                  placeholder="Enter first name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{tI18n('lastName') || t('lastName') || 'Last Name'} *</label>
+                <Input 
+                  value={newUser.lastName} 
+                  onChange={e => setNewUser({ ...newUser, lastName: e.target.value })}
+                  placeholder="Enter last name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{tI18n('email') || t('email') || 'Email'} *</label>
+                <Input 
+                  type="email"
+                  value={newUser.email} 
+                  onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{tI18n('password') || t('password') || 'Password'} *</label>
+                <Input 
+                  type="password"
+                  value={newUser.password} 
+                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Enter password"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{tI18n('role') || t('role') || 'Role'}</label>
+                <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="patient">{tI18n('patient') || t('patient') || 'Patient'}</SelectItem>
+                    <SelectItem value="doctor">{tI18n('doctor') || t('doctor') || 'Doctor'}</SelectItem>
+                    <SelectItem value="pharmacy">{tI18n('pharmacy') || t('pharmacy') || 'Pharmacy'}</SelectItem>
+                    <SelectItem value="lab">{tI18n('lab') || t('lab') || 'Lab'}</SelectItem>
+                    <SelectItem value="radiologist">{tI18n('radiologist') || t('radiologist') || 'Radiologist'}</SelectItem>
+                    <SelectItem value="admin">{tI18n('admin') || t('admin') || 'Admin'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={newUser.isActive}
+                  onChange={(e) => setNewUser({ ...newUser, isActive: e.target.checked })}
+                />
+                <label htmlFor="isActive" className="text-sm font-medium">
+                  {tI18n('active') || t('active') || 'Active'}
+                </label>
+              </div>
+              <div className="flex space-x-2 pt-4">
+                <Button 
+                  onClick={handleAddUser}
+                  disabled={addingUser}
+                  className="flex-1"
+                >
+                  {addingUser ? tI18n('creating') || t('creating') || 'Creating...' : tI18n('createUser') || t('createUser') || 'Create User'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAddUserModal(false)}
+                  disabled={addingUser}
+                  className="flex-1"
+                >
+                  {tI18n('cancel') || t('cancel') || 'Cancel'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
+        )}
         {/* Edit Modal */}
         {editUser && (
           <Modal isOpen={!!editUser} onClose={() => setEditUser(null)} title={tI18n('editUser') || t('editUser') || 'Edit User'}>

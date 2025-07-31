@@ -758,6 +758,8 @@
   "medicationsLabel": "Médicaments",
   "labTestsLabel": "Analyses de laboratoire",
   "radiologyExamsLabel": "Examens de radiologie",
+  "prescriptionId": "ID de prescription",
+  "radiologyExams": "Examens d'imagerie",
   "labResultsLabel": "Résultats de laboratoire",
   "titleLabel": "Titre",
   "detailsLabel": "Détails",

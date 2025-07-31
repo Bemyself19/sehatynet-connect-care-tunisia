@@ -10,9 +10,11 @@ import {
   getPatientMedicalHistory,
   getDoctorNotesForPatient,
   getPatientDashboard,
+  getAssignedRequests,
   updateRecordPrivacy,
   assignProviderToSection,
-  uploadLabRadiologyReport
+  uploadLabRadiologyReport,
+  getMedicalRecordsByPrescriptionId
 } from "../controllers/medicalRecord.controller";
 import { authenticateJWT } from "../middleware/auth";
 import { authorizeRoles } from "../middleware/roles";
@@ -46,6 +48,8 @@ router.get("/my", authenticateJWT, authorizeRoles("patient"), getMedicalRecords)
 router.get("/", authenticateJWT, getMedicalRecords);
 
 // Get specific medical record by ID
+// Get assigned requests (must be before /:id)
+router.get("/assigned", authenticateJWT, getAssignedRequests);
 router.get("/:id", authenticateJWT, getMedicalRecordById);
 
 // Update medical record
@@ -66,7 +70,15 @@ router.patch("/:id/privacy", authenticateJWT, updateRecordPrivacy);
 // Assign provider to medical record
 router.post("/:id/assign-provider", authenticateJWT, assignProviderToSection);
 
+
 // Upload lab/radiology reports
 router.post("/:id/upload-report", authenticateJWT, upload.single("file"), uploadLabRadiologyReport);
+
+// Cancel a medical record request
+import { cancelMedicalRecordRequest } from "../controllers/medicalRecord.controller";
+router.patch("/:id/cancel", authenticateJWT, cancelMedicalRecordRequest);
+
+// Get medical records by prescription ID
+router.get("/by-prescription/:prescriptionId", authenticateJWT, getMedicalRecordsByPrescriptionId);
 
 export default router;

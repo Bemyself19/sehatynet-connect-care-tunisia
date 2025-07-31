@@ -50,7 +50,8 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
           type: 'prescription_ready',
           title: 'New Prescription',
           message: 'A new prescription has been created for you.',
-          relatedEntity: { type: 'prescription', id: savedPrescription._id }
+          relatedEntity: { type: 'prescription', id: savedPrescription._id },
+          actionUrl: `/dashboard/patient/medical-records?open=${medicalRecord._id}`
         });
         res.status(201).json({
             message: "Prescription created successfully",
@@ -180,9 +181,19 @@ function generateTransactionId() {
 }
 
 // Utility to create a notification
-async function notify({ userId, type, title, message, priority = 'medium', relatedEntity }: { userId: any, type: string, title: string, message: string, priority?: string, relatedEntity?: any }) {
+interface NotifyOptions {
+  userId: any;
+  type: string;
+  title: string;
+  message: string;
+  priority?: string;
+  relatedEntity?: any;
+  actionUrl?: string;
+}
+
+async function notify({ userId, type, title, message, priority = 'medium', relatedEntity, actionUrl }: NotifyOptions) {
   try {
-    await Notification.create({ userId, type, title, message, priority, relatedEntity });
+    await Notification.create({ userId, type, title, message, priority, relatedEntity, actionUrl, isRead: false });
   } catch (err) {
     console.error('Notification error:', err);
   }

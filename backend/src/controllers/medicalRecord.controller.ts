@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import type { Medication, MedicationFulfillment } from "../../../src/types/prescription";
 import MedicalRecord from "../models/medicalRecord.model";
 import User from "../models/user.model";
 import path from 'path';
@@ -37,7 +38,14 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         tags,
         prescriptionId
     } = req.body;
-    
+    // Log incoming request parameters
+    console.log('[createMedicalRecord] Incoming params:', {
+        patientId,
+        providerId: req.body.providerId || (details && details.providerId),
+        prescriptionId,
+        type,
+        details
+    });
     try {
         // For pharmacy/lab/radiology, get providerId from request body (details.providerId or top-level)
         let providerId = req.body.providerId;
@@ -67,8 +75,8 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         if (!finalPrivacyLevel) {
             if (type === 'consultation') {
                 finalPrivacyLevel = 'doctor_only'; // Consultation notes are private by default
-            } else if (type === 'prescription') {
-                finalPrivacyLevel = 'patient_visible'; // Prescriptions are visible to patients
+            } else if (type === 'medication') {
+                finalPrivacyLevel = 'patient_visible'; // Pharmacy requests are visible to patients
             } else {
                 finalPrivacyLevel = 'shared'; // Other records are shared by default
             }
@@ -83,9 +91,9 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         }
 
         // Prevent duplicate pharmacy requests for the same prescription and patient
-        if (type === 'prescription' && prescriptionId) {
+        if (type === 'medication' && prescriptionId) {
             const existing = await MedicalRecord.findOne({
-                type: 'prescription',
+                type: 'medication',
                 patientId,
                 prescriptionId,
                 status: { $ne: 'cancelled' }
@@ -96,6 +104,24 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
             }
         }
 
+        // Set initial status for lab_result and its labTests
+        if (type === 'lab_result') {
+            if (details && Array.isArray(details.labTests)) {
+                details.labTests = details.labTests.map((test: any) => ({
+                    ...test,
+                    status: 'pending'
+                }));
+            }
+        }
+        // Set initial status for imaging and its radiology items
+        if (type === 'imaging') {
+            if (details && Array.isArray(details.radiology)) {
+                details.radiology = details.radiology.map((exam: any) => ({
+                    ...exam,
+                    status: 'pending'
+                }));
+            }
+        }
         const medicalRecord = new MedicalRecord({
             patientId,
             providerId,
@@ -107,11 +133,12 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
             isPrivate: isPrivate || false,
             privacyLevel: finalPrivacyLevel,
             tags: tags || [],
-            prescriptionId: prescriptionId || undefined
+            prescriptionId: prescriptionId || undefined,
+            status: (type === 'lab_result' || type === 'imaging' || type === 'medication') ? 'pending' : undefined
         });
 
         // Ensure assigned provider fields are set for new records
-        if (type === 'prescription' && providerId) {
+        if (type === 'medication' && providerId) {
             if (!details.assignedPharmacyId) details.assignedPharmacyId = providerId;
         }
         if (type === 'lab_result' && providerId) {
@@ -122,6 +149,100 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         }
 
         await medicalRecord.save();
+
+        // Update prescription medication statuses when a pharmacy request is created
+        if (type === 'medication' && prescriptionId) {
+            try {
+                const Prescription = require('../models/prescription.model').default;
+                const prescription = await Prescription.findById(prescriptionId);
+                
+                if (prescription && prescription.medications) {
+                    // Update all medication statuses to 'pending' when pharmacy request is created
+                    prescription.medications.forEach((medication: any) => {
+                        if (!medication.status || medication.status === 'not_requested') {
+                            medication.status = 'pending';
+                        }
+                    });
+                    await prescription.save();
+                    console.log('Updated prescription medication statuses to pending');
+                }
+            } catch (prescriptionError) {
+                console.error('Error updating prescription medication statuses:', prescriptionError);
+            }
+        }
+
+        // Send notification to the assigned provider
+        const notificationController = require('./notification.controller');
+        // Pharmacy notification
+        if (providerId && type === 'medication') {
+            try {
+                const actionUrl = `/dashboard/pharmacy/prescriptions/${medicalRecord._id}`;
+                console.log('Creating notification with actionUrl:', actionUrl);
+                await notificationController.createNotification({
+                    body: {
+                        userId: providerId,
+                        type: 'pharmacy_assignment',
+                        title: 'New Pharmacy Request',
+                        message: `You have received a new pharmacy request from ${patient.firstName} ${patient.lastName}`,
+                        priority: 'high',
+                        relatedEntity: {
+                            id: medicalRecord._id,
+                            type: 'medication'
+                        },
+                        actionUrl: actionUrl
+                    }
+                }, { status: () => ({ json: () => {} }) });
+                console.log('Notification sent to pharmacy provider');
+            } catch (notificationError) {
+                console.error('Error sending notification:', notificationError);
+            }
+        }
+        // Lab notification
+        if (providerId && type === 'lab_result') {
+            try {
+                const actionUrl = `/dashboard/lab/results`;
+                const labNotificationPayload = {
+                    userId: providerId,
+                    type: 'lab_assignment',
+                    title: 'New Lab Request',
+                    message: `You have received a new lab request from ${patient.firstName} ${patient.lastName}`,
+                    priority: 'high',
+                    relatedEntity: {
+                        id: medicalRecord._id,
+                        type: 'labResult'
+                    },
+                    actionUrl: actionUrl
+                };
+                console.log('[Lab Notification] providerId:', providerId, 'type:', type, 'payload:', labNotificationPayload);
+                await notificationController.createNotification({ body: labNotificationPayload }, { status: () => ({ json: () => {} }) });
+                console.log('Notification sent to lab provider');
+            } catch (notificationError) {
+                console.error('Error sending lab notification:', notificationError);
+            }
+        }
+        // Radiology notification
+        if (providerId && type === 'imaging') {
+            try {
+                const actionUrl = `/dashboard/radiologist/reports`;
+                const radioNotificationPayload = {
+                    userId: providerId,
+                    type: 'radiology_assignment',
+                    title: 'New Radiology Request',
+                    message: `You have received a new radiology request from ${patient.firstName} ${patient.lastName}`,
+                    priority: 'high',
+                    relatedEntity: {
+                        id: medicalRecord._id,
+                        type: 'radiologyResult'
+                    },
+                    actionUrl: actionUrl
+                };
+                console.log('[Radiology Notification] providerId:', providerId, 'type:', type, 'payload:', radioNotificationPayload);
+                await notificationController.createNotification({ body: radioNotificationPayload }, { status: () => ({ json: () => {} }) });
+                console.log('Notification sent to radiology provider');
+            } catch (notificationError) {
+                console.error('Error sending radiology notification:', notificationError);
+            }
+        }
 
         // Populate patient and provider details
         await medicalRecord.populate('patientId', 'firstName lastName cnamId');
@@ -141,7 +262,6 @@ export const getMedicalRecords = async (req: Request, res: Response): Promise<vo
     try {
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
-        
         let query: any = {};
         
         if (userRole === 'patient') {
@@ -254,7 +374,15 @@ export const getMedicalRecordById = async (req: Request, res: Response): Promise
         const { id } = req.params;
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
-        
+        // Log incoming request parameters
+        console.log('[getMedicalRecordById] Incoming params:', { id, userId, userRole });
+        // Defensive check for valid ObjectId
+        const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(id);
+        if (!isValidObjectId) {
+            console.warn('[getMedicalRecordById] Invalid ObjectId:', id);
+            res.status(400).json({ message: 'Invalid medical record id' });
+            return;
+        }
         const medicalRecord = await MedicalRecord.findById(id)
             .populate('patientId', 'firstName lastName cnamId email phone')
             .populate('providerId', 'firstName lastName specialization');
@@ -334,7 +462,8 @@ export const updateMedicalRecord = async (req: Request, res: Response): Promise<
         const { id } = req.params;
         const updates = req.body;
         const userId = (req as any).user.id;
-        
+        // Log incoming request parameters
+        console.log('[updateMedicalRecord] Incoming params:', { id, updates, userId });
         const medicalRecord = await MedicalRecord.findById(id);
         
         if (!medicalRecord) {
@@ -379,7 +508,8 @@ export const deleteMedicalRecord = async (req: Request, res: Response): Promise<
     try {
         const { id } = req.params;
         const userId = (req as any).user.id;
-        
+        // Log incoming request parameters
+        console.log('[deleteMedicalRecord] Incoming params:', { id, userId });
         const medicalRecord = await MedicalRecord.findById(id);
         
         if (!medicalRecord) {
@@ -410,7 +540,8 @@ export const getPatientMedicalHistory = async (req: Request, res: Response): Pro
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
         const { doctorId } = req.query; // Optional filter for specific doctor
-        
+        // Log incoming request parameters
+        console.log('[getPatientMedicalHistory] Incoming params:', { patientId, userId, userRole, doctorId });
         // Check if user has access to this patient's records
         if (userRole === 'patient' && patientId !== userId) {
             res.status(403).json({ message: "Access denied" });
@@ -682,12 +813,14 @@ export const assignProviderToSection = async (req: Request, res: Response): Prom
         const { id } = req.params;
         const { type, providerId } = req.body;
         const userId = (req as any).user.id;
+        // Log incoming request parameters
+        console.log('[assignProviderToSection] Incoming params:', { id, type, providerId, userId });
         const allowedTypes = ['pharmacy', 'lab', 'radiologist'];
         if (!type || !allowedTypes.includes(type) || !providerId) {
             res.status(400).json({ message: 'Invalid type or providerId' });
             return;
         }
-        const record = await MedicalRecord.findById(id);
+        const record = await MedicalRecord.findById(id).populate('patientId', 'firstName lastName');
         if (!record) {
             res.status(404).json({ message: 'Medical record not found' });
             return;
@@ -717,11 +850,19 @@ export const assignProviderToSection = async (req: Request, res: Response): Prom
 export const getMedicalRecordsByPrescriptionId = async (req: Request, res: Response): Promise<void> => {
     try {
         const { prescriptionId } = req.params;
+        // Log incoming request parameters
+        console.log('[getMedicalRecordsByPrescriptionId] Incoming params:', { prescriptionId });
         if (!prescriptionId) {
             res.status(400).json({ message: 'Missing prescriptionId' });
             return;
         }
-        const records = await MedicalRecord.find({ prescriptionId })
+        // Mutual search: top-level prescriptionId OR details.prescriptionId
+        const records = await MedicalRecord.find({
+            $or: [
+                { prescriptionId },
+                { 'details.prescriptionId': prescriptionId }
+            ]
+        })
             .populate('providerId', 'firstName lastName specialization')
             .populate('patientId', 'firstName lastName cnamId');
         res.json(records);
@@ -735,16 +876,25 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
     try {
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
+        // Log incoming request parameters
+        console.log('[getAssignedRequests] Incoming params:', { userId, userRole });
         // Only providers can use this endpoint
         if (!['pharmacy', 'lab', 'radiologist'].includes(userRole)) {
             res.status(403).json({ message: 'Access denied' });
             return;
         }
         // Fetch records assigned to this provider
-        let records;
+        let records: any[] = [];
         if (userRole === 'pharmacy') {
+            console.log('[Pharmacy Dashboard] Query:', {
+                type: 'medication',
+                $or: [
+                    { providerId: userId },
+                    { 'details.assignedPharmacyId': userId }
+                ]
+            });
             records = await MedicalRecord.find({
-                type: 'prescription',
+                type: 'medication',
                 $or: [
                     { providerId: userId },
                     { 'details.assignedPharmacyId': userId }
@@ -752,25 +902,73 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            console.log('[Pharmacy Dashboard] Raw records:', records);
         } else if (userRole === 'lab') {
+            console.log('[Lab Dashboard] Query:', {
+                type: 'lab_result',
+                providerId: userId
+            });
             records = await MedicalRecord.find({
                 type: 'lab_result',
                 providerId: userId
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            console.log('[Lab Dashboard] Raw records:', records);
         } else if (userRole === 'radiologist') {
+            console.log('[Radiologist Dashboard] Query:', {
+                type: 'imaging',
+                providerId: userId
+            });
             records = await MedicalRecord.find({
                 type: 'imaging',
                 providerId: userId
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            console.log('[Radiologist Dashboard] Raw records:', records);
         }
-        res.json(records);
-    } catch (err) {
-        console.error('Get assigned requests error:', err);
-        res.status(500).json({ message: 'Failed to fetch assigned requests', error: err });
+        // Filter out records with missing required fields and log them
+        const validRecords = [];
+        for (const rec of records) {
+            try {
+                if (!rec) {
+                    console.warn('[Pharmacy Dashboard] Skipping null/undefined record:', rec);
+                    continue;
+                }
+                if (!rec.patientId) {
+                    console.warn('[Pharmacy Dashboard] Record missing patientId:', rec);
+                    continue;
+                }
+                if (!rec.providerId) {
+                    console.warn('[Pharmacy Dashboard] Record missing providerId:', rec);
+                    continue;
+                }
+                if (!rec.type) {
+                    console.warn('[Pharmacy Dashboard] Record missing type:', rec);
+                    continue;
+                }
+                if (!rec.details) {
+                    console.warn('[Pharmacy Dashboard] Record missing details:', rec);
+                    continue;
+                }
+                validRecords.push(rec);
+            } catch (recordErr) {
+                console.error('[Pharmacy Dashboard] Error processing assigned record:', recordErr, rec);
+            }
+        }
+        if (validRecords.length === 0) {
+            console.error('[Pharmacy Dashboard] No valid assigned records found. Original records:', records);
+        } else {
+            console.log('[Pharmacy Dashboard] Valid records:', validRecords);
+        }
+        res.json(validRecords);
+    } catch (err: any) {
+        console.error('[Pharmacy Dashboard] Get assigned requests error:', err);
+        if (err && err.stack) {
+            console.error('[Pharmacy Dashboard] Error stack:', err.stack);
+        }
+        res.status(500).json({ message: 'Failed to fetch assigned requests', error: (err && typeof err === 'object' && 'message' in err) ? (err as any).message : String(err) });
     }
 };
 
@@ -779,7 +977,7 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
         const { id } = req.params;
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
-        const { status, feedback, resultFileUrl } = req.body;
+        const { status, feedback, resultFileUrl, medications }: { status?: string; feedback?: string; resultFileUrl?: string; medications?: MedicationFulfillment[] } = req.body;
         // Only providers can fulfill requests
         if (!['pharmacy', 'lab', 'radiologist'].includes(userRole)) {
             res.status(403).json({ message: 'Access denied' });
@@ -795,33 +993,66 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
             return;
         }
         // Only allow valid status transitions
+        // Updated logic: Per-medication availability and automatic status transitions
         const validTransitions: Record<string, string[]> = {
-            pending: ['ready_for_pickup', 'cancelled', 'partially_fulfilled', 'out_of_stock'],
-            partially_fulfilled: ['ready_for_pickup', 'cancelled'], // patient can accept or cancel
-            out_of_stock: ['cancelled'], // patient can only cancel or reassign
+            pending: ['confirmed', 'ready_for_pickup', 'cancelled', 'partially_fulfilled', 'out_of_stock'],
+            confirmed: ['ready_for_pickup', 'cancelled'],
+            partially_fulfilled: ['ready_for_pickup', 'cancelled'],
+            out_of_stock: ['cancelled'],
             ready_for_pickup: ['completed', 'cancelled'],
         };
+
+        // If medications array is provided, update per-medication availability
+        if (Array.isArray(medications)) {
+            record.details.medications = medications;
+            const allAvailable = medications.every((m: MedicationFulfillment) => m.available === true);
+            const allUnavailable = medications.every((m: MedicationFulfillment) => m.available === false);
+            if (record.status === 'pending') {
+                if (allAvailable) {
+                    record.status = 'confirmed';
+                } else if (allUnavailable) {
+                    record.status = 'out_of_stock';
+                    record.details.feedback = medications.map((m: any) => m.name).join(', ');
+                } else {
+                    record.status = 'partially_fulfilled';
+                    record.details.feedback = medications.filter((m: any) => !m.available).map((m: any) => m.name).join(', ');
+                }
+                record.markModified('details');
+            }
+        }
+
+        // Handle explicit status transitions (e.g., pharmacist clicks 'Order Prepared')
         if (status && record.status !== status) {
             const allowed = validTransitions[record.status] || [];
-            if (!allowed.includes(status)) {
+            if (typeof status === 'string' && !allowed.includes(status)) {
                 res.status(400).json({ message: `Invalid status transition from ${record.status} to ${status}` });
                 return;
             }
             // If pharmacist is setting partial/out_of_stock, require feedback
-            if (['partially_fulfilled', 'out_of_stock'].includes(status)) {
+            if (typeof status === 'string' && ['partially_fulfilled', 'out_of_stock'].includes(status)) {
                 if (!feedback || typeof feedback !== 'string' || feedback.trim() === '') {
                     res.status(400).json({ message: 'Feedback specifying unavailable medications is required.' });
                     return;
                 }
+                record.details.feedback = feedback;
+                record.markModified('details');
             }
-            record.status = status;
+            // If pharmacist sets ready_for_pickup, clear feedback
+            if (status === 'ready_for_pickup') {
+                record.details.feedback = '';
+                record.markModified('details');
+            }
+            // If pharmacist sets confirmed, do nothing (already handled above)
+            record.status = status as typeof record.status;
         }
-        if (feedback) {
+        // Allow updating feedback if provided (for patient acceptance)
+        if (feedback && typeof status === 'string' && !['partially_fulfilled', 'out_of_stock'].includes(status)) {
             record.details.feedback = feedback;
             record.markModified('details');
         }
         if (resultFileUrl) record.details.resultFileUrl = resultFileUrl;
         await record.save();
+        // TODO: Trigger notification to patient on status change
         res.json({ message: 'Request updated', medicalRecord: record });
     } catch (err) {
         console.error('Fulfill assigned request error:', err);
@@ -882,11 +1113,14 @@ export const reassignPharmacyForMedicalRecord = async (req: Request, res: Respon
             res.status(400).json({ message: 'pharmacyId is required' });
             return;
         }
+        // Do NOT create a new medical record. Update the existing one.
         record.providerId = pharmacyId;
         if (!record.details) record.details = {};
         record.details.assignedPharmacyId = pharmacyId;
         record.status = 'pending';
+        // Clear feedback and any fulfillment info
         record.details.feedback = '';
+        record.details.resultFileUrl = '';
         record.markModified('details');
         await record.save();
         res.json({ message: 'Pharmacy reassigned and request reset to pending', medicalRecord: record });
@@ -949,4 +1183,4 @@ export const uploadLabRadiologyReport = [
       res.status(500).json({ message: 'Failed to upload report', error: err });
     }
   }
-]; 
+];

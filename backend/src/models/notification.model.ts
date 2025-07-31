@@ -73,7 +73,7 @@ const notificationSchema = new Schema<INotification>({
   relatedEntity: {
     type: {
       type: String,
-      enum: ['appointment', 'prescription', 'medicalRecord', 'labResult', 'radiologyResult']
+      enum: ['appointment', 'prescription', 'medicalRecord', 'labResult', 'radiologyResult', 'medication']
     },
     id: {
       type: Schema.Types.ObjectId

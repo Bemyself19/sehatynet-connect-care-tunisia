@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, CheckCircle, AlertCircle, Calendar, FileText, Users, Settings } from 'lucide-react';
+import { Bell, X, CheckCircle, AlertCircle, Calendar, FileText, Users, Settings, Pill } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -98,8 +98,8 @@ const NotificationBell: React.FC = () => {
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
     await markAsRead(notification._id);
-    
     if (notification.actionUrl) {
+      console.log('[NotificationBell] Navigating to:', notification.actionUrl);
       navigate(notification.actionUrl);
     } else if (notification.relatedEntity?.type) {
       // Navigate based on entity type and user role
@@ -113,10 +113,20 @@ const NotificationBell: React.FC = () => {
           }
           break;
         case 'prescription':
-          navigate(`/prescriptions/${notification.relatedEntity.id}`);
+          if (notification.type === 'pharmacy_assignment' && user?.role === 'pharmacy') {
+            navigate(`/dashboard/pharmacy/prescriptions/${notification.relatedEntity.id}`);
+          } else {
+            navigate(`/prescriptions/${notification.relatedEntity.id}`);
+          }
           break;
         case 'medicalRecord':
-          navigate(`/medical-records/${notification.relatedEntity.id}`);
+          const isValidObjectId = /^[a-fA-F0-9]{24}$/.test(notification.relatedEntity.id);
+          if (isValidObjectId) {
+              navigate(`/medical-records/${notification.relatedEntity.id}`);
+          } else {
+              // Optionally show a toast or log error
+              console.warn('Invalid medical record id in notification:', notification.relatedEntity.id);
+          }
           break;
         case 'labResult':
           navigate(`/lab-results/${notification.relatedEntity.id}`);
@@ -125,7 +135,6 @@ const NotificationBell: React.FC = () => {
           break;
       }
     }
-    
     setIsOpen(false);
   };
 
@@ -143,6 +152,8 @@ const NotificationBell: React.FC = () => {
         return <AlertCircle className="h-4 w-4" />;
       case 'system_maintenance':
         return <Settings className="h-4 w-4" />;
+      case 'pharmacy_assignment':
+        return <Pill className="h-4 w-4 text-green-600" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -218,7 +229,10 @@ const NotificationBell: React.FC = () => {
                 <div
                   key={notification._id}
                   className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleNotificationClick(notification)}
+                  onClick={() => {
+                    console.log('Notification item clicked', notification);
+                    handleNotificationClick(notification);
+                  }}
                 >
                   <div className="flex items-start space-x-3">
                     <div className={`p-1 rounded-full ${getPriorityColor(notification.priority)}`}>

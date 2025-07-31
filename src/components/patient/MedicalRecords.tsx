@@ -7,6 +7,7 @@ declare module 'jspdf' {
   }
 }
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ function isPrescription(record: MedicalRecord | Prescription): record is Prescri
 
 const MedicalRecords = () => {
   const { user } = useUser();
+  const [searchParams] = useSearchParams();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [selectedItem, setSelectedItem] = useState<ViewableRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -81,11 +83,51 @@ const MedicalRecords = () => {
         setLoading(false);
       }
     };
-
     if (user && user._id) {
       fetchData();
     }
   }, [user, t]);
+
+  // Auto-open modal if 'open' query param is present and dashboardData is loaded
+  useEffect(() => {
+    if (!dashboardData) return;
+    const openId = searchParams.get('open');
+    console.log('[Auto-open modal] openId:', openId);
+    if (openId && !modalOpen) {
+      let found: ViewableRecord | undefined;
+      let foundType: 'consultation' | 'prescription' | undefined;
+      const allConsultationIds = dashboardData.consultationHistory.flatMap(entry => entry.medicalRecords.map(r => r._id));
+      const allPrescriptionIds = dashboardData.consultationHistory.flatMap(entry => entry.prescriptions.map(p => p._id));
+      const allRecentRecordIds = dashboardData.recentRecords ? dashboardData.recentRecords.map(r => r._id) : [];
+      console.log('[Auto-open modal] All consultation IDs:', allConsultationIds);
+      console.log('[Auto-open modal] All prescription IDs:', allPrescriptionIds);
+      console.log('[Auto-open modal] All recent record IDs:', allRecentRecordIds);
+      for (const entry of dashboardData.consultationHistory) {
+        found = entry.medicalRecords.find(r => r._id === openId);
+        if (found) {
+          foundType = 'consultation';
+          break;
+        }
+        found = entry.prescriptions.find(p => p._id === openId);
+        if (found) {
+          foundType = 'prescription';
+          break;
+        }
+      }
+      if (!found && dashboardData.recentRecords) {
+        found = dashboardData.recentRecords.find(r => r._id === openId);
+        if (found) foundType = 'consultation';
+      }
+      console.log('[Auto-open modal] Found:', found, 'Type:', foundType);
+      if (found) {
+        if (foundType === 'prescription') setActiveTab('prescriptions');
+        else setActiveTab('consultations');
+        openModal(found);
+      } else {
+        console.warn('[Auto-open modal] No matching record or prescription found for openId:', openId);
+      }
+    }
+  }, [dashboardData, searchParams, modalOpen]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -294,7 +336,7 @@ const MedicalRecords = () => {
       >
         {/* Debug block removed for production */}
         {selectedItem && isPrescription(selectedItem) ? (
-          <PrescriptionDetail prescription={selectedItem} />
+          <PrescriptionDetail medicalRecord={selectedItem} type="medication" />
         ) : selectedItem ? (
           <div>
             <h2>{t('dashboard.modal.title')}</h2>

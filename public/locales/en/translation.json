@@ -1,5 +1,7 @@
 {
   "dashboard": "Dashboard",
+  "dashboard.actions.downloadPDF": "Download PDF",
+  "dashboard.modal.prescriptionTitle": "Prescription Details",
   "permissions": "Permissions",
   "editProfile": "Edit Profile",
   "administrativeInformation": "Administrative Information",
@@ -808,4 +810,9 @@
   "systemPerformanceReport": "System Performance Report",
   "errorLogReport": "Error Log Report",
   "securityAuditReport": "Security Audit Report"
+  ,
+  "managePrescriptionRequests": "Manage Prescription Requests",
+  "prescriptionManagement": "Prescription Management",
+  "viewManagePrescriptionRequests": "View and Manage Prescription Requests",
+  "detailedPrescriptionManagementFeatures": "Detailed Prescription Management Features"
 }

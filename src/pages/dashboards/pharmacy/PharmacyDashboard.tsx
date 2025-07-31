@@ -28,8 +28,17 @@ const PharmacyDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('[PharmacyDashboard] useEffect triggered. user:', user);
     if (user && user.role === 'pharmacy') {
-      api.getAssignedRequests().then(setAssignedRequests);
+      console.log('[PharmacyDashboard] Calling api.getAssignedRequests()');
+      api.getAssignedRequests()
+        .then((data) => {
+          console.log('[PharmacyDashboard] api.getAssignedRequests response:', data);
+          setAssignedRequests(data);
+        })
+        .catch((err) => {
+          console.error('[PharmacyDashboard] api.getAssignedRequests error:', err);
+        });
     }
   }, [user]);
 
@@ -43,13 +52,21 @@ const PharmacyDashboard: React.FC = () => {
     setFulfillingId(id);
     setError(null);
     try {
+      // Require feedback for partial/out_of_stock
       if ((nextStatus === 'partially_fulfilled' || nextStatus === 'out_of_stock') && !feedback[id]) {
         setError('Please provide feedback specifying unavailable medications.');
         setFulfillingId(null);
         return;
       }
-      await api.fulfillAssignedRequest(id, { status: nextStatus, feedback: feedback[id] });
-      setAssignedRequests((prev) => prev.map(r => r._id === id ? { ...r, status: nextStatus, details: { ...r.details, feedback: feedback[id] } } : r));
+      // For ready_for_pickup, clear feedback
+      const payload: any = { status: nextStatus };
+      let feedbackValue = '';
+      if (['partially_fulfilled', 'out_of_stock'].includes(nextStatus)) {
+        payload.feedback = feedback[id];
+        feedbackValue = feedback[id];
+      }
+      await api.fulfillAssignedRequest(id, payload);
+      setAssignedRequests((prev) => prev.map(r => r._id === id ? { ...r, status: nextStatus, details: { ...r.details, feedback: feedbackValue } } : r));
       setFeedback((prev) => ({ ...prev, [id]: '' }));
     } catch (err: any) {
       setError(err.message || 'Failed to update request');

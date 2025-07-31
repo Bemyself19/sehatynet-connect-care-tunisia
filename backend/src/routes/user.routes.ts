@@ -29,8 +29,16 @@ router.get("/providers", authenticateJWT, getProviders);
 // Test route (no authentication required)
 router.get("/test", testUsers);
 
+
 // Provider search by role (pharmacy, lab, radiologist)
 router.get("/providers/search", authenticateJWT, getProviders);
+
+// Provider search by type (pharmacy, lab, radiologist) for compatibility
+router.get("/providers/by-type", authenticateJWT, getProvidersByType);
+
+
+// Patients list for doctors (and admins)
+router.get("/patients", authenticateJWT, getPatients);
 
 // Profile routes for the authenticated user. Using /me is a robust, stateless pattern.
 router.get("/me", authenticateJWT, getProfile);
