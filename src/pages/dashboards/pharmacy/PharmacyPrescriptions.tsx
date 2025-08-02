@@ -505,10 +505,11 @@ const PharmacyPrescriptions: React.FC = () => {
                     {/* Status actions */}
                     <div className="mt-4 flex flex-wrap gap-2">
                       {(() => {
-                        // Check if all medications are available
+                        // Check medication availability
                         const recordAvailability = medicationAvailability[record._id] || {};
                         const allAvailable = medications.every((med: any) => recordAvailability[med.name] ?? true);
-                        const anyUnavailable = medications.some((med: any) => !(recordAvailability[med.name] ?? true));
+                        const allUnavailable = medications.every((med: any) => !(recordAvailability[med.name] ?? true));
+                        const someAvailableSomeNot = !allAvailable && !allUnavailable;
                         
                         if (status === 'pending') {
                           return (
@@ -524,7 +525,7 @@ const PharmacyPrescriptions: React.FC = () => {
                                   <CheckCircle className="h-4 w-4 mr-1" /> {t('confirmOrder')}
                                 </Button>
                               )}
-                              {anyUnavailable && (
+                              {someAvailableSomeNot && (
                                 <>
                                   <input
                                     type="text"
@@ -544,7 +545,7 @@ const PharmacyPrescriptions: React.FC = () => {
                                   </Button>
                                 </>
                               )}
-                              {medications.every((med: any) => !(recordAvailability[med.name] ?? true)) && (
+                              {allUnavailable && (
                                 <>
                                   <input
                                     type="text"

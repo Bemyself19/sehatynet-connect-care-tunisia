@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+                                                                                                                                                                                                            import { Request, Response } from 'express';
 import Notification from '../models/notification.model';
 
 // Get all notifications for a user
