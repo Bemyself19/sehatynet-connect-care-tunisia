@@ -28,7 +28,7 @@ router.put('/read-all', markAllAsRead);
 // Delete notification
 router.delete('/:id', deleteNotification);
 
-// Create notification (admin only)
+// Create notification
 router.post('/', createNotification);
 
 // Debug endpoint to clear all notifications

@@ -40,14 +40,24 @@ const notificationSchema = new Schema<INotification>({
       'lab_result_ready',
       'lab_confirmed',
       'lab_ready',
+      'lab_completed',
+      'lab_partial_confirmation',
       'imaging_confirmed',
       'imaging_ready',
+      'imaging_completed',
+      'imaging_partial_confirmation',
       'radiology_result_ready',
       'system_maintenance',
       'general',
       'pharmacy_assignment',
       'lab_assignment',
-      'radiology_assignment'
+      'radiology_assignment',
+      'prescription_partial_confirmation',
+      'prescription_partial_confirmation_need_patient_action',
+      'prescription_out_of_stock',
+      'prescription_partial_fulfillment',
+      'prescription_completed',
+      'patient_confirmed_partial'
     ]
   },
   title: {
@@ -82,7 +92,7 @@ const notificationSchema = new Schema<INotification>({
   relatedEntity: {
     type: {
       type: String,
-      enum: ['appointment', 'prescription', 'medicalRecord', 'labResult', 'radiologyResult', 'medication']
+      enum: ['appointment', 'prescription', 'medicalRecord', 'labResult', 'radiologyResult', 'medication', 'lab_result', 'imaging']
     },
     id: {
       type: Schema.Types.ObjectId

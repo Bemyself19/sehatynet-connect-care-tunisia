@@ -36,13 +36,16 @@ export const getUnreadNotifications = async (req: Request, res: Response): Promi
   try {
     const userId = (req as any).user.id;
     
+    console.log('Fetching unread notifications for user:', userId);
+    
     const notifications = await Notification.find({ 
       userId, 
       isRead: false 
     })
       .sort({ createdAt: -1 })
       .limit(50);
-
+    
+    console.log('Found unread notifications:', notifications.length);
     res.json(notifications);
   } catch (error) {
     console.error('Get unread notifications error:', error);
@@ -145,6 +148,8 @@ export const createNotification = async (req: Request, res: Response): Promise<v
       return;
     }
 
+    console.log('Creating notification for user:', targetUserId, 'type:', type);
+    
     const notification = new Notification({
       userId: targetUserId,
       type,
@@ -156,7 +161,8 @@ export const createNotification = async (req: Request, res: Response): Promise<v
       data
     });
 
-    await notification.save();
+    const saved = await notification.save();
+    console.log('Notification created:', saved._id);
     res.status(201).json(notification);
   } catch (error) {
     console.error('Create notification error:', error);

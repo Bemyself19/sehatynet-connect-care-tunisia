@@ -1069,7 +1069,8 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
         // Only allow valid status transitions
         // Updated logic: Per-medication availability and automatic status transitions
         const validTransitions: Record<string, string[]> = {
-            pending: ['confirmed', 'ready_for_pickup', 'cancelled', 'partially_fulfilled', 'out_of_stock'],
+            pending: ['confirmed', 'ready_for_pickup', 'cancelled', 'partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'],
+            pending_patient_confirmation: ['partially_fulfilled', 'cancelled'],
             confirmed: ['ready_for_pickup', 'cancelled'],
             partially_fulfilled: ['ready_for_pickup', 'cancelled'],
             out_of_stock: ['cancelled'],
@@ -1102,7 +1103,7 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                     } else if (status === 'ready_for_pickup') {
                         medStatus = 'ready_for_pickup';
                     } else if (status === 'completed') {
-                        medStatus = 'completed';
+                        medStatus = 'collected';  // Change to 'collected' to match frontend
                     }
                     
                     // Make sure we have all the medication details
@@ -1146,7 +1147,8 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                     record.status = 'out_of_stock';
                     record.details.feedback = medications.map((m: any) => m.name).join(', ');
                 } else {
-                    record.status = 'partially_fulfilled';
+                    // Use pending_patient_confirmation instead of partially_fulfilled to wait for patient's confirmation
+                    record.status = 'pending_patient_confirmation';
                     record.details.feedback = medications.filter((m: any) => !m.available).map((m: any) => m.name).join(', ');
                 }
                 record.markModified('details');
@@ -1175,6 +1177,34 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                         }
                     }
                 });
+                
+                // Handle feedback for lab tests the same way as medications
+                if (record.status === 'pending') {
+                    const allAvailable = tests.every((t: any) => t.available === true);
+                    const allUnavailable = tests.every((t: any) => t.available === false);
+                    
+                    if (allAvailable) {
+                        record.status = 'confirmed';
+                    } else if (allUnavailable) {
+                        record.status = 'out_of_stock';
+                        // Store detailed feedback including unavailable test names
+                        record.details.feedback = tests.filter((t: any) => !t.available)
+                            .map((t: any) => t.testName || t.name)
+                            .join(', ');
+                    } else {
+                        record.status = 'pending_patient_confirmation';
+                        // Store detailed feedback including unavailable test names
+                        record.details.feedback = tests.filter((t: any) => !t.available)
+                            .map((t: any) => t.testName || t.name)
+                            .join(', ');
+                    }
+                }
+                
+                // If feedback parameter was provided directly, use that
+                if (feedback) {
+                    record.details.feedback = feedback;
+                }
+                
                 record.markModified('details');
             }
         }
@@ -1201,6 +1231,34 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                         }
                     }
                 });
+                
+                // Handle feedback for radiology exams the same way as medications
+                if (record.status === 'pending') {
+                    const allAvailable = exams.every((e: any) => e.available === true);
+                    const allUnavailable = exams.every((e: any) => e.available === false);
+                    
+                    if (allAvailable) {
+                        record.status = 'confirmed';
+                    } else if (allUnavailable) {
+                        record.status = 'out_of_stock';
+                        // Store detailed feedback including unavailable exam names
+                        record.details.feedback = exams.filter((e: any) => !e.available)
+                            .map((e: any) => e.examName || e.name)
+                            .join(', ');
+                    } else {
+                        record.status = 'pending_patient_confirmation';
+                        // Store detailed feedback including unavailable exam names
+                        record.details.feedback = exams.filter((e: any) => !e.available)
+                            .map((e: any) => e.examName || e.name)
+                            .join(', ');
+                    }
+                }
+                
+                // If feedback parameter was provided directly, use that
+                if (feedback) {
+                    record.details.feedback = feedback;
+                }
+                
                 record.markModified('details');
             }
         }
@@ -1231,12 +1289,19 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
             if (record.type === 'lab_result' && record.details && Array.isArray(record.details.labTests)) {
                 record.details.labTests = record.details.labTests.map((test: any) => {
                     let testStatus = test.status || 'pending';
-                    if (status === 'confirmed') {
-                        testStatus = 'confirmed';
-                    } else if (status === 'ready_for_pickup') {
-                        testStatus = 'ready_for_pickup';
-                    } else if (status === 'completed') {
-                        testStatus = 'completed';
+                    
+                    // Only update status for available tests
+                    if (test.available !== false) {
+                        if (status === 'confirmed') {
+                            testStatus = 'confirmed';
+                        } else if (status === 'ready_for_pickup') {
+                            testStatus = 'ready_for_pickup';
+                        } else if (status === 'completed') {
+                            testStatus = 'collected';  // Change to 'collected' for consistency with medications
+                        }
+                    } else {
+                        // Keep unavailable tests as unavailable
+                        testStatus = 'unavailable';
                     }
                     
                     return {
@@ -1251,12 +1316,19 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
             if (record.type === 'imaging' && record.details && Array.isArray(record.details.radiology)) {
                 record.details.radiology = record.details.radiology.map((exam: any) => {
                     let examStatus = exam.status || 'pending';
-                    if (status === 'confirmed') {
-                        examStatus = 'confirmed';
-                    } else if (status === 'ready_for_pickup') {
-                        examStatus = 'ready_for_pickup';
-                    } else if (status === 'completed') {
-                        examStatus = 'completed';
+                    
+                    // Only update status for available exams
+                    if (exam.available !== false) {
+                        if (status === 'confirmed') {
+                            examStatus = 'confirmed';
+                        } else if (status === 'ready_for_pickup') {
+                            examStatus = 'ready_for_pickup';
+                        } else if (status === 'completed') {
+                            examStatus = 'collected';  // Change to 'collected' for consistency with medications
+                        }
+                    } else {
+                        // Keep unavailable exams as unavailable
+                        examStatus = 'unavailable';
                     }
                     
                     return {
@@ -1274,6 +1346,21 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                         ...med,
                         status: med.available !== false ? 'confirmed' : 'unavailable'
                     };
+                });
+                record.markModified('details');
+            }
+            
+            // If status is completed, update all available medications to collected
+            if (status === 'completed' && record.type === 'medication' && record.details && Array.isArray(record.details.medications)) {
+                record.details.medications = record.details.medications.map((med: any) => {
+                    // Only update status for available medications
+                    if (med.available !== false) {
+                        return {
+                            ...med,
+                            status: 'collected'
+                        };
+                    }
+                    return med;
                 });
                 record.markModified('details');
             }
@@ -1311,7 +1398,7 @@ export const cancelMedicalRecordRequest = async (req: Request, res: Response): P
             return;
         }
         // Only allow cancellation if status is pending, ready_for_pickup, partially_fulfilled, or out_of_stock
-        if (!['pending', 'ready_for_pickup', 'partially_fulfilled', 'out_of_stock'].includes(record.status)) {
+        if (!['pending', 'ready_for_pickup', 'partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(record.status)) {
             res.status(400).json({ message: `Cannot cancel a request with status '${record.status}'` });
             return;
         }
@@ -1321,6 +1408,92 @@ export const cancelMedicalRecordRequest = async (req: Request, res: Response): P
     } catch (err) {
         console.error('Cancel medical record request error:', err);
         res.status(500).json({ message: 'Failed to cancel request', error: err });
+    }
+};
+
+export const confirmPartialFulfillment = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).user.id;
+        const userRole = (req as any).user.role;
+        
+        const record = await MedicalRecord.findById(id);
+        if (!record) {
+            res.status(404).json({ message: 'Medical record not found' });
+            return;
+        }
+        
+        // Only the patient can confirm their own request
+        if (record.patientId.toString() !== userId) {
+            res.status(403).json({ message: 'Only the patient can confirm this request' });
+            return;
+        }
+        
+        // Only allow confirmation if status is pending_patient_confirmation
+        if (record.status !== 'pending_patient_confirmation') {
+            res.status(400).json({ message: `Cannot confirm a request with status '${record.status}'` });
+            return;
+        }
+        
+        // Change status to partially_fulfilled to indicate patient has confirmed
+        record.status = 'partially_fulfilled';
+        await record.save();
+        
+        // Send notification to provider based on record type
+        const notificationController = require('./notification.controller');
+        
+        let notificationType = 'medication';
+        let message = 'Patient has confirmed the partial medication order.';
+        let actionUrl = '/dashboard/pharmacy/prescriptions';
+        
+        // Determine notification details based on record type
+        if (record.type === 'lab_result') {
+            notificationType = 'lab_result';
+            message = 'Patient has confirmed the partial lab tests order.';
+            actionUrl = '/dashboard/lab/requests';
+        } else if (record.type === 'imaging') {
+            notificationType = 'imaging';
+            message = 'Patient has confirmed the partial radiology exams order.';
+            actionUrl = '/dashboard/radiology/requests';
+        }
+        
+        try {
+            // Extract provider ID correctly whether it's an object or a string
+            const providerId = typeof record.providerId === 'object' ? 
+                (record.providerId._id ? record.providerId._id : record.providerId) : 
+                record.providerId;
+            
+            console.log('[confirmPartialFulfillment] Sending notification to provider:', providerId);
+            
+            await notificationController.createNotification({
+                body: {
+                    userId: providerId,
+                    type: 'patient_confirmed_partial',
+                    title: 'Patient Confirmed Partial Order',
+                    message: message,
+                    priority: 'high',
+                    relatedEntity: {
+                        id: record._id,
+                        type: record.type // Use the actual record type (medication, lab_result, imaging)
+                    },
+                    data: {
+                        recordId: record._id,
+                        status: 'partially_fulfilled'
+                    },
+                    actionUrl: actionUrl
+                }
+            }, { status: () => ({ json: () => {} }) });
+        } catch (notificationError) {
+            console.error('Error sending notification:', notificationError);
+        }
+        
+        res.json({ 
+            message: 'Partial fulfillment confirmed', 
+            medicalRecord: record 
+        });
+    } catch (err) {
+        console.error('Confirm partial fulfillment error:', err);
+        res.status(500).json({ message: 'Failed to confirm partial fulfillment', error: err });
     }
 };
 

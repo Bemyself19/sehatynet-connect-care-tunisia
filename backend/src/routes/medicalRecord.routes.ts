@@ -78,8 +78,10 @@ router.patch("/:id/fulfill", authenticateJWT, fulfillAssignedRequest);
 router.post("/:id/upload-report", authenticateJWT, upload.single("file"), uploadLabRadiologyReport);
 
 // Cancel a medical record request
-import { cancelMedicalRecordRequest } from "../controllers/medicalRecord.controller";
+import { cancelMedicalRecordRequest, confirmPartialFulfillment } from "../controllers/medicalRecord.controller";
 router.patch("/:id/cancel", authenticateJWT, cancelMedicalRecordRequest);
+// Confirm partial fulfillment
+router.post("/:id/confirm-partial", authenticateJWT, confirmPartialFulfillment);
 
 // Get medical records by prescription ID
 router.get("/by-prescription/:prescriptionId", authenticateJWT, getMedicalRecordsByPrescriptionId);

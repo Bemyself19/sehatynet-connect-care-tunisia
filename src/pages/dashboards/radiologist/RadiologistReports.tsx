@@ -25,7 +25,40 @@ const RadiologistReports: React.FC = () => {
     setLoading(true);
     api.getAssignedRequests()
       .then((data) => {
-        setImagingRequests(data.filter(r => r.type === 'imaging'));
+        const imagingRequests = data.filter(r => r.type === 'imaging');
+        setImagingRequests(imagingRequests);
+        
+        // Initialize exam availability and feedback state from fetched data
+        const initialAvailability = {};
+        const initialFeedback = {};
+        
+        imagingRequests.forEach(record => {
+          if (record.details?.radiology) {
+            initialAvailability[record._id] = {};
+            record.details.radiology.forEach(exam => {
+              // Set availability based on exam status
+              if (exam.hasOwnProperty('available')) {
+                initialAvailability[record._id][exam.examName || exam.name] = exam.available;
+              } else {
+                // If no availability info, default to true unless status is 'unavailable'
+                initialAvailability[record._id][exam.examName || exam.name] = exam.status !== 'unavailable';
+              }
+            });
+          }
+          
+          // Store feedback for partially fulfilled or other relevant statuses
+          if (['partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(record.status)) {
+            // Check both locations where feedback might be stored
+            const feedback = record.feedback || record.details?.feedback;
+            if (feedback) {
+              initialFeedback[record._id] = feedback;
+            }
+          }
+        });
+        
+        // Update states
+        setExamAvailability(prev => ({...prev, ...initialAvailability}));
+        setFeedbackMap(prev => ({...prev, ...initialFeedback}));
         setLoading(false);
       })
       .catch((err) => {
@@ -62,8 +95,21 @@ const RadiologistReports: React.FC = () => {
     try {
       const record = imagingRequests.find(r => r._id === id);
       const payload: any = { status: newStatus };
-      if (['partially_fulfilled', 'out_of_stock'].includes(newStatus)) {
-        payload.feedback = feedbackMap[id];
+      if (['partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(newStatus)) {
+        // If it's a partial fulfillment or out of stock, construct a detailed feedback message
+        const record = imagingRequests.find(r => r._id === id);
+        const recordAvailability = examAvailability[id] || {};
+        const exams = record?.details?.radiology || [];
+        const unavailableExams = exams
+          .filter(exam => !(recordAvailability[exam.examName || exam.name] ?? true))
+          .map(exam => exam.examName || exam.name);
+        
+        if (unavailableExams.length > 0) {
+          // Set feedback to either the user-provided feedback or a list of unavailable exams
+          payload.feedback = feedbackMap[id] || `${t('unavailableExams') || 'Unavailable exams'}: ${unavailableExams.join(', ')}`;
+        } else if (feedbackMap[id]) {
+          payload.feedback = feedbackMap[id];
+        }
       }
       
       // Include exam availability data
@@ -76,6 +122,40 @@ const RadiologistReports: React.FC = () => {
       payload.exams = examFulfillment;
       
       await api.fulfillAssignedRequest(id, payload);
+      
+      // Send notification to patient when order needs patient confirmation for partial fulfillment
+      if (newStatus === 'pending_patient_confirmation' && record) {
+        const unavailableExams = examFulfillment.filter(exam => !exam.available).map(exam => exam.name);
+        const availableExams = examFulfillment.filter(exam => exam.available).map(exam => exam.name);
+        const radiology = record.providerId?.firstName && record.providerId?.lastName 
+          ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+          : 'Radiology';
+            
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'imaging_partial_confirmation',
+          title: t('partialImagingConfirmation') || 'Partial Imaging Confirmation Needed',
+          message: t('partialImagingConfirmationMessage', { 
+            availableExams: availableExams.join(', '),
+            unavailableExams: unavailableExams.join(', '),
+            radiology
+          }) || `Some imaging exams are unavailable at ${radiology}: ${unavailableExams.join(', ')}. Please confirm if you want to proceed with only the available exams: ${availableExams.join(', ')}.`,
+          priority: 'high',
+          data: {
+            imagingId: record._id,
+            status: newStatus,
+            exams: examFulfillment
+          },
+          actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
       
       // Send notification to patient when order is confirmed
       if (newStatus === 'confirmed' && record) {
@@ -118,6 +198,32 @@ const RadiologistReports: React.FC = () => {
           type: 'imaging_ready',
           title: t('imagingReady') || 'Imaging Ready',
           message: t('imagingReadyMessage') || `Your imaging results are ready for pickup.`,
+          priority: 'high',
+          data: {
+            imagingId: record._id,
+            status: newStatus,
+            providerId: record.providerId?._id,
+            providerName: record.providerId?.firstName && record.providerId?.lastName 
+              ? `Dr. ${record.providerId.firstName} ${record.providerId.lastName}` 
+              : 'Radiology'
+          }
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
+      
+      // Send notification when completed
+      if (newStatus === 'completed' && record) {
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'imaging_completed',
+          title: t('imagingCompleted') || 'Imaging Completed',
+          message: t('imagingCompletedMessage') || `Your imaging study has been completed and results are available.`,
           priority: 'high',
           data: {
             imagingId: record._id,
@@ -190,8 +296,10 @@ const RadiologistReports: React.FC = () => {
                 const canConfirmOrder = status === 'pending' && allExamsAvailable;
                 const canPartialFulfill = status === 'pending' && someExamsAvailable && !allExamsAvailable;
                 const canMarkOutOfStock = status === 'pending' && noExamsAvailable;
-                const canMarkReady = status === 'confirmed';
+                const canMarkReady = status === 'confirmed' || status === 'partially_fulfilled';
                 const canComplete = status === 'ready_for_pickup';
+                const isWaitingPatientConfirmation = status === 'pending_patient_confirmation';
+                const isPartiallyFulfilled = status === 'partially_fulfilled';
                 const feedback = feedbackMap[record._id] || '';
                 const actionLoading = actionLoadingMap[record._id] || false;
                 const setFeedback = (val: string) => setFeedbackMap(prev => ({ ...prev, [record._id]: val }));
@@ -235,7 +343,9 @@ const RadiologistReports: React.FC = () => {
                                   id={`exam-${record._id}-${idx}`}
                                   checked={isAvailable}
                                   onChange={() => toggleExamAvailability(record._id, examName)}
+                                  disabled={['confirmed', 'ready_for_pickup', 'completed', 'partially_fulfilled', 'pending_patient_confirmation'].includes(status)}
                                   className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                  title={exam.available === false ? 'Exam is unavailable' : ''}
                                 />
                                 <label 
                                   htmlFor={`exam-${record._id}-${idx}`}
@@ -243,7 +353,7 @@ const RadiologistReports: React.FC = () => {
                                 >
                                   <div className="font-medium flex items-center">
                                     <span>{examName}</span>
-                                    {!isAvailable && (
+                                    {(!isAvailable || exam.available === false) && (
                                       <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
                                         {t('unavailable') || 'Unavailable'}
                                       </span>
@@ -260,6 +370,25 @@ const RadiologistReports: React.FC = () => {
                     )}
                     {/* Notes */}
                     <div className="mt-2 text-sm text-gray-700">{record.details?.notes || ''}</div>
+                    
+                    {/* Feedback display for partially fulfilled orders */}
+                    {(status === 'partially_fulfilled' || status === 'out_of_stock') && (record.details?.feedback || record.feedback) && (
+                      <div className="mt-2 text-sm bg-yellow-50 border border-yellow-200 p-2 rounded">
+                        <span className="font-medium text-amber-700">{t('feedback') || 'Feedback'}:</span> {record.feedback || record.details?.feedback || feedback}
+                      </div>
+                    )}
+                    
+                    {/* Show exam availability summary in ready_for_pickup state */}
+                    {status === 'ready_for_pickup' && exams.some(exam => exam.available === false) && (
+                      <div className="mt-2 text-sm bg-blue-50 border border-blue-200 p-2 rounded">
+                        <span className="font-medium text-blue-700">{t('availabilityInfo') || 'Availability Info'}:</span> {' '}
+                        <span className="text-green-600">{t('available') || 'Available'}: </span>
+                        {exams.filter(exam => exam.available !== false).map(exam => exam.examName || exam.name).join(', ')}
+                        {' | '}
+                        <span className="text-red-600">{t('unavailable') || 'Unavailable'}: </span>
+                        {exams.filter(exam => exam.available === false).map(exam => exam.examName || exam.name).join(', ')}
+                      </div>
+                    )}
                     {/* Status actions */}
                     <div className="mt-4 flex flex-wrap gap-2">
                       {canConfirmOrder && (
@@ -272,6 +401,24 @@ const RadiologistReports: React.FC = () => {
                           <CheckCircle className="h-4 w-4 mr-1" /> {t('markReadyForPickup')}
                         </Button>
                       )}
+                      {isWaitingPatientConfirmation && (
+                        <>
+                          <div className="text-amber-500 text-sm mt-2 flex items-center">
+                            <Clock className="h-4 w-4 mr-1" /> {t('waitingForPatientConfirmation') || 'Waiting for patient confirmation'}
+                          </div>
+                          {(record.details?.feedback || record.feedback) && (
+                            <div className="mt-2 text-sm p-2 bg-amber-50 border border-amber-200 rounded w-full">
+                              <strong>{t('unavailableExams') || 'Unavailable exams'}:</strong> {record.details?.feedback || record.feedback}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {isPartiallyFulfilled && (
+                        <div className="text-blue-500 text-sm mt-2 flex items-center">
+                          <CheckCircle className="h-4 w-4 mr-1" /> {t('patientConfirmedPartial') || 'Patient confirmed partial fulfillment'}
+                        </div>
+                      )}
                       {canPartialFulfill && (
                         <>
                           <input
@@ -282,8 +429,8 @@ const RadiologistReports: React.FC = () => {
                             className="border rounded px-2 py-1 text-sm"
                             style={{ minWidth: 180 }}
                           />
-                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange(record._id, 'partially_fulfilled')} size="sm" variant="outline">
-                            <AlertCircle className="h-4 w-4 mr-1" /> {t('markPartiallyFulfilled')}
+                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange(record._id, 'pending_patient_confirmation')} size="sm" variant="outline">
+                            <AlertCircle className="h-4 w-4 mr-1" /> {t('requestPatientConfirmation')}
                           </Button>
                         </>
                       )}

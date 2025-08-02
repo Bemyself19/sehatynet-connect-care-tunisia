@@ -140,11 +140,12 @@ const PharmacyPrescriptions: React.FC = () => {
                 const medications = record.details?.medications || [];
                 // Status transitions
                 const status = record.status || 'pending';
-                const canMarkReady = status === 'pending' || status === 'partially_fulfilled';
+                const canMarkReady = status === 'partially_fulfilled';
                 const canPartialFulfill = status === 'pending';
                 const canOutOfStock = status === 'pending';
                 const canComplete = status === 'ready_for_pickup';
-                const canCancel = ['pending', 'ready_for_pickup', 'partially_fulfilled', 'out_of_stock'].includes(status);
+                const canCancel = ['pending', 'ready_for_pickup', 'partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(status);
+                const isWaitingPatientConfirmation = status === 'pending_patient_confirmation';
 
                 // Per-record state
                 const feedback = feedbackMap[record._id] || '';
@@ -155,8 +156,20 @@ const PharmacyPrescriptions: React.FC = () => {
                   setActionLoading(true);
                   try {
                     const payload: any = { status: newStatus };
-                    if (['partially_fulfilled', 'out_of_stock'].includes(newStatus)) {
-                      payload.feedback = feedback;
+                    if (['partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(newStatus)) {
+                      // If it's a partial fulfillment or out of stock, construct a detailed feedback message
+                      const recordAvailability = medicationAvailability[record._id] || {};
+                      const medications = record.details?.medications || [];
+                      const unavailableMeds = medications
+                        .filter(med => !(recordAvailability[med.name] ?? true))
+                        .map(med => med.name);
+                      
+                      if (unavailableMeds.length > 0) {
+                        // Set feedback to either the user-provided feedback or a list of unavailable medications
+                        payload.feedback = feedback || `${t('unavailableMedications') || 'Unavailable medications'}: ${unavailableMeds.join(', ')}`;
+                      } else if (feedback) {
+                        payload.feedback = feedback;
+                      }
                     }
                     
                     // Include medication availability data while preserving ALL original medication details
@@ -177,7 +190,7 @@ const PharmacyPrescriptions: React.FC = () => {
                       } else if (newStatus === 'ready_for_pickup') {
                         medStatus = 'ready_for_pickup';
                       } else if (newStatus === 'completed') {
-                        medStatus = 'completed';
+                        medStatus = 'collected';  // Change to 'collected' for better clarity in UI
                       } else if (med.status && med.status !== 'pending') {
                         // Preserve existing non-pending status if present
                         medStatus = med.status;
@@ -230,6 +243,72 @@ const PharmacyPrescriptions: React.FC = () => {
                       }
                     }
                     
+                    // Send notification to patient when order is partially available and needs confirmation
+                    if (newStatus === 'pending_patient_confirmation' && record) {
+                      const unavailableMeds = medicationFulfillment.filter(med => !med.available).map(med => med.name);
+                      const availableMeds = medicationFulfillment.filter(med => med.available).map(med => med.name);
+                      const pharmacy = record.providerId?.firstName && record.providerId?.lastName 
+                          ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+                          : 'Pharmacy';
+                          
+                      const notificationData = {
+                        recipientId: record.patientId,
+                        type: 'prescription_partial_confirmation',
+                        title: t('partialPrescriptionConfirmation') || 'Partial Prescription Confirmation Needed',
+                        message: t('partialPrescriptionConfirmationMessage', { 
+                          availableMeds: availableMeds.join(', '),
+                          unavailableMeds: unavailableMeds.join(', '),
+                          pharmacy
+                        }) || `Some medications are unavailable at ${pharmacy}: ${unavailableMeds.join(', ')}. Please confirm if you want to proceed with only the available medications: ${availableMeds.join(', ')}.`,
+                        priority: 'high',
+                        data: {
+                          prescriptionId: record._id,
+                          status: newStatus,
+                          medications: medicationFulfillment
+                        },
+                        actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
+                      };
+                      
+                      try {
+                        await api.createNotification(notificationData);
+                      } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't fail the whole operation if notification fails
+                      }
+                    }
+                    
+                    // Send notification to patient when order is completely out of stock
+                    if (newStatus === 'out_of_stock' && record) {
+                      const unavailableMeds = medicationFulfillment.filter(med => !med.available).map(med => med.name);
+                      const pharmacy = record.providerId?.firstName && record.providerId?.lastName 
+                          ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+                          : 'Pharmacy';
+                          
+                      const notificationData = {
+                        recipientId: record.patientId,
+                        type: 'prescription_out_of_stock',
+                        title: t('prescriptionOutOfStock') || 'Prescription Out of Stock',
+                        message: t('prescriptionOutOfStockMessage', { 
+                          medications: unavailableMeds.join(', '),
+                          pharmacy
+                        }) || `All medications are unavailable at ${pharmacy}: ${unavailableMeds.join(', ')}. You can request these medications from another pharmacy.`,
+                        priority: 'high',
+                        data: {
+                          prescriptionId: record._id,
+                          status: newStatus,
+                          medications: medicationFulfillment
+                        },
+                        actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
+                      };
+                      
+                      try {
+                        await api.createNotification(notificationData);
+                      } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't fail the whole operation if notification fails
+                      }
+                    }
+                    
                     // Send notification when ready for pickup
                     if (newStatus === 'ready_for_pickup' && record) {
                       const notificationData = {
@@ -245,7 +324,35 @@ const PharmacyPrescriptions: React.FC = () => {
                           providerName: record.providerId?.firstName && record.providerId?.lastName 
                             ? `${record.providerId.firstName} ${record.providerId.lastName}` 
                             : 'Pharmacy'
-                        }
+                        },
+                        actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
+                      };
+                      
+                      try {
+                        await api.createNotification(notificationData);
+                      } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't fail the whole operation if notification fails
+                      }
+                    }
+                    
+                    // Send notification when completed
+                    if (newStatus === 'completed' && record) {
+                      const notificationData = {
+                        recipientId: record.patientId,
+                        type: 'prescription_completed',
+                        title: t('prescriptionCompleted') || 'Prescription Completed',
+                        message: t('prescriptionCompletedMessage') || `Your prescription has been marked as completed. Thank you for using our service.`,
+                        priority: 'medium',
+                        data: {
+                          prescriptionId: record._id,
+                          status: newStatus,
+                          providerId: record.providerId?._id,
+                          providerName: record.providerId?.firstName && record.providerId?.lastName 
+                            ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+                            : 'Pharmacy'
+                        },
+                        actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
                       };
                       
                       try {
@@ -419,7 +526,7 @@ const PharmacyPrescriptions: React.FC = () => {
                                   />
                                   <Button 
                                     disabled={actionLoading || !feedback.trim()} 
-                                    onClick={() => handleStatusChange('partially_fulfilled')} 
+                                    onClick={() => handleStatusChange('pending_patient_confirmation')} 
                                     size="sm" 
                                     variant="outline"
                                   >
@@ -446,6 +553,19 @@ const PharmacyPrescriptions: React.FC = () => {
                                     <AlertCircle className="h-4 w-4 mr-1" /> {t('markOutOfStock')}
                                   </Button>
                                 </>
+                              )}
+                            </>
+                          );
+                        } else if (status === 'pending_patient_confirmation') {
+                          return (
+                            <>
+                              <div className="text-amber-500 text-sm mt-2 flex items-center">
+                                <Clock className="h-4 w-4 mr-1" /> {t('waitingForPatientConfirmation') || 'Waiting for patient confirmation'}
+                              </div>
+                              {(record.details?.feedback || record.feedback) && (
+                                <div className="mt-2 text-sm p-2 bg-amber-50 border border-amber-200 rounded">
+                                  <strong>{t('unavailableMedications') || 'Unavailable medications'}:</strong> {record.details?.feedback || record.feedback}
+                                </div>
                               )}
                             </>
                           );

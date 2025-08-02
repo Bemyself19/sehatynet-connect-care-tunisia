@@ -117,6 +117,19 @@ const NotificationBell: React.FC = () => {
       return;
     }
     
+    if (notification.type === 'patient_confirmed_partial') {
+      console.log('[NotificationBell] Patient confirmed partial fulfillment notification');
+      if (user?.role === 'lab' && notification.relatedEntity?.type === 'lab_result') {
+        navigate(`/dashboard/lab/results?id=${notification.relatedEntity?.id}`);
+      } else if (user?.role === 'radiologist' && notification.relatedEntity?.type === 'imaging') {
+        navigate(`/dashboard/radiologist/reports?id=${notification.relatedEntity?.id}`);
+      } else if (user?.role === 'pharmacy' && notification.relatedEntity?.type === 'medication') {
+        navigate(`/dashboard/pharmacy/prescriptions?id=${notification.relatedEntity?.id}`);
+      }
+      setIsOpen(false);
+      return;
+    }
+    
     if (notification.actionUrl) {
       console.log('[NotificationBell] Navigating to actionUrl:', notification.actionUrl);
       navigate(notification.actionUrl);
@@ -195,6 +208,8 @@ const NotificationBell: React.FC = () => {
           case 'lab_confirmed':
           case 'lab_ready':
             return <AlertCircle className="h-4 w-4" />;
+          case 'patient_confirmed_partial':
+            return <CheckCircle className="h-4 w-4 text-green-600" />;
           case 'system_maintenance':
             return <Settings className="h-4 w-4" />;
           case 'pharmacy_assignment':

@@ -25,7 +25,40 @@ const LabResults: React.FC = () => {
     setLoading(true);
     api.getAssignedRequests()
       .then((data) => {
-        setLabRequests(data.filter(r => r.type === 'lab_result'));
+        const labRequests = data.filter(r => r.type === 'lab_result');
+        setLabRequests(labRequests);
+        
+        // Initialize test availability and feedback state from fetched data
+        const initialAvailability = {};
+        const initialFeedback = {};
+        
+        labRequests.forEach(record => {
+          if (record.details?.labTests) {
+            initialAvailability[record._id] = {};
+            record.details.labTests.forEach(test => {
+              // Set availability based on test status
+              if (test.hasOwnProperty('available')) {
+                initialAvailability[record._id][test.testName || test.name] = test.available;
+              } else {
+                // If no availability info, default to true unless status is 'unavailable'
+                initialAvailability[record._id][test.testName || test.name] = test.status !== 'unavailable';
+              }
+            });
+          }
+          
+          // Store feedback for partially fulfilled or other relevant statuses
+          if (['partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(record.status)) {
+            // Check both locations where feedback might be stored
+            const feedback = record.feedback || record.details?.feedback;
+            if (feedback) {
+              initialFeedback[record._id] = feedback;
+            }
+          }
+        });
+        
+        // Update states
+        setTestAvailability(prev => ({...prev, ...initialAvailability}));
+        setFeedbackMap(prev => ({...prev, ...initialFeedback}));
         setLoading(false);
       })
       .catch((err) => {
@@ -62,8 +95,21 @@ const LabResults: React.FC = () => {
     try {
       const record = labRequests.find(r => r._id === id);
       const payload: any = { status: newStatus };
-      if (['partially_fulfilled', 'out_of_stock'].includes(newStatus)) {
-        payload.feedback = feedbackMap[id];
+      if (['partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'].includes(newStatus)) {
+        // If it's a partial fulfillment or out of stock, construct a detailed feedback message
+        const record = labRequests.find(r => r._id === id);
+        const recordAvailability = testAvailability[id] || {};
+        const tests = record?.details?.labTests || [];
+        const unavailableTests = tests
+          .filter(test => !(recordAvailability[test.testName || test.name] ?? true))
+          .map(test => test.testName || test.name);
+        
+        if (unavailableTests.length > 0) {
+          // Set feedback to either the user-provided feedback or a list of unavailable tests
+          payload.feedback = feedbackMap[id] || `${t('unavailableTests') || 'Unavailable tests'}: ${unavailableTests.join(', ')}`;
+        } else if (feedbackMap[id]) {
+          payload.feedback = feedbackMap[id];
+        }
       }
       
       // Include test availability data
@@ -76,6 +122,40 @@ const LabResults: React.FC = () => {
       payload.tests = testFulfillment;
       
       await api.fulfillAssignedRequest(id, payload);
+      
+      // Send notification to patient when order needs patient confirmation for partial fulfillment
+      if (newStatus === 'pending_patient_confirmation' && record) {
+        const unavailableTests = testFulfillment.filter(test => !test.available).map(test => test.name);
+        const availableTests = testFulfillment.filter(test => test.available).map(test => test.name);
+        const lab = record.providerId?.firstName && record.providerId?.lastName 
+          ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+          : 'Laboratory';
+            
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'lab_partial_confirmation',
+          title: t('partialLabConfirmation') || 'Partial Lab Test Confirmation Needed',
+          message: t('partialLabConfirmationMessage', { 
+            availableTests: availableTests.join(', '),
+            unavailableTests: unavailableTests.join(', '),
+            lab
+          }) || `Some lab tests are unavailable at ${lab}: ${unavailableTests.join(', ')}. Please confirm if you want to proceed with only the available tests: ${availableTests.join(', ')}.`,
+          priority: 'high',
+          data: {
+            labTestId: record._id,
+            status: newStatus,
+            tests: testFulfillment
+          },
+          actionUrl: `/dashboard/patient/medical-records?open=${record._id}`
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
       
       // Send notification to patient when order is confirmed
       if (newStatus === 'confirmed' && record) {
@@ -118,6 +198,32 @@ const LabResults: React.FC = () => {
           type: 'lab_ready',
           title: t('labTestReady') || 'Lab Test Ready',
           message: t('labTestReadyMessage') || `Your lab test results are ready for pickup.`,
+          priority: 'high',
+          data: {
+            labTestId: record._id,
+            status: newStatus,
+            providerId: record.providerId?._id,
+            providerName: record.providerId?.firstName && record.providerId?.lastName 
+              ? `Dr. ${record.providerId.firstName} ${record.providerId.lastName}` 
+              : 'Lab'
+          }
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
+      
+      // Send notification when completed
+      if (newStatus === 'completed' && record) {
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'lab_completed',
+          title: t('labTestCompleted') || 'Lab Test Completed',
+          message: t('labTestCompletedMessage') || `Your lab test has been completed and results are available.`,
           priority: 'high',
           data: {
             labTestId: record._id,
@@ -190,8 +296,10 @@ const LabResults: React.FC = () => {
                 const canConfirmOrder = status === 'pending' && allTestsAvailable;
                 const canPartialFulfill = status === 'pending' && someTestsAvailable && !allTestsAvailable;
                 const canMarkOutOfStock = status === 'pending' && noTestsAvailable;
-                const canMarkReady = status === 'confirmed';
+                const canMarkReady = status === 'confirmed' || status === 'partially_fulfilled';
                 const canComplete = status === 'ready_for_pickup';
+                const isWaitingPatientConfirmation = status === 'pending_patient_confirmation';
+                const isPartiallyFulfilled = status === 'partially_fulfilled';
                 const feedback = feedbackMap[record._id] || '';
                 const actionLoading = actionLoadingMap[record._id] || false;
                 const setFeedback = (val: string) => setFeedbackMap(prev => ({ ...prev, [record._id]: val }));
@@ -235,7 +343,9 @@ const LabResults: React.FC = () => {
                                   id={`test-${record._id}-${idx}`}
                                   checked={isAvailable}
                                   onChange={() => toggleTestAvailability(record._id, testName)}
+                                  disabled={['confirmed', 'ready_for_pickup', 'completed', 'partially_fulfilled', 'pending_patient_confirmation'].includes(status)}
                                   className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                  title={test.available === false ? 'Test is unavailable' : ''}
                                 />
                                 <label 
                                   htmlFor={`test-${record._id}-${idx}`}
@@ -243,7 +353,7 @@ const LabResults: React.FC = () => {
                                 >
                                   <div className="font-medium flex items-center">
                                     <span>{testName}</span>
-                                    {!isAvailable && (
+                                    {(!isAvailable || test.available === false) && (
                                       <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
                                         {t('unavailable') || 'Unavailable'}
                                       </span>
@@ -260,6 +370,25 @@ const LabResults: React.FC = () => {
                     )}
                     {/* Notes */}
                     <div className="mt-2 text-sm text-gray-700">{record.details?.notes || ''}</div>
+                    
+                    {/* Feedback display for partially fulfilled orders */}
+                    {(status === 'partially_fulfilled' || status === 'out_of_stock') && (record.details?.feedback || record.feedback) && (
+                      <div className="mt-2 text-sm bg-yellow-50 border border-yellow-200 p-2 rounded">
+                        <span className="font-medium text-amber-700">{t('feedback') || 'Feedback'}:</span> {record.feedback || record.details?.feedback || feedback}
+                      </div>
+                    )}
+                    
+                    {/* Show test availability summary in ready_for_pickup state */}
+                    {status === 'ready_for_pickup' && labTests.some(test => test.available === false) && (
+                      <div className="mt-2 text-sm bg-blue-50 border border-blue-200 p-2 rounded">
+                        <span className="font-medium text-blue-700">{t('availabilityInfo') || 'Availability Info'}:</span> {' '}
+                        <span className="text-green-600">{t('available') || 'Available'}: </span>
+                        {labTests.filter(test => test.available !== false).map(test => test.testName || test.name).join(', ')}
+                        {' | '}
+                        <span className="text-red-600">{t('unavailable') || 'Unavailable'}: </span>
+                        {labTests.filter(test => test.available === false).map(test => test.testName || test.name).join(', ')}
+                      </div>
+                    )}
                     {/* Status actions */}
                     <div className="mt-4 flex flex-wrap gap-2">
                       {canConfirmOrder && (
@@ -272,6 +401,24 @@ const LabResults: React.FC = () => {
                           <CheckCircle className="h-4 w-4 mr-1" /> {t('markReadyForPickup')}
                         </Button>
                       )}
+                      {isWaitingPatientConfirmation && (
+                        <>
+                          <div className="text-amber-500 text-sm mt-2 flex items-center">
+                            <Clock className="h-4 w-4 mr-1" /> {t('waitingForPatientConfirmation') || 'Waiting for patient confirmation'}
+                          </div>
+                          {(record.details?.feedback || record.feedback) && (
+                            <div className="mt-2 text-sm p-2 bg-amber-50 border border-amber-200 rounded w-full">
+                              <strong>{t('unavailableTests') || 'Unavailable tests'}:</strong> {record.details?.feedback || record.feedback}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {isPartiallyFulfilled && (
+                        <div className="text-blue-500 text-sm mt-2 flex items-center">
+                          <CheckCircle className="h-4 w-4 mr-1" /> {t('patientConfirmedPartial') || 'Patient confirmed partial fulfillment'}
+                        </div>
+                      )}
                       {canPartialFulfill && (
                         <>
                           <input
@@ -282,8 +429,8 @@ const LabResults: React.FC = () => {
                             className="border rounded px-2 py-1 text-sm"
                             style={{ minWidth: 180 }}
                           />
-                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange(record._id, 'partially_fulfilled')} size="sm" variant="outline">
-                            <AlertCircle className="h-4 w-4 mr-1" /> {t('markPartiallyFulfilled')}
+                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange(record._id, 'pending_patient_confirmation')} size="sm" variant="outline">
+                            <AlertCircle className="h-4 w-4 mr-1" /> {t('requestPatientConfirmation')}
                           </Button>
                         </>
                       )}

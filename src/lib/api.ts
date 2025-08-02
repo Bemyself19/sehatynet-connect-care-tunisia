@@ -429,6 +429,12 @@ class ApiClient {
     });
   }
 
+  async confirmPartialFulfillment(id: string): Promise<any> {
+    return this.request(`/medical-records/${id}/confirm-partial`, {
+      method: 'POST',
+    });
+  }
+
   async acceptPartialPharmacyOrder(id: string): Promise<any> {
     return this.fulfillAssignedRequest(id, { status: 'ready_for_pickup' });
   }

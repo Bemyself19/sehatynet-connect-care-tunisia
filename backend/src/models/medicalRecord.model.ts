@@ -52,7 +52,7 @@ const medicalRecordSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['not_requested', 'pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'partially_fulfilled', 'out_of_stock'], // not_requested: no pharmacy assigned, pending: new/requested, confirmed: all meds available, ready_for_pickup: pharmacy prepared, completed: picked up, cancelled: not fulfilled, partially_fulfilled: some meds unavailable, out_of_stock: none available
+        enum: ['not_requested', 'pending', 'confirmed', 'ready_for_pickup', 'completed', 'cancelled', 'partially_fulfilled', 'out_of_stock', 'pending_patient_confirmation'], // not_requested: no pharmacy assigned, pending: new/requested, confirmed: all meds available, ready_for_pickup: pharmacy prepared, completed: picked up, cancelled: not fulfilled, partially_fulfilled: some meds unavailable, out_of_stock: none available, pending_patient_confirmation: waiting for patient to confirm partial fulfillment
         default: 'not_requested',
     },
 }, { 

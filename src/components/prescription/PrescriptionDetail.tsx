@@ -365,7 +365,7 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                         <TableCell>{med.frequency || '-'}</TableCell>
                         <TableCell>{med.duration || '-'}</TableCell>
                         <TableCell>{med.instructions || '-'}</TableCell>
-                        <TableCell>{med.status || 'pending'}</TableCell>
+                        <TableCell>{t(med.status || 'pending') || med.status || 'pending'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -410,11 +410,149 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
             <div className="mt-2 mb-4">
               {/* Pharmacy Request Provider and Status */}
               {activePharmacyRequest && (
-                <div className="text-green-700 mb-2">
-                  {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(activePharmacyRequest.details?.providerId), pharmacies)}<br />
-                  {t('status') || 'Status'}: {activePharmacyRequest.status || t('requested') || 'Requested'}
+                <div className="mb-2">
+                  <div className="text-green-700">
+                    {t('pharmacyRequest') || 'Pharmacy Request'}: {getProviderName(extractProviderId(activePharmacyRequest.details?.providerId), pharmacies)}<br />
+                    {t('status') || 'Status'}: {activePharmacyRequest.status || t('requested') || 'Requested'}
+                  </div>
+                  
+                  
+                  {/* Display pharmacy feedback for statuses other than pending_patient_confirmation */}
+                  {(activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback) && 
+                    ['partially_fulfilled', 'out_of_stock'].includes(activePharmacyRequest.status) && (
+                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 text-red-600 text-sm">
+                      <strong>{t('pharmacyFeedback') || 'Pharmacy Feedback'}:</strong> {
+                        // Display the unavailable medications
+                        `${t('unavailableMedications') || 'Unavailable medications'}: ${activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback}`
+                      }
+                    </div>
+                  )}
                 </div>
               )}
+              
+              {/* Partial Fulfillment Confirmation UI */}
+              {activePharmacyRequest && activePharmacyRequest.status === 'pending_patient_confirmation' && (
+                <Card className="mt-4 mb-4 border-amber-200 bg-amber-50">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-amber-800">{t('partialFulfillmentConfirmation') || 'Partial Fulfillment Confirmation'}</h3>
+                    <p className="text-amber-700 mb-2">
+                      {t('partialFulfillmentConfirmationMessage') || 'Some medications are unavailable. Would you like to proceed with the available medications?'}
+                    </p>
+                    
+                    {(activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback) && (
+                      <div className="bg-white p-2 rounded mb-4 text-red-600 text-sm">
+                        <strong>{t('unavailableMedications') || 'Unavailable Medications'}:</strong> {activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback}
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-2">
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setAcceptingId(activePharmacyRequest._id);
+                            await api.confirmPartialFulfillment(activePharmacyRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to confirm partial fulfillment', err);
+                            setError('Failed to confirm. Please try again.');
+                          } finally {
+                            setAcceptingId(null);
+                          }
+                        }}
+                        disabled={acceptingId === activePharmacyRequest._id}
+                        variant="default"
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        {acceptingId === activePharmacyRequest._id ? (
+                          t('confirming') || 'Confirming...'
+                        ) : (
+                          t('confirmPartialOrder') || 'Confirm Partial Order'
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setCancellingId(activePharmacyRequest._id);
+                            await api.cancelMedicalRecordRequest(activePharmacyRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to cancel', err);
+                            setError('Failed to cancel. Please try again.');
+                          } finally {
+                            setCancellingId(null);
+                          }
+                        }}
+                        disabled={cancellingId === activePharmacyRequest._id}
+                        variant="outline"
+                      >
+                        {cancellingId === activePharmacyRequest._id ? (
+                          t('cancelling') || 'Cancelling...'
+                        ) : (
+                          t('cancelRequest') || 'Cancel Request'
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Out of Stock UI */}
+              {activePharmacyRequest && activePharmacyRequest.status === 'out_of_stock' && (
+                <Card className="mt-4 mb-4 border-red-200 bg-red-50">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-red-800">{t('medicationsOutOfStock') || 'Medications Out of Stock'}</h3>
+                    
+                    {(activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback) && (
+                      <div className="bg-white p-2 rounded mb-4 text-red-600 text-sm">
+                        <strong>{t('unavailableMedications') || 'Unavailable Medications'}:</strong> {activePharmacyRequest.details?.feedback || activePharmacyRequest.feedback}
+                      </div>
+                    )}
+                    
+                    <p className="text-red-700 mb-4">{t('selectAnotherPharmacyMessage') || 'Please select another pharmacy for your prescription.'}</p>
+                    
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedNewPharmacy} onValueChange={setSelectedNewPharmacy}>
+                        <SelectTrigger className="w-64">
+                          <SelectValue placeholder={t('selectNewPharmacy') || 'Select New Pharmacy'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pharmacies
+                            .filter(pharm => pharm._id !== extractProviderId(activePharmacyRequest.providerId))
+                            .map((pharm) => (
+                              <SelectItem key={pharm._id} value={pharm._id}>
+                                {pharm.firstName} {pharm.lastName}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            setReassigningId(activePharmacyRequest._id);
+                            await api.reassignPharmacy(activePharmacyRequest._id, selectedNewPharmacy);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to reassign pharmacy', err);
+                            setError('Failed to reassign pharmacy. Please try again.');
+                          } finally {
+                            setReassigningId(null);
+                          }
+                        }}
+                        disabled={!selectedNewPharmacy || reassigningId === activePharmacyRequest._id}
+                        variant="default"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {reassigningId === activePharmacyRequest._id ? (
+                          t('reassigning') || 'Reassigning...'
+                        ) : (
+                          t('selectAnotherPharmacy') || 'Select Another Pharmacy'
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Only show request button if no active pharmacy request */}
               {!activePharmacyRequest && (
                 <div className="flex items-center gap-2">
@@ -513,9 +651,20 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                   const req = getRequestForType('lab_result');
                   if (req) {
                     return (
-                      <div className="text-green-700">
-                        {t('labRequest') || 'Lab Request'}: {getProviderName(extractProviderId(req.details?.providerId), labs)}<br />
-                        {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
+                      <div className="mb-2">
+                        <div className="text-green-700">
+                          {t('labRequest') || 'Lab Request'}: {getProviderName(extractProviderId(req.details?.providerId), labs)}<br />
+                          {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
+                        </div>
+                        
+                        
+                        {/* Display lab feedback for statuses other than pending_patient_confirmation */}
+                        {(req.details?.feedback || req.feedback) && 
+                          ['partially_fulfilled', 'out_of_stock'].includes(req.status) && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 text-red-600 text-sm">
+                            <strong>{t('labFeedback') || 'Lab Feedback'}:</strong> {req.details?.feedback || req.feedback}
+                          </div>
+                        )}
                       </div>
                     );
                   }
@@ -543,6 +692,72 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                   );
                 })()}
               </div>
+              
+              {/* Partial Fulfillment Confirmation UI for Lab */}
+              {activeLabRequest && activeLabRequest.status === 'pending_patient_confirmation' && (
+                <Card className="mt-4 mb-4 border-amber-200 bg-amber-50">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-amber-800">{t('partialLabFulfillmentConfirmation') || 'Partial Lab Tests Confirmation'}</h3>
+                    <p className="text-amber-700 mb-2">
+                      {t('partialLabFulfillmentConfirmationMessage') || 'Some lab tests are unavailable. Would you like to proceed with the available tests?'}
+                    </p>
+                    
+                    {(activeLabRequest.details?.feedback || activeLabRequest.feedback) && (
+                      <div className="bg-white p-2 rounded mb-4 text-red-600 text-sm">
+                        <strong>{t('unavailableLabTests') || 'Unavailable Lab Tests'}:</strong> {activeLabRequest.details?.feedback || activeLabRequest.feedback}
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-2">
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setAcceptingId(activeLabRequest._id);
+                            await api.confirmPartialFulfillment(activeLabRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to confirm partial fulfillment', err);
+                            setError('Failed to confirm. Please try again.');
+                          } finally {
+                            setAcceptingId(null);
+                          }
+                        }}
+                        disabled={acceptingId === activeLabRequest._id}
+                        variant="default"
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        {acceptingId === activeLabRequest._id ? (
+                          t('confirming') || 'Confirming...'
+                        ) : (
+                          t('confirmPartialOrder') || 'Confirm Partial Order'
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setCancellingId(activeLabRequest._id);
+                            await api.cancelMedicalRecordRequest(activeLabRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to cancel', err);
+                            setError('Failed to cancel. Please try again.');
+                          } finally {
+                            setCancellingId(null);
+                          }
+                        }}
+                        disabled={cancellingId === activeLabRequest._id}
+                        variant="outline"
+                      >
+                        {cancellingId === activeLabRequest._id ? (
+                          t('cancelling') || 'Cancelling...'
+                        ) : (
+                          t('cancelRequest') || 'Cancel Request'
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
           {/* Radiology Section */}
@@ -616,9 +831,20 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                   const req = getRequestForType('imaging');
                   if (req) {
                     return (
-                      <div className="text-green-700">
-                        {t('radiologyRequest') || 'Radiology Request'}: {getProviderName(extractProviderId(req.details?.providerId), radiologists)}<br />
-                        {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
+                      <div className="mb-2">
+                        <div className="text-green-700">
+                          {t('radiologyRequest') || 'Radiology Request'}: {getProviderName(extractProviderId(req.details?.providerId), radiologists)}<br />
+                          {t('status') || 'Status'}: {req.status || t('requested') || 'Requested'}
+                        </div>
+                        
+                        
+                        {/* Display radiology feedback for all statuses that have feedback */}
+                        {(req.details?.feedback || req.feedback) && 
+                          ['partially_fulfilled', 'pending_patient_confirmation', 'out_of_stock'].includes(req.status) && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200 text-red-600 text-sm">
+                            <strong>{t('radiologyFeedback') || 'Radiology Feedback'}:</strong> {req.details?.feedback || req.feedback}
+                          </div>
+                        )}
                       </div>
                     );
                   }
@@ -646,6 +872,72 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                   );
                 })()}
               </div>
+              
+              {/* Partial Fulfillment Confirmation UI for Radiology */}
+              {activeRadiologyRequest && activeRadiologyRequest.status === 'pending_patient_confirmation' && (
+                <Card className="mt-4 mb-4 border-amber-200 bg-amber-50">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-amber-800">{t('partialRadiologyFulfillmentConfirmation') || 'Partial Radiology Exams Confirmation'}</h3>
+                    <p className="text-amber-700 mb-2">
+                      {t('partialRadiologyFulfillmentConfirmationMessage') || 'Some radiology exams are unavailable. Would you like to proceed with the available exams?'}
+                    </p>
+                    
+                    {(activeRadiologyRequest.details?.feedback || activeRadiologyRequest.feedback) && (
+                      <div className="bg-white p-2 rounded mb-4 text-red-600 text-sm">
+                        <strong>{t('unavailableRadiologyExams') || 'Unavailable Radiology Exams'}:</strong> {activeRadiologyRequest.details?.feedback || activeRadiologyRequest.feedback}
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-2">
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setAcceptingId(activeRadiologyRequest._id);
+                            await api.confirmPartialFulfillment(activeRadiologyRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to confirm partial fulfillment', err);
+                            setError('Failed to confirm. Please try again.');
+                          } finally {
+                            setAcceptingId(null);
+                          }
+                        }}
+                        disabled={acceptingId === activeRadiologyRequest._id}
+                        variant="default"
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        {acceptingId === activeRadiologyRequest._id ? (
+                          t('confirming') || 'Confirming...'
+                        ) : (
+                          t('confirmPartialOrder') || 'Confirm Partial Order'
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={async () => {
+                          try {
+                            setCancellingId(activeRadiologyRequest._id);
+                            await api.cancelMedicalRecordRequest(activeRadiologyRequest._id);
+                            refreshServiceRequests();
+                          } catch (err) {
+                            console.error('Failed to cancel', err);
+                            setError('Failed to cancel. Please try again.');
+                          } finally {
+                            setCancellingId(null);
+                          }
+                        }}
+                        disabled={cancellingId === activeRadiologyRequest._id}
+                        variant="outline"
+                      >
+                        {cancellingId === activeRadiologyRequest._id ? (
+                          t('cancelling') || 'Cancelling...'
+                        ) : (
+                          t('cancelRequest') || 'Cancel Request'
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
           {medicalRecord.notes && (

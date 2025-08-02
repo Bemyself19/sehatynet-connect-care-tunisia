@@ -551,7 +551,19 @@
       "pending": "في الانتظار",
       "cancelled": "ملغي",
       "no-show": "لم يحضر"
-    }
+    },
+  "confirmed": "تم التأكيد",
+  "collected": "تم التحصيل",
+  "ready_for_pickup": "جاهز للاستلام",
+  "labTestCompleted": "اكتملت الفحوصات المخبرية",
+  "labTestCompletedMessage": "اكتملت فحوصاتك المخبرية والنتائج متاحة الآن.",
+  "partialLabConfirmation": "مطلوب تأكيد جزئي للفحوصات المخبرية",
+  "partialLabConfirmationMessage": "بعض الفحوصات المخبرية غير متوفرة في {{lab}}: {{unavailableTests}}. يرجى التأكيد إذا كنت ترغب في المتابعة مع الفحوصات المتوفرة فقط: {{availableTests}}.",
+  "imagingCompleted": "اكتملت فحوصات الأشعة",
+  "imagingCompletedMessage": "اكتملت فحوصات الأشعة والنتائج متاحة الآن.",
+  "partialImagingConfirmation": "مطلوب تأكيد جزئي لفحوصات الأشعة",
+  "partialImagingConfirmationMessage": "بعض فحوصات الأشعة غير متوفرة في {{radiology}}: {{unavailableExams}}. يرجى التأكيد إذا كنت ترغب في المتابعة مع الفحوصات المتوفرة فقط: {{availableExams}}.",
+  "requestPatientConfirmation": "طلب تأكيد المريض"
   },
   "doctorNotesTab": "ملاحظات الطبيب",
   "doctorNotesTabDesc": "ملاحظات كتبتها لهذا المريض. مرئية فقط لك وللأطباء الآخرين إذا تم منح الموافقة.",
