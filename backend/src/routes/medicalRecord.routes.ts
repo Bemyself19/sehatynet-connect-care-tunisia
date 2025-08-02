@@ -14,7 +14,8 @@ import {
   updateRecordPrivacy,
   assignProviderToSection,
   uploadLabRadiologyReport,
-  getMedicalRecordsByPrescriptionId
+  getMedicalRecordsByPrescriptionId,
+  fulfillAssignedRequest
 } from "../controllers/medicalRecord.controller";
 import { authenticateJWT } from "../middleware/auth";
 import { authorizeRoles } from "../middleware/roles";
@@ -70,6 +71,8 @@ router.patch("/:id/privacy", authenticateJWT, updateRecordPrivacy);
 // Assign provider to medical record
 router.post("/:id/assign-provider", authenticateJWT, assignProviderToSection);
 
+// Fulfill assigned request (for providers)
+router.patch("/:id/fulfill", authenticateJWT, fulfillAssignedRequest);
 
 // Upload lab/radiology reports
 router.post("/:id/upload-report", authenticateJWT, upload.single("file"), uploadLabRadiologyReport);

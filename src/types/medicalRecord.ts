@@ -20,6 +20,7 @@ export interface MedicalRecord {
   prescriptionId?: string;
   files?: { filename: string; url: string; mimetype: string; uploadedAt?: string }[];
   report?: Record<string, any>;
+  feedback?: string;
 }
 
 export interface CreateMedicalRecordData {
@@ -34,4 +35,5 @@ export interface CreateMedicalRecordData {
     privacyLevel?: 'private' | 'doctor_only' | 'patient_visible' | 'shared';
     tags?: string[];
     prescriptionId?: string;
+    feedback?: string;
 } 

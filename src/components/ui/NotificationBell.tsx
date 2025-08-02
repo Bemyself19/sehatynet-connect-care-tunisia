@@ -98,9 +98,30 @@ const NotificationBell: React.FC = () => {
   // Handle notification click
   const handleNotificationClick = async (notification: Notification) => {
     await markAsRead(notification._id);
+    
+    // Log all notification info for debugging
+    console.log('[NotificationBell] Notification clicked:', notification);
+    
+    // First, check for specific notification types
+    if (notification.type === 'lab_assignment' && user?.role === 'lab') {
+      console.log('[NotificationBell] Lab assignment notification detected');
+      navigate(`/dashboard/lab/results?id=${notification.relatedEntity?.id}`);
+      setIsOpen(false);
+      return;
+    }
+    
+    if (notification.type === 'radiology_assignment' && user?.role === 'radiologist') {
+      console.log('[NotificationBell] Radiology assignment notification detected');
+      navigate(`/dashboard/radiologist/reports?id=${notification.relatedEntity?.id}`);
+      setIsOpen(false);
+      return;
+    }
+    
     if (notification.actionUrl) {
-      console.log('[NotificationBell] Navigating to:', notification.actionUrl);
+      console.log('[NotificationBell] Navigating to actionUrl:', notification.actionUrl);
       navigate(notification.actionUrl);
+      setIsOpen(false);
+      return;
     } else if (notification.relatedEntity?.type) {
       // Navigate based on entity type and user role
       switch (notification.relatedEntity.type) {
@@ -117,6 +138,27 @@ const NotificationBell: React.FC = () => {
             navigate(`/dashboard/pharmacy/prescriptions/${notification.relatedEntity.id}`);
           } else {
             navigate(`/prescriptions/${notification.relatedEntity.id}`);
+          }
+          break;
+        case 'medication':
+          if (user?.role === 'pharmacy') {
+            navigate(`/dashboard/pharmacy/prescriptions/${notification.relatedEntity.id}`);
+          } else {
+            navigate(`/medical-records/${notification.relatedEntity.id}`);
+          }
+          break;
+        case 'labResult':
+          if (user?.role === 'lab') {
+            navigate(`/dashboard/lab/results?id=${notification.relatedEntity.id}`);
+          } else {
+            navigate(`/medical-records/${notification.relatedEntity.id}`);
+          }
+          break;
+        case 'radiologyResult':
+          if (user?.role === 'radiologist') {
+            navigate(`/dashboard/radiologist/reports?id=${notification.relatedEntity.id}`);
+          } else {
+            navigate(`/medical-records/${notification.relatedEntity.id}`);
           }
           break;
         case 'medicalRecord':
@@ -138,28 +180,31 @@ const NotificationBell: React.FC = () => {
     setIsOpen(false);
   };
 
-  // Get notification icon
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'appointment_reminder':
-      case 'appointment_confirmed':
-      case 'appointment_cancelled':
-        return <Calendar className="h-4 w-4" />;
-      case 'prescription_ready':
-      case 'prescription_updated':
-        return <FileText className="h-4 w-4" />;
-      case 'lab_result_ready':
-        return <AlertCircle className="h-4 w-4" />;
-      case 'system_maintenance':
-        return <Settings className="h-4 w-4" />;
-      case 'pharmacy_assignment':
-        return <Pill className="h-4 w-4 text-green-600" />;
-      default:
-        return <Bell className="h-4 w-4" />;
-    }
-  };
-
-  // Get priority color
+      // Get notification icon
+      const getNotificationIcon = (type: string) => {
+        switch (type) {
+          case 'appointment_reminder':
+          case 'appointment_confirmed':
+          case 'appointment_cancelled':
+            return <Calendar className="h-4 w-4" />;
+          case 'prescription_ready':
+          case 'prescription_updated':
+            return <FileText className="h-4 w-4" />;
+          case 'lab_result_ready':
+          case 'lab_assignment':
+          case 'lab_confirmed':
+          case 'lab_ready':
+            return <AlertCircle className="h-4 w-4" />;
+          case 'system_maintenance':
+            return <Settings className="h-4 w-4" />;
+          case 'pharmacy_assignment':
+            return <Pill className="h-4 w-4 text-green-600" />;
+          case 'radiology_assignment':
+            return <FileText className="h-4 w-4 text-blue-600" />;
+          default:
+            return <Bell className="h-4 w-4" />;
+        }
+      };  // Get priority color
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':

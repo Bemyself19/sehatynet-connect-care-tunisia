@@ -260,8 +260,19 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
   // ...existing code...
 
   const medicationsToDisplay = activePharmacyRequest && activePharmacyRequest.details && Array.isArray(activePharmacyRequest.details.medications)
-    ? activePharmacyRequest.details.medications
-    : Array.isArray(medicalRecord?.medications) ? medicalRecord.medications : [];
+    ? activePharmacyRequest.details.medications.map((med: any) => ({
+        ...med, // Keep existing fields from pharmacy request
+        // Merge with additional details from original prescription if available
+        dosage: med.dosage || medicalRecord?.medications?.find((m: any) => m.name === med.name)?.dosage || '-',
+        frequency: med.frequency || medicalRecord?.medications?.find((m: any) => m.name === med.name)?.frequency || '-',
+        duration: med.duration || medicalRecord?.medications?.find((m: any) => m.name === med.name)?.duration || '-',
+        instructions: med.instructions || medicalRecord?.medications?.find((m: any) => m.name === med.name)?.instructions || '-',
+        status: med.status || 'pending' // Ensure status is always available
+      }))
+    : Array.isArray(medicalRecord?.medications) ? medicalRecord.medications.map((med: any) => ({
+        ...med, // Keep all original fields
+        status: med.status || 'pending' // Add default status if not present
+      })) : [];
 
   // Show lab tests from active lab request if present
   const activeLabRequest = getRequestForType('lab_result');
@@ -339,7 +350,10 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('medicationName') || 'Medication Name'}</TableHead>
-                      <TableHead>{t('notes') || 'Notes'}</TableHead>
+                      <TableHead>{t('dosage') || 'Dosage'}</TableHead>
+                      <TableHead>{t('frequency') || 'Frequency'}</TableHead>
+                      <TableHead>{t('duration') || 'Duration'}</TableHead>
+                      <TableHead>{t('instructions') || 'Instructions'}</TableHead>
                       <TableHead>{t('status') || 'Status'}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -347,8 +361,11 @@ const PrescriptionDetail: React.FC<PrescriptionDetailProps> = ({ medicalRecord, 
                     {medicationsToDisplay.map((med: any, idx: number) => (
                       <TableRow key={idx}>
                         <TableCell>{med.name || med.medicationName}</TableCell>
-                        <TableCell>{med.notes || '-'}</TableCell>
-                        <TableCell>{med.status || '-'}</TableCell>
+                        <TableCell>{med.dosage || '-'}</TableCell>
+                        <TableCell>{med.frequency || '-'}</TableCell>
+                        <TableCell>{med.duration || '-'}</TableCell>
+                        <TableCell>{med.instructions || '-'}</TableCell>
+                        <TableCell>{med.status || 'pending'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -774,7 +774,7 @@ export const getPrescriptionById = async (req: Request, res: Response): Promise<
 // @access  Private
 export const generatePrescriptionPdf = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('PDF download requested for prescription:', req.params.id);
+        // console.log('PDF download requested for prescription:', req.params.id);
         const prescription = await Prescription.findById(req.params.id)
             .populate('patientId', 'firstName lastName cnamId dateOfBirth')
             .populate('providerId', 'firstName lastName specialization licenseNumber');
@@ -860,7 +860,7 @@ export const generatePrescriptionPdf = async (req: Request, res: Response): Prom
                 doc.fontSize(10).text(prescription.notes);
             }
             doc.end();
-            console.log('Full PDF generation completed for prescription:', req.params.id);
+            // console.log('Full PDF generation completed for prescription:', req.params.id);
         } catch (pdfErr) {
             console.error('Error during full PDF generation:', pdfErr);
             res.status(500).json({ message: "Error generating full PDF content", error: pdfErr });

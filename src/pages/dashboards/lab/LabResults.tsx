@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TestTube, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import api from '@/lib/api';
 import { MedicalRecord } from '@/types/medicalRecord';
 import { Button } from '@/components/ui/button';
+import { useLocation } from 'react-router-dom';
 
 const LabResults: React.FC = () => {
   const { t } = useTranslation();
@@ -15,6 +16,10 @@ const LabResults: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingMap, setActionLoadingMap] = useState<{[id: string]: boolean}>({});
   const [feedbackMap, setFeedbackMap] = useState<{[id: string]: string}>({});
+  const [testAvailability, setTestAvailability] = useState<{[recordId: string]: {[testName: string]: boolean}}>({});
+  const location = useLocation();
+  const highlightedRecordId = new URLSearchParams(location.search).get('id');
+  const highlightedRecordRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -29,14 +34,109 @@ const LabResults: React.FC = () => {
       });
   }, []);
 
+  useEffect(() => {
+    if (highlightedRecordId && highlightedRecordRef.current) {
+      console.log('[LabResults] Highlighting record with ID:', highlightedRecordId);
+      highlightedRecordRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add a highlight animation or styling
+      highlightedRecordRef.current.classList.add('highlight-animation');
+      setTimeout(() => {
+        highlightedRecordRef.current?.classList.remove('highlight-animation');
+      }, 2000);
+    }
+  }, [highlightedRecordId, labRequests]);
+
+  // Toggle test availability
+  const toggleTestAvailability = (recordId: string, testName: string) => {
+    setTestAvailability(prev => ({
+      ...prev,
+      [recordId]: {
+        ...prev[recordId],
+        [testName]: !(prev[recordId]?.[testName] ?? true)
+      }
+    }));
+  };
+
   const handleStatusChange = async (id: string, newStatus: string) => {
     setActionLoadingMap(prev => ({ ...prev, [id]: true }));
     try {
+      const record = labRequests.find(r => r._id === id);
       const payload: any = { status: newStatus };
       if (['partially_fulfilled', 'out_of_stock'].includes(newStatus)) {
         payload.feedback = feedbackMap[id];
       }
+      
+      // Include test availability data
+      const recordAvailability = testAvailability[id] || {};
+      const labTests = record?.details?.labTests || [];
+      const testFulfillment = labTests.map((test: any) => ({
+        name: test.testName || test.name,
+        available: recordAvailability[test.testName || test.name] ?? true
+      }));
+      payload.tests = testFulfillment;
+      
       await api.fulfillAssignedRequest(id, payload);
+      
+      // Send notification to patient when order is confirmed
+      if (newStatus === 'confirmed' && record) {
+        const availableTests = testFulfillment.filter(test => test.available).map(test => test.name);
+        const originalDoctor = (record as any).originalDoctor;
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'lab_confirmed',
+          title: t('labTestConfirmed') || 'Lab Test Confirmed',
+          message: t('labTestConfirmedMessage', { 
+            tests: availableTests.join(', '),
+            lab: originalDoctor?.firstName && originalDoctor?.lastName 
+              ? `Dr. ${originalDoctor.firstName} ${originalDoctor.lastName}` 
+              : 'lab'
+          }) || `Your lab test has been confirmed. All tests are available: ${availableTests.join(', ')}. Your tests are being prepared.`,
+          priority: 'high',
+          data: {
+            labTestId: record._id,
+            status: newStatus,
+            tests: testFulfillment,
+            providerId: originalDoctor?._id,
+            providerName: originalDoctor?.firstName && originalDoctor?.lastName 
+              ? `Dr. ${originalDoctor.firstName} ${originalDoctor.lastName}` 
+              : 'Doctor'
+          }
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
+      
+      // Send notification when ready for pickup
+      if (newStatus === 'ready_for_pickup' && record) {
+        const notificationData = {
+          recipientId: record.patientId,
+          type: 'lab_ready',
+          title: t('labTestReady') || 'Lab Test Ready',
+          message: t('labTestReadyMessage') || `Your lab test results are ready for pickup.`,
+          priority: 'high',
+          data: {
+            labTestId: record._id,
+            status: newStatus,
+            providerId: record.providerId?._id,
+            providerName: record.providerId?.firstName && record.providerId?.lastName 
+              ? `Dr. ${record.providerId.firstName} ${record.providerId.lastName}` 
+              : 'Lab'
+          }
+        };
+        
+        try {
+          await api.createNotification(notificationData);
+        } catch (notifError) {
+          console.error('Failed to send notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
+      
       const updated = await api.getAssignedRequests();
       setLabRequests(updated.filter(r => r.type === 'lab_result'));
       setFeedbackMap(prev => ({ ...prev, [id]: '' }));
@@ -74,41 +174,99 @@ const LabResults: React.FC = () => {
               {labRequests.map((record) => {
                 const labTests = record.details?.labTests || [];
                 const status = record.status || 'pending';
-                const canMarkReady = status === 'pending' || status === 'partially_fulfilled';
-                const canPartialFulfill = status === 'pending';
-                const canOutOfStock = status === 'pending';
+                const recordAvailability = testAvailability[record._id] || {};
+                
+                // Calculate test availability
+                const allTestsAvailable = labTests.every((test: any) => {
+                  const testName = test.testName || test.name;
+                  return recordAvailability[testName] ?? true;
+                });
+                const someTestsAvailable = labTests.some((test: any) => {
+                  const testName = test.testName || test.name;
+                  return recordAvailability[testName] ?? true;
+                });
+                const noTestsAvailable = !someTestsAvailable;
+                
+                const canConfirmOrder = status === 'pending' && allTestsAvailable;
+                const canPartialFulfill = status === 'pending' && someTestsAvailable && !allTestsAvailable;
+                const canMarkOutOfStock = status === 'pending' && noTestsAvailable;
+                const canMarkReady = status === 'confirmed';
                 const canComplete = status === 'ready_for_pickup';
                 const feedback = feedbackMap[record._id] || '';
                 const actionLoading = actionLoadingMap[record._id] || false;
                 const setFeedback = (val: string) => setFeedbackMap(prev => ({ ...prev, [record._id]: val }));
 
                 return (
-                  <Card key={record._id} className="border p-4">
+                  <Card 
+                    key={record._id} 
+                    className={`border p-4 ${highlightedRecordId === record._id ? 'ring-2 ring-blue-500 shadow-lg highlight-animation' : ''}`}
+                    ref={highlightedRecordId === record._id ? highlightedRecordRef : null}
+                    style={{ transition: 'all 0.3s ease' }}
+                  >
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="font-semibold text-lg">{record.title || t('labRequest')}</div>
                         <div className="text-sm text-gray-600">{record.patientId?.firstName} {record.patientId?.lastName}</div>
                         <div className="text-xs text-gray-500">{t('date')}: {new Date(record.date).toLocaleDateString()}</div>
+                        {/* Original prescribing doctor */}
+                        {(record as any).originalDoctor && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            {t('requestedBy')}: Dr. {(record as any).originalDoctor.firstName} {(record as any).originalDoctor.lastName}
+                            {(record as any).originalDoctor.specialization && ` (${(record as any).originalDoctor.specialization})`}
+                          </div>
+                        )}
                       </div>
                       <Badge variant="outline" className="ml-2">
                         {t(status)}
                       </Badge>
                     </div>
-                    {/* Lab test details */}
+                    {/* Lab test details with checkboxes */}
                     {labTests.length > 0 && (
                       <div className="mt-2">
                         <div className="font-medium text-sm mb-1">{t('labTests')}</div>
-                        <ul className="list-disc pl-5 text-sm">
-                          {labTests.map((test: any, idx: number) => (
-                            <li key={idx}>{test.testName || test.name} {test.notes ? `(${test.notes})` : ''}</li>
-                          ))}
-                        </ul>
+                        <div className="space-y-1">
+                          {labTests.map((test: any, idx: number) => {
+                            const testName = test.testName || test.name;
+                            const isAvailable = testAvailability[record._id]?.[testName] ?? true;
+                            return (
+                              <div key={idx} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`test-${record._id}-${idx}`}
+                                  checked={isAvailable}
+                                  onChange={() => toggleTestAvailability(record._id, testName)}
+                                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                />
+                                <label 
+                                  htmlFor={`test-${record._id}-${idx}`}
+                                  className="text-sm cursor-pointer"
+                                >
+                                  <div className="font-medium flex items-center">
+                                    <span>{testName}</span>
+                                    {!isAvailable && (
+                                      <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                                        {t('unavailable') || 'Unavailable'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {test.notes && <div className="text-xs text-gray-600">Notes: {test.notes}</div>}
+                                  {test.transactionId && <div className="text-xs text-gray-500">ID: {test.transactionId}</div>}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                     {/* Notes */}
                     <div className="mt-2 text-sm text-gray-700">{record.details?.notes || ''}</div>
                     {/* Status actions */}
                     <div className="mt-4 flex flex-wrap gap-2">
+                      {canConfirmOrder && (
+                        <Button disabled={actionLoading} onClick={() => handleStatusChange(record._id, 'confirmed')} size="sm" variant="default" className="bg-green-600 hover:bg-green-700">
+                          <CheckCircle className="h-4 w-4 mr-1" /> {t('confirmOrder')}
+                        </Button>
+                      )}
                       {canMarkReady && (
                         <Button disabled={actionLoading} onClick={() => handleStatusChange(record._id, 'ready_for_pickup')} size="sm" variant="default">
                           <CheckCircle className="h-4 w-4 mr-1" /> {t('markReadyForPickup')}
@@ -129,7 +287,7 @@ const LabResults: React.FC = () => {
                           </Button>
                         </>
                       )}
-                      {canOutOfStock && (
+                      {canMarkOutOfStock && (
                         <>
                           <input
                             type="text"

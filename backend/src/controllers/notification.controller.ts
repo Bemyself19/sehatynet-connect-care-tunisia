@@ -135,16 +135,25 @@ export const deleteNotification = async (req: Request, res: Response): Promise<v
 // Create notification (admin only)
 export const createNotification = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, type, title, message, priority, relatedEntity, actionUrl } = req.body;
+    const { userId, recipientId, type, title, message, priority, relatedEntity, actionUrl, data } = req.body;
+
+    // Support both userId and recipientId for compatibility
+    const targetUserId = userId || recipientId;
+
+    if (!targetUserId) {
+      res.status(400).json({ message: 'userId or recipientId is required' });
+      return;
+    }
 
     const notification = new Notification({
-      userId,
+      userId: targetUserId,
       type,
       title,
       message,
       priority: priority || 'medium',
       relatedEntity,
-      actionUrl
+      actionUrl,
+      data
     });
 
     await notification.save();

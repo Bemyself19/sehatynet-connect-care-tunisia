@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +16,52 @@ const PharmacyPrescriptions: React.FC = () => {
   // Per-record feedback and loading state
   const [feedbackMap, setFeedbackMap] = useState<{[id: string]: string}>({});
   const [actionLoadingMap, setActionLoadingMap] = useState<{[id: string]: boolean}>({});
-  const { id: selectedPrescriptionId } = useParams<{ id?: string }>();
-  const itemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  // Medication availability tracking
+  const [medicationAvailability, setMedicationAvailability] = useState<{[recordId: string]: {[medName: string]: boolean}}>({});
+  const { id: paramPrescriptionId } = useParams<{ id?: string }>();
+  const location = useLocation();
+  const queryPrescriptionId = new URLSearchParams(location.search).get('id');
+  const selectedPrescriptionId = paramPrescriptionId || queryPrescriptionId;
+  const highlightedRecordRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
     api.getAssignedRequests()
       .then((data) => {
         setAssignedRequests(data);
+        
+        // Initialize medication availability state from fetched data
+        const initialAvailability = {};
+        const initialFeedback = {};
+        
+        data.forEach(record => {
+          if (record.details?.medications) {
+            initialAvailability[record._id] = {};
+            record.details.medications.forEach(med => {
+              // Set availability based on medication status
+              if (med.hasOwnProperty('available')) {
+                initialAvailability[record._id][med.name] = med.available;
+              } else {
+                // If no availability info, default to true unless status is 'unavailable'
+                initialAvailability[record._id][med.name] = med.status !== 'unavailable';
+              }
+            });
+          }
+          
+          // Store feedback for partially fulfilled orders
+          if ((record.status === 'partially_fulfilled' || record.status === 'out_of_stock')) {
+            // Check both locations where feedback might be stored
+            const feedback = record.feedback || record.details?.feedback;
+            if (feedback) {
+              initialFeedback[record._id] = feedback;
+            }
+          }
+        });
+        
+        // Update states
+        setMedicationAvailability(prev => ({...prev, ...initialAvailability}));
+        setFeedbackMap(prev => ({...prev, ...initialFeedback}));
+        
         setLoading(false);
       })
       .catch((err) => {
@@ -48,10 +86,26 @@ const PharmacyPrescriptions: React.FC = () => {
   }, [assignedRequests]);
 
   useEffect(() => {
-    if (selectedPrescriptionId && itemRefs.current[selectedPrescriptionId]) {
-      itemRefs.current[selectedPrescriptionId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (selectedPrescriptionId && highlightedRecordRef.current) {
+      console.log('[PharmacyPrescriptions] Highlighting prescription with ID:', selectedPrescriptionId);
+      highlightedRecordRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Animation is handled via the CSS class in the JSX
     }
   }, [dedupedRequests, selectedPrescriptionId]);
+
+  // Toggle medication availability
+  const toggleMedicationAvailability = (recordId: string, medName: string) => {
+    setMedicationAvailability(prev => ({
+      ...prev,
+      [recordId]: {
+        ...prev[recordId],
+        [medName]: !(prev[recordId]?.[medName] ?? true)
+      }
+    }));
+  };
+
+  if (loading) return <div className="p-4">{t('loading')}</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -100,14 +154,134 @@ const PharmacyPrescriptions: React.FC = () => {
                 const handleStatusChange = async (newStatus: string) => {
                   setActionLoading(true);
                   try {
-                    // For ready_for_pickup, clear feedback
                     const payload: any = { status: newStatus };
                     if (['partially_fulfilled', 'out_of_stock'].includes(newStatus)) {
                       payload.feedback = feedback;
                     }
+                    
+                    // Include medication availability data while preserving ALL original medication details
+                    const recordAvailability = medicationAvailability[record._id] || {};
+                    const medications = record.details?.medications || [];
+                    const medicationFulfillment = medications.map((med: any) => {
+                      // First, determine medication availability
+                      const isAvailable = recordAvailability[med.name] ?? true;
+                      
+                      // Then determine status based on availability and the record's new status
+                      let medStatus;
+                      
+                      if (!isAvailable) {
+                        // Unavailable medications always have 'unavailable' status
+                        medStatus = 'unavailable';
+                      } else if (newStatus === 'confirmed') {
+                        medStatus = 'confirmed';
+                      } else if (newStatus === 'ready_for_pickup') {
+                        medStatus = 'ready_for_pickup';
+                      } else if (newStatus === 'completed') {
+                        medStatus = 'completed';
+                      } else if (med.status && med.status !== 'pending') {
+                        // Preserve existing non-pending status if present
+                        medStatus = med.status;
+                      } else {
+                        // Default for available medications
+                        medStatus = 'confirmed';
+                      }
+                        
+                      return {
+                        ...med, // Keep ALL original fields (name, dosage, frequency, duration, instructions, etc)
+                        available: recordAvailability[med.name] ?? true,
+                        status: medStatus // Set appropriate status based on availability and overall record status
+                      };
+                    });
+                    payload.medications = medicationFulfillment;
+                    
                     await api.fulfillAssignedRequest(record._id, payload);
+                    
+                    // Send notification to patient when order is confirmed
+                    if (newStatus === 'confirmed' && record) {
+                      const availableMeds = medicationFulfillment.filter(med => med.available).map(med => med.name);
+                      const originalDoctor = (record as any).originalDoctor;
+                      const notificationData = {
+                        recipientId: record.patientId,
+                        type: 'prescription_confirmed',
+                        title: t('prescriptionConfirmed') || 'Prescription Confirmed',
+                        message: t('prescriptionConfirmedMessage', { 
+                          medications: availableMeds.join(', '),
+                          pharmacy: originalDoctor?.firstName && originalDoctor?.lastName 
+                            ? `${originalDoctor.firstName} ${originalDoctor.lastName}` 
+                            : 'pharmacy'
+                        }) || `Your prescription has been confirmed by the pharmacy. All medications are available: ${availableMeds.join(', ')}. Your order is being prepared.`,
+                        priority: 'high',
+                        data: {
+                          prescriptionId: record._id,
+                          status: newStatus,
+                          medications: medicationFulfillment,
+                          providerId: originalDoctor?._id,
+                          providerName: originalDoctor?.firstName && originalDoctor?.lastName 
+                            ? `${originalDoctor.firstName} ${originalDoctor.lastName}` 
+                            : 'Doctor'
+                        }
+                      };
+                      
+                      try {
+                        await api.createNotification(notificationData);
+                      } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't fail the whole operation if notification fails
+                      }
+                    }
+                    
+                    // Send notification when ready for pickup
+                    if (newStatus === 'ready_for_pickup' && record) {
+                      const notificationData = {
+                        recipientId: record.patientId,
+                        type: 'prescription_ready',
+                        title: t('prescriptionReady') || 'Prescription Ready',
+                        message: t('prescriptionReadyMessage') || `Your prescription is ready for pickup at the pharmacy.`,
+                        priority: 'high',
+                        data: {
+                          prescriptionId: record._id,
+                          status: newStatus,
+                          providerId: record.providerId?._id,
+                          providerName: record.providerId?.firstName && record.providerId?.lastName 
+                            ? `${record.providerId.firstName} ${record.providerId.lastName}` 
+                            : 'Pharmacy'
+                        }
+                      };
+                      
+                      try {
+                        await api.createNotification(notificationData);
+                      } catch (notifError) {
+                        console.error('Failed to send notification:', notifError);
+                        // Don't fail the whole operation if notification fails
+                      }
+                    }
+                    
                     // Refetch assigned requests after action
                     const updated = await api.getAssignedRequests();
+                    
+                    // Update medication availability state based on fetched data
+                    // Find the updated record for the current prescription
+                    const updatedRecord = updated.find(r => r._id === record._id);
+                    if (updatedRecord && updatedRecord.details?.medications) {
+                      // Update medication availability based on the 'available' property from the backend
+                      const updatedAvailability = {};
+                      updatedRecord.details.medications.forEach(med => {
+                        // If the medication has an 'available' property, use it; otherwise keep the current state
+                        if (med.hasOwnProperty('available')) {
+                          if (!updatedAvailability[updatedRecord._id]) {
+                            updatedAvailability[updatedRecord._id] = {};
+                          }
+                          updatedAvailability[updatedRecord._id][med.name] = med.available;
+                        }
+                      });
+                      
+                      // Merge with current availability state
+                      setMedicationAvailability(prev => ({
+                        ...prev,
+                        ...updatedAvailability
+                      }));
+                    }
+                    
                     setAssignedRequests(updated);
                     setFeedback('');
                   } catch (err: any) {
@@ -117,80 +291,189 @@ const PharmacyPrescriptions: React.FC = () => {
                 };
 
                 const pid = record.prescriptionId || record.details?.prescriptionId;
-                const isSelected = pid === selectedPrescriptionId;
+                const isSelected = (pid === selectedPrescriptionId) || (record._id === selectedPrescriptionId);
                 return (
                   <Card
                     key={record._id}
-                    ref={el => {
-                      if (pid) itemRefs.current[pid] = el;
-                    }}
-                    className={`border p-4 ${isSelected ? 'border-2 border-blue-600 bg-blue-50' : ''}`}
+                    ref={isSelected ? highlightedRecordRef : null}
+                    className={`border p-4 ${isSelected ? 'ring-2 ring-blue-500 shadow-lg highlight-animation' : ''}`}
+                    style={{ transition: 'all 0.3s ease' }}
                   >
                     <div className="flex justify-between items-center">
                       <div>
                         <div className="font-semibold text-lg">{record.title || t('prescription')}</div>
                         <div className="text-sm text-gray-600">{record.patientId?.firstName} {record.patientId?.lastName}</div>
                         <div className="text-xs text-gray-500">{t('date')}: {new Date(record.date).toLocaleDateString()}</div>
+                        {/* Doctor information */}
+                        {(record as any).originalDoctor && (
+                          <div className="text-sm text-blue-600 mt-1">
+                            {t('requestedBy')}: Dr. {(record as any).originalDoctor.firstName} {(record as any).originalDoctor.lastName}
+                            {(record as any).originalDoctor.specialization && ` (${(record as any).originalDoctor.specialization})`}
+                          </div>
+                        )}
                       </div>
                       <Badge variant="outline" className="ml-2">
                         {t(status)}
                       </Badge>
                     </div>
-                    {/* Medication details */}
+                    {/* Medication details with checkboxes */}
                     {medications.length > 0 && (
-                      <div className="mt-2">
-                        <div className="font-medium text-sm mb-1">{t('medications')}</div>
-                        <ul className="list-disc pl-5 text-sm">
-                          {medications.map((med: any, idx: number) => (
-                            <li key={idx}>{med.name} {med.dosage ? `(${med.dosage})` : ''}</li>
-                          ))}
-                        </ul>
+                      <div className="mt-4">
+                        <div className="font-medium text-sm mb-2">{t('medications')}</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse border border-gray-300 text-sm">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="border border-gray-300 px-2 py-1 text-left">Available</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Medication</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Dosage</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Frequency</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Duration</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Instructions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {medications.map((med: any, idx: number) => {
+                                const isAvailable = medicationAvailability[record._id]?.[med.name] ?? true;
+                                return (
+                                  <tr key={idx} className={!isAvailable ? 'bg-red-50' : ''}>
+                                    <td className="border border-gray-300 px-2 py-1 text-center">
+                                      <input
+                                        type="checkbox"
+                                        id={`med-${record._id}-${idx}`}
+                                        checked={isAvailable}
+                                        onChange={() => toggleMedicationAvailability(record._id, med.name)}
+                                        className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                      />
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1 font-medium">
+                                      <div className="flex items-center">
+                                        <span>{med.name}</span>
+                                        {!isAvailable && (
+                                          <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                                            {t('unavailable') || 'Unavailable'}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                      {med.dosage || '-'}
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                      {med.frequency || '-'}
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                      {med.duration || '-'}
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                      {med.instructions || '-'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     )}
                     {/* Notes */}
                     <div className="mt-2 text-sm text-gray-700">{record.details?.notes || ''}</div>
+                    
+                    {/* Feedback display for partially fulfilled orders */}
+                    {(status === 'partially_fulfilled' || status === 'out_of_stock') && (
+                      <div className="mt-2 text-sm bg-yellow-50 border border-yellow-200 p-2 rounded">
+                        <span className="font-medium text-amber-700">{t('feedback') || 'Feedback'}:</span> {record.feedback || record.details?.feedback || feedback}
+                      </div>
+                    )}
                     {/* Status actions */}
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {canMarkReady && (
-                        <Button disabled={actionLoading} onClick={() => handleStatusChange('ready_for_pickup')} size="sm" variant="default">
-                          <CheckCircle className="h-4 w-4 mr-1" /> {t('markReadyForPickup')}
-                        </Button>
-                      )}
-                      {canPartialFulfill && (
-                        <>
-                          <input
-                            type="text"
-                            placeholder={t('partialFulfillmentFeedback') || 'Unavailable medications...'}
-                            value={feedback}
-                            onChange={e => setFeedback(e.target.value)}
-                            className="border rounded px-2 py-1 text-sm"
-                            style={{ minWidth: 180 }}
-                          />
-                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange('partially_fulfilled')} size="sm" variant="outline">
-                            <AlertCircle className="h-4 w-4 mr-1" /> {t('markPartiallyFulfilled')}
-                          </Button>
-                        </>
-                      )}
-                      {canOutOfStock && (
-                        <>
-                          <input
-                            type="text"
-                            placeholder={t('outOfStockFeedback') || 'Out of stock medications...'}
-                            value={feedback}
-                            onChange={e => setFeedback(e.target.value)}
-                            className="border rounded px-2 py-1 text-sm"
-                            style={{ minWidth: 180 }}
-                          />
-                          <Button disabled={actionLoading || !feedback.trim()} onClick={() => handleStatusChange('out_of_stock')} size="sm" variant="destructive">
-                            <AlertCircle className="h-4 w-4 mr-1" /> {t('markOutOfStock')}
-                          </Button>
-                        </>
-                      )}
-                      {canComplete && (
-                        <Button disabled={actionLoading} onClick={() => handleStatusChange('completed')} size="sm" variant="default">
-                          <CheckCircle className="h-4 w-4 mr-1" /> {t('markCompleted')}
-                        </Button>
-                      )}
+                      {(() => {
+                        // Check if all medications are available
+                        const recordAvailability = medicationAvailability[record._id] || {};
+                        const allAvailable = medications.every((med: any) => recordAvailability[med.name] ?? true);
+                        const anyUnavailable = medications.some((med: any) => !(recordAvailability[med.name] ?? true));
+                        
+                        if (status === 'pending') {
+                          return (
+                            <>
+                              {allAvailable && (
+                                <Button 
+                                  disabled={actionLoading} 
+                                  onClick={() => handleStatusChange('confirmed')} 
+                                  size="sm" 
+                                  variant="default" 
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" /> {t('confirmOrder')}
+                                </Button>
+                              )}
+                              {anyUnavailable && (
+                                <>
+                                  <input
+                                    type="text"
+                                    placeholder={t('partialFulfillmentFeedback') || 'Unavailable medications...'}
+                                    value={feedback}
+                                    onChange={e => setFeedback(e.target.value)}
+                                    className="border rounded px-2 py-1 text-sm"
+                                    style={{ minWidth: 180 }}
+                                  />
+                                  <Button 
+                                    disabled={actionLoading || !feedback.trim()} 
+                                    onClick={() => handleStatusChange('partially_fulfilled')} 
+                                    size="sm" 
+                                    variant="outline"
+                                  >
+                                    <AlertCircle className="h-4 w-4 mr-1" /> {t('markPartiallyFulfilled')}
+                                  </Button>
+                                </>
+                              )}
+                              {medications.every((med: any) => !(recordAvailability[med.name] ?? true)) && (
+                                <>
+                                  <input
+                                    type="text"
+                                    placeholder={t('outOfStockFeedback') || 'Out of stock medications...'}
+                                    value={feedback}
+                                    onChange={e => setFeedback(e.target.value)}
+                                    className="border rounded px-2 py-1 text-sm"
+                                    style={{ minWidth: 180 }}
+                                  />
+                                  <Button 
+                                    disabled={actionLoading || !feedback.trim()} 
+                                    onClick={() => handleStatusChange('out_of_stock')} 
+                                    size="sm" 
+                                    variant="destructive"
+                                  >
+                                    <AlertCircle className="h-4 w-4 mr-1" /> {t('markOutOfStock')}
+                                  </Button>
+                                </>
+                              )}
+                            </>
+                          );
+                        } else if (['confirmed', 'partially_fulfilled'].includes(status)) {
+                          return (
+                            <Button 
+                              disabled={actionLoading} 
+                              onClick={() => handleStatusChange('ready_for_pickup')} 
+                              size="sm" 
+                              variant="default"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" /> {t('markReadyForPickup')}
+                            </Button>
+                          );
+                        } else if (status === 'ready_for_pickup') {
+                          return (
+                            <Button 
+                              disabled={actionLoading} 
+                              onClick={() => handleStatusChange('completed')} 
+                              size="sm" 
+                              variant="default"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" /> {t('markCompleted')}
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </Card>
                 );

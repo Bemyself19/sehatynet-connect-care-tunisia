@@ -6,6 +6,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   translationData?: object;
+  data?: object;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   isRead: boolean;
   readAt?: Date;
@@ -35,7 +36,12 @@ const notificationSchema = new Schema<INotification>({
       'appointment_reminder',
       'prescription_ready',
       'prescription_updated',
+      'prescription_confirmed',
       'lab_result_ready',
+      'lab_confirmed',
+      'lab_ready',
+      'imaging_confirmed',
+      'imaging_ready',
       'radiology_result_ready',
       'system_maintenance',
       'general',
@@ -55,6 +61,9 @@ const notificationSchema = new Schema<INotification>({
     maxlength: 1000
   },
   translationData: {
+    type: Object
+  },
+  data: {
     type: Object
   },
   priority: {

@@ -122,6 +122,19 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
                 }));
             }
         }
+        // Set initial status for medication items and ensure all details are preserved
+        if (type === 'medication') {
+            if (details && Array.isArray(details.medications)) {
+                details.medications = details.medications.map((med: any) => {
+                    // Make sure all fields are preserved and a status is added
+                    return {
+                        ...med, // Keep all existing fields (name, dosage, frequency, duration, instructions, etc.)
+                        status: med.status || 'pending',
+                        available: med.available !== undefined ? med.available : true
+                    };
+                });
+            }
+        }
         const medicalRecord = new MedicalRecord({
             patientId,
             providerId,
@@ -200,7 +213,7 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         // Lab notification
         if (providerId && type === 'lab_result') {
             try {
-                const actionUrl = `/dashboard/lab/results`;
+                const actionUrl = `/dashboard/lab/results?id=${medicalRecord._id}`;
                 const labNotificationPayload = {
                     userId: providerId,
                     type: 'lab_assignment',
@@ -223,7 +236,7 @@ export const createMedicalRecord = async (req: Request, res: Response): Promise<
         // Radiology notification
         if (providerId && type === 'imaging') {
             try {
-                const actionUrl = `/dashboard/radiologist/reports`;
+                const actionUrl = `/dashboard/radiologist/reports?id=${medicalRecord._id}`;
                 const radioNotificationPayload = {
                     userId: providerId,
                     type: 'radiology_assignment',
@@ -902,30 +915,84 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            
+            // Now populate the original prescribing doctor information
+            for (let record of records) {
+                if (record.details?.prescriptionId) {
+                    try {
+                        const Prescription = require('../models/prescription.model').default;
+                        const prescription = await Prescription.findById(record.details.prescriptionId)
+                            .populate('providerId', 'firstName lastName specialization');
+                        if (prescription) {
+                            (record as any).originalDoctor = prescription.providerId;
+                        }
+                    } catch (err) {
+                        console.error('Error populating original doctor for pharmacy record:', err);
+                    }
+                }
+            }
             console.log('[Pharmacy Dashboard] Raw records:', records);
         } else if (userRole === 'lab') {
             console.log('[Lab Dashboard] Query:', {
                 type: 'lab_result',
-                providerId: userId
+                "$or": [{ providerId: userId }, { 'details.assignedLabId': userId }]
             });
             records = await MedicalRecord.find({
                 type: 'lab_result',
-                providerId: userId
+                $or: [
+                    { providerId: userId },
+                    { 'details.assignedLabId': userId }
+                ]
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            
+            // Populate the original prescribing doctor information
+            for (let record of records) {
+                if (record.details?.prescriptionId) {
+                    try {
+                        const Prescription = require('../models/prescription.model').default;
+                        const prescription = await Prescription.findById(record.details.prescriptionId)
+                            .populate('providerId', 'firstName lastName specialization');
+                        if (prescription) {
+                            (record as any).originalDoctor = prescription.providerId;
+                        }
+                    } catch (err) {
+                        console.error('Error populating original doctor for lab record:', err);
+                    }
+                }
+            }
             console.log('[Lab Dashboard] Raw records:', records);
         } else if (userRole === 'radiologist') {
             console.log('[Radiologist Dashboard] Query:', {
                 type: 'imaging',
-                providerId: userId
+                "$or": [{ providerId: userId }, { 'details.assignedRadiologistId': userId }]
             });
             records = await MedicalRecord.find({
                 type: 'imaging',
-                providerId: userId
+                $or: [
+                    { providerId: userId },
+                    { 'details.assignedRadiologistId': userId }
+                ]
             })
             .populate('patientId', 'firstName lastName cnamId')
             .populate('providerId', 'firstName lastName specialization');
+            
+            // Populate the original prescribing doctor information
+            for (let record of records) {
+                if (record.details?.prescriptionId) {
+                    try {
+                        const Prescription = require('../models/prescription.model').default;
+                        const prescription = await Prescription.findById(record.details.prescriptionId)
+                            .populate('providerId', 'firstName lastName specialization');
+                        if (prescription) {
+                            (record as any).originalDoctor = prescription.providerId;
+                        }
+                    } catch (err) {
+                        console.error('Error populating original doctor for radiology record:', err);
+                    }
+                }
+            }
             console.log('[Radiologist Dashboard] Raw records:', records);
         }
         // Filter out records with missing required fields and log them
@@ -977,7 +1044,14 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
         const { id } = req.params;
         const userId = (req as any).user.id;
         const userRole = (req as any).user.role;
-        const { status, feedback, resultFileUrl, medications }: { status?: string; feedback?: string; resultFileUrl?: string; medications?: MedicationFulfillment[] } = req.body;
+        const { status, feedback, resultFileUrl, medications, tests, exams }: { 
+            status?: string; 
+            feedback?: string; 
+            resultFileUrl?: string; 
+            medications?: MedicationFulfillment[];
+            tests?: any[];
+            exams?: any[];
+        } = req.body;
         // Only providers can fulfill requests
         if (!['pharmacy', 'lab', 'radiologist'].includes(userRole)) {
             res.status(403).json({ message: 'Access denied' });
@@ -1002,9 +1076,67 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
             ready_for_pickup: ['completed', 'cancelled'],
         };
 
-        // If medications array is provided, update per-medication availability
+        // If medications array is provided, update per-medication availability and status
         if (Array.isArray(medications)) {
-            record.details.medications = medications;
+            console.log('[fulfillAssignedRequest] Medications received:', medications);
+            
+            // Check if we need to merge with existing medication details
+            if (record.details && Array.isArray(record.details.medications)) {
+                // Create a map of existing medications by name for fast lookup
+                const existingMedsMap: Record<string, any> = {};
+                record.details.medications.forEach((med: any) => {
+                    if (med && med.name) {
+                        existingMedsMap[med.name] = med;
+                    }
+                });
+                
+                // Update medications while preserving all details
+                record.details.medications = medications.map((m: any) => {
+                    const existing = m && m.name ? existingMedsMap[m.name] : undefined;
+                    // Determine the correct status based on availability and current operation
+                    let medStatus = existing?.status || 'pending';
+                    if (!m.available) {
+                        medStatus = 'unavailable';
+                    } else if (status === 'confirmed') {
+                        medStatus = 'confirmed';
+                    } else if (status === 'ready_for_pickup') {
+                        medStatus = 'ready_for_pickup';
+                    } else if (status === 'completed') {
+                        medStatus = 'completed';
+                    }
+                    
+                    // Make sure we have all the medication details
+                    return {
+                        name: m.name || existing?.name,
+                        dosage: m.dosage || existing?.dosage || '',
+                        frequency: m.frequency || existing?.frequency || '',
+                        duration: m.duration || existing?.duration || '',
+                        instructions: m.instructions || existing?.instructions || '',
+                        notes: m.notes || existing?.notes || '',
+                        available: m.available !== undefined ? m.available : true,
+                        status: medStatus,
+                        transactionId: m.transactionId || existing?.transactionId || undefined,
+                        // Additional fields if any
+                        ...existing, // Add any other fields we didn't explicitly handle
+                        ...m, // But still let incoming updates override
+                    };
+                });
+            } else {
+                // If no existing medications, ensure each has proper status and complete structure
+                record.details.medications = medications.map((m: any) => ({
+                    name: m.name || '',
+                    dosage: m.dosage || '',
+                    frequency: m.frequency || '',
+                    duration: m.duration || '',
+                    instructions: m.instructions || '',
+                    notes: m.notes || '',
+                    available: m.available !== undefined ? m.available : true,
+                    status: m.available ? (status || 'confirmed') : 'unavailable',
+                    transactionId: m.transactionId || undefined,
+                    ...m, // Include any other fields provided
+                }));
+            }
+            
             const allAvailable = medications.every((m: MedicationFulfillment) => m.available === true);
             const allUnavailable = medications.every((m: MedicationFulfillment) => m.available === false);
             if (record.status === 'pending') {
@@ -1017,6 +1149,58 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                     record.status = 'partially_fulfilled';
                     record.details.feedback = medications.filter((m: any) => !m.available).map((m: any) => m.name).join(', ');
                 }
+                record.markModified('details');
+            }
+        }
+        
+        // Update lab test statuses if specific tests were provided
+        if (record.type === 'lab_result' && record.details && Array.isArray(record.details.labTests)) {
+            // If specific test updates were provided, merge them
+            if (Array.isArray(tests)) {
+                const testMap: Record<string, any> = {};
+                record.details.labTests.forEach((test: any) => {
+                    if (test && (test.testName || test.name)) {
+                        testMap[test.testName || test.name] = test;
+                    }
+                });
+                
+                // Update tests with provided data
+                tests.forEach((t: any) => {
+                    const testName = t.testName || t.name;
+                    if (testName && testMap[testName]) {
+                        const existingTest = testMap[testName];
+                        Object.assign(existingTest, t);
+                        if (t.available !== undefined) {
+                            existingTest.status = t.available ? 'confirmed' : 'unavailable';
+                        }
+                    }
+                });
+                record.markModified('details');
+            }
+        }
+        
+        // Update radiology exam statuses if specific exams were provided
+        if (record.type === 'imaging' && record.details && Array.isArray(record.details.radiology)) {
+            // If specific exam updates were provided, merge them
+            if (Array.isArray(exams)) {
+                const examMap: Record<string, any> = {};
+                record.details.radiology.forEach((exam: any) => {
+                    if (exam && (exam.examName || exam.name)) {
+                        examMap[exam.examName || exam.name] = exam;
+                    }
+                });
+                
+                // Update exams with provided data
+                exams.forEach((e: any) => {
+                    const examName = e.examName || e.name;
+                    if (examName && examMap[examName]) {
+                        const existingExam = examMap[examName];
+                        Object.assign(existingExam, e);
+                        if (e.available !== undefined) {
+                            existingExam.status = e.available ? 'confirmed' : 'unavailable';
+                        }
+                    }
+                });
                 record.markModified('details');
             }
         }
@@ -1042,7 +1226,58 @@ export const fulfillAssignedRequest = async (req: Request, res: Response): Promi
                 record.details.feedback = '';
                 record.markModified('details');
             }
-            // If pharmacist sets confirmed, do nothing (already handled above)
+
+            // Update lab test statuses when record status changes
+            if (record.type === 'lab_result' && record.details && Array.isArray(record.details.labTests)) {
+                record.details.labTests = record.details.labTests.map((test: any) => {
+                    let testStatus = test.status || 'pending';
+                    if (status === 'confirmed') {
+                        testStatus = 'confirmed';
+                    } else if (status === 'ready_for_pickup') {
+                        testStatus = 'ready_for_pickup';
+                    } else if (status === 'completed') {
+                        testStatus = 'completed';
+                    }
+                    
+                    return {
+                        ...test,
+                        status: testStatus
+                    };
+                });
+                record.markModified('details');
+            }
+            
+            // Update radiology exam statuses when record status changes
+            if (record.type === 'imaging' && record.details && Array.isArray(record.details.radiology)) {
+                record.details.radiology = record.details.radiology.map((exam: any) => {
+                    let examStatus = exam.status || 'pending';
+                    if (status === 'confirmed') {
+                        examStatus = 'confirmed';
+                    } else if (status === 'ready_for_pickup') {
+                        examStatus = 'ready_for_pickup';
+                    } else if (status === 'completed') {
+                        examStatus = 'completed';
+                    }
+                    
+                    return {
+                        ...exam,
+                        status: examStatus
+                    };
+                });
+                record.markModified('details');
+            }
+            
+            // If pharmacist sets confirmed, also update medication statuses
+            if (status === 'confirmed' && record.type === 'prescription' && record.details && Array.isArray(record.details.medications)) {
+                record.details.medications = record.details.medications.map((med: any) => {
+                    return {
+                        ...med,
+                        status: med.available !== false ? 'confirmed' : 'unavailable'
+                    };
+                });
+                record.markModified('details');
+            }
+            
             record.status = status as typeof record.status;
         }
         // Allow updating feedback if provided (for patient acceptance)
