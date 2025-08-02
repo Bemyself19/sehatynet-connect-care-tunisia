@@ -16,7 +16,7 @@ export interface MedicalRecord {
   tags: string[];
   createdAt: string;
   updatedAt: string;
-  status?: string;
+  status?: 'not_requested' | 'pending' | 'confirmed' | 'ready_for_pickup' | 'completed' | 'cancelled' | 'partially_fulfilled' | 'out_of_stock' | 'pending_patient_confirmation';
   prescriptionId?: string;
   files?: { filename: string; url: string; mimetype: string; uploadedAt?: string }[];
   report?: Record<string, any>;
