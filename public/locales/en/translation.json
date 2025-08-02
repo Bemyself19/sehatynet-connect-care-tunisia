@@ -152,6 +152,7 @@
   "searchRequests": "Search requests...",
   "noLabRequests": "No Lab Requests",
   "noLabTestRequestsFound": "No lab test requests found.",
+  "prescribedBy": "Prescribed by",
   "requested": "Requested",
   "uploadResults": "Upload Results",
   "uploadLabResults": "Upload Lab Results",

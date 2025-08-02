@@ -925,6 +925,9 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
                             .populate('providerId', 'firstName lastName specialization');
                         if (prescription) {
                             (record as any).originalDoctor = prescription.providerId;
+                            // Also store in details for better serialization through API
+                            if (!record.details) record.details = {};
+                            record.details.originalDoctor = prescription.providerId;
                         }
                     } catch (err) {
                         console.error('Error populating original doctor for pharmacy record:', err);
@@ -956,6 +959,9 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
                             .populate('providerId', 'firstName lastName specialization');
                         if (prescription) {
                             (record as any).originalDoctor = prescription.providerId;
+                            // Also store in details for better serialization through API
+                            if (!record.details) record.details = {};
+                            record.details.originalDoctor = prescription.providerId;
                         }
                     } catch (err) {
                         console.error('Error populating original doctor for lab record:', err);
@@ -987,6 +993,9 @@ export const getAssignedRequests = async (req: Request, res: Response): Promise<
                             .populate('providerId', 'firstName lastName specialization');
                         if (prescription) {
                             (record as any).originalDoctor = prescription.providerId;
+                            // Also store in details for better serialization through API
+                            if (!record.details) record.details = {};
+                            record.details.originalDoctor = prescription.providerId;
                         }
                     } catch (err) {
                         console.error('Error populating original doctor for radiology record:', err);

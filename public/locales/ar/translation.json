@@ -172,6 +172,7 @@
   "searchRequests": "البحث في الطلبات...",
   "noLabRequests": "لا توجد طلبات مختبر",
   "noLabTestRequestsFound": "لم يتم العثور على طلبات اختبارات مختبر.",
+  "prescribedBy": "وصفها الطبيب",
   "requested": "مطلوب",
   "uploadResults": "تحميل النتائج",
   "uploadLabResults": "تحميل نتائج المختبر",

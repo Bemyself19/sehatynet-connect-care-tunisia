@@ -316,11 +316,19 @@ const RadiologistReports: React.FC = () => {
                         <div className="font-semibold text-lg">{record.title || t('imagingRequest')}</div>
                         <div className="text-sm text-gray-600">{record.patientId?.firstName} {record.patientId?.lastName}</div>
                         <div className="text-xs text-gray-500">{t('date')}: {new Date(record.date).toLocaleDateString()}</div>
-                        {/* Original prescribing doctor */}
-                        {(record as any).originalDoctor && (
-                          <div className="text-xs text-blue-600 mt-1">
-                            {t('requestedBy')}: Dr. {(record as any).originalDoctor.firstName} {(record as any).originalDoctor.lastName}
-                            {(record as any).originalDoctor.specialization && ` (${(record as any).originalDoctor.specialization})`}
+                        {/* Original prescribing doctor - check both record.originalDoctor and record.details?.originalDoctor */}
+                        {((record as any).originalDoctor || record.details?.originalDoctor) && (
+                          <div className="text-sm text-blue-600 mt-1">
+                            {t('prescribedBy', 'Prescribed by')}: Dr. {
+                              (record as any).originalDoctor 
+                                ? `${(record as any).originalDoctor.firstName} ${(record as any).originalDoctor.lastName}`
+                                : record.details?.originalDoctor 
+                                  ? `${record.details.originalDoctor.firstName} ${record.details.originalDoctor.lastName}`
+                                  : ''
+                            }
+                            {((record as any).originalDoctor?.specialization || record.details?.originalDoctor?.specialization) && 
+                              ` (${(record as any).originalDoctor?.specialization || record.details?.originalDoctor?.specialization})`
+                            }
                           </div>
                         )}
                       </div>

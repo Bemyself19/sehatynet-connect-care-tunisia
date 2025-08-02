@@ -28,6 +28,8 @@ const PharmacyPrescriptions: React.FC = () => {
     setLoading(true);
     api.getAssignedRequests()
       .then((data) => {
+        console.log('API response from getAssignedRequests:', data);
+        console.log('Original doctor data:', data.map(record => record.originalDoctor || 'No doctor data'));
         setAssignedRequests(data);
         
         // Initialize medication availability state from fetched data
@@ -411,11 +413,19 @@ const PharmacyPrescriptions: React.FC = () => {
                         <div className="font-semibold text-lg">{record.title || t('prescription')}</div>
                         <div className="text-sm text-gray-600">{record.patientId?.firstName} {record.patientId?.lastName}</div>
                         <div className="text-xs text-gray-500">{t('date')}: {new Date(record.date).toLocaleDateString()}</div>
-                        {/* Doctor information */}
-                        {(record as any).originalDoctor && (
+                        {/* Doctor information - check both record.originalDoctor and record.details?.originalDoctor */}
+                        {((record as any).originalDoctor || record.details?.originalDoctor) && (
                           <div className="text-sm text-blue-600 mt-1">
-                            {t('requestedBy')}: Dr. {(record as any).originalDoctor.firstName} {(record as any).originalDoctor.lastName}
-                            {(record as any).originalDoctor.specialization && ` (${(record as any).originalDoctor.specialization})`}
+                            {t('prescribedBy', 'Prescribed by')}: Dr. {
+                              (record as any).originalDoctor 
+                                ? `${(record as any).originalDoctor.firstName} ${(record as any).originalDoctor.lastName}`
+                                : record.details?.originalDoctor 
+                                  ? `${record.details.originalDoctor.firstName} ${record.details.originalDoctor.lastName}`
+                                  : ''
+                            }
+                            {((record as any).originalDoctor?.specialization || record.details?.originalDoctor?.specialization) && 
+                              ` (${(record as any).originalDoctor?.specialization || record.details?.originalDoctor?.specialization})`
+                            }
                           </div>
                         )}
                       </div>

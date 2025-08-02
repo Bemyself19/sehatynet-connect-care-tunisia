@@ -119,6 +119,7 @@
   "searchRequests": "Rechercher des demandes...",
   "noLabRequests": "Aucune Demande de Laboratoire",
   "noLabTestRequestsFound": "Aucune demande de test de laboratoire trouvée.",
+  "prescribedBy": "Prescrit par",
   "requested": "Demandé",
   "uploadResults": "Télécharger les Résultats",
   "uploadLabResults": "Télécharger les Résultats de Laboratoire",

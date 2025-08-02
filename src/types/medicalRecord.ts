@@ -21,6 +21,7 @@ export interface MedicalRecord {
   files?: { filename: string; url: string; mimetype: string; uploadedAt?: string }[];
   report?: Record<string, any>;
   feedback?: string;
+  originalDoctor?: User;
 }
 
 export interface CreateMedicalRecordData {
