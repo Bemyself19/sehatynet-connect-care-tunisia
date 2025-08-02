@@ -15,7 +15,10 @@ import {
   assignProviderToSection,
   uploadLabRadiologyReport,
   getMedicalRecordsByPrescriptionId,
-  fulfillAssignedRequest
+  fulfillAssignedRequest,
+  reassignPharmacyForMedicalRecord,
+  reassignLabForMedicalRecord,
+  reassignRadiologistForMedicalRecord
 } from "../controllers/medicalRecord.controller";
 import { authenticateJWT } from "../middleware/auth";
 import { authorizeRoles } from "../middleware/roles";
@@ -82,6 +85,15 @@ import { cancelMedicalRecordRequest, confirmPartialFulfillment } from "../contro
 router.patch("/:id/cancel", authenticateJWT, cancelMedicalRecordRequest);
 // Confirm partial fulfillment
 router.post("/:id/confirm-partial", authenticateJWT, confirmPartialFulfillment);
+
+// Reassign pharmacy for a medical record
+router.post("/:id/reassign-pharmacy", authenticateJWT, reassignPharmacyForMedicalRecord);
+
+// Reassign lab for a medical record
+router.post("/:id/reassign-lab", authenticateJWT, reassignLabForMedicalRecord);
+
+// Reassign radiologist for a medical record
+router.post("/:id/reassign-radiologist", authenticateJWT, reassignRadiologistForMedicalRecord);
 
 // Get medical records by prescription ID
 router.get("/by-prescription/:prescriptionId", authenticateJWT, getMedicalRecordsByPrescriptionId);

@@ -1535,6 +1535,19 @@ export const reassignPharmacyForMedicalRecord = async (req: Request, res: Respon
         if (!record.details) record.details = {};
         record.details.assignedPharmacyId = pharmacyId;
         record.status = 'pending';
+        
+        // Reset medication availability status
+        if (record.details && record.details.medications && Array.isArray(record.details.medications)) {
+            record.details.medications = record.details.medications.map((med: any) => {
+                // Keep all original properties but reset availability status
+                return {
+                    ...med,
+                    available: true,
+                    status: 'pending'
+                };
+            });
+        }
+        
         // Clear feedback and any fulfillment info
         record.details.feedback = '';
         record.details.resultFileUrl = '';
@@ -1544,6 +1557,134 @@ export const reassignPharmacyForMedicalRecord = async (req: Request, res: Respon
     } catch (err) {
         console.error('Reassign pharmacy error:', err);
         res.status(500).json({ message: 'Failed to reassign pharmacy', error: err });
+    }
+};
+
+/**
+ * Reassign a lab test to a different lab
+ * @route POST /api/medical-records/:id/reassign-lab
+ */
+export const reassignLabForMedicalRecord = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { labId } = req.body;
+        const userId = (req as any).user.id;
+        const record = await MedicalRecord.findById(id);
+        
+        if (!record) {
+            res.status(404).json({ message: 'Medical record not found' });
+            return;
+        }
+        
+        // Only the patient can reassign
+        if (record.patientId.toString() !== userId) {
+            res.status(403).json({ message: 'Only the patient can reassign this request' });
+            return;
+        }
+        
+        // Only allowed if status is partially_fulfilled or out_of_stock
+        if (!['partially_fulfilled', 'out_of_stock'].includes(record.status)) {
+            res.status(400).json({ message: `Cannot reassign a request with status '${record.status}'` });
+            return;
+        }
+        
+        if (!labId) {
+            res.status(400).json({ message: 'labId is required' });
+            return;
+        }
+        
+        // Update the existing record
+        record.providerId = labId;
+        if (!record.details) record.details = {};
+        record.details.assignedLabId = labId;
+        record.status = 'pending';
+        
+        // Reset lab test availability status
+        if (record.details && record.details.labTests && Array.isArray(record.details.labTests)) {
+            record.details.labTests = record.details.labTests.map((test: any) => {
+                // Keep all original properties but reset availability status
+                return {
+                    ...test,
+                    available: true,
+                    status: 'pending'
+                };
+            });
+        }
+        
+        // Clear feedback and any fulfillment info
+        record.details.feedback = '';
+        record.details.resultFileUrl = '';
+        record.markModified('details');
+        await record.save();
+        
+        res.json({ message: 'Lab reassigned and request reset to pending', medicalRecord: record });
+    } catch (err) {
+        console.error('Reassign lab error:', err);
+        res.status(500).json({ message: 'Failed to reassign lab', error: err });
+    }
+};
+
+/**
+ * Reassign a radiology exam to a different radiologist
+ * @route POST /api/medical-records/:id/reassign-radiologist
+ */
+export const reassignRadiologistForMedicalRecord = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { radiologistId } = req.body;
+        const userId = (req as any).user.id;
+        const record = await MedicalRecord.findById(id);
+        
+        if (!record) {
+            res.status(404).json({ message: 'Medical record not found' });
+            return;
+        }
+        
+        // Only the patient can reassign
+        if (record.patientId.toString() !== userId) {
+            res.status(403).json({ message: 'Only the patient can reassign this request' });
+            return;
+        }
+        
+        // Only allowed if status is partially_fulfilled or out_of_stock
+        if (!['partially_fulfilled', 'out_of_stock'].includes(record.status)) {
+            res.status(400).json({ message: `Cannot reassign a request with status '${record.status}'` });
+            return;
+        }
+        
+        if (!radiologistId) {
+            res.status(400).json({ message: 'radiologistId is required' });
+            return;
+        }
+        
+        // Update the existing record
+        record.providerId = radiologistId;
+        if (!record.details) record.details = {};
+        record.details.assignedRadiologistId = radiologistId;
+        record.status = 'pending';
+        
+        // Reset radiology exam availability status
+        if (record.details && record.details.radiology && Array.isArray(record.details.radiology)) {
+            record.details.radiology = record.details.radiology.map((exam: any) => {
+                // Keep all original properties but reset availability status
+                return {
+                    ...exam,
+                    available: true,
+                    status: 'pending'
+                };
+            });
+        }
+        
+        // Clear feedback and any fulfillment info
+        record.details.feedback = '';
+        record.details.resultFileUrl = '';
+        record.markModified('details');
+        await record.save();
+        
+        res.json({ message: 'Radiologist reassigned and request reset to pending', medicalRecord: record });
+    } catch (err) {
+        console.error('Reassign radiologist error:', err);
+        res.status(500).json({ message: 'Failed to reassign radiologist', error: err });
     }
 };
 
