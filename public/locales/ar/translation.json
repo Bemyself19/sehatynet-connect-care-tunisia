@@ -195,6 +195,7 @@
   "ready": "جاهز",
   "noPendingRequests": "لا توجد طلبات معلقة",
   "processing": "جاري المعالجة...",
+  "reassigning": "جاري إعادة التعيين...",
   "markReady": "تحديد كجاهز",
   "partial": "جزئي",
   "noReadyRequests": "لا توجد طلبات جاهزة",
